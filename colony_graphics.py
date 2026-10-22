@@ -47,6 +47,15 @@ def resolve_colony_graphic(colony, asset_dir=None, population=None):
     return ColonyGraphic(key,population,size,tier,image if image.is_file() else None)
 
 
+def preview_colony_large(graphic, asset_dir=None):
+    """Return a temporary artwork-only override without changing savegame state."""
+    from dataclasses import replace
+    directory=Path(asset_dir) if asset_dir is not None else Path(__file__).resolve().parent/"assets"/"colonies"
+    image=directory/"colony_large.png"
+    return replace(graphic, key="colony_large", size="large",
+                   fortification="colony", image_path=image if image.is_file() else None)
+
+
 def draw_colony_placeholder(canvas, px, py, width, height, graphic):
     """High-contrast visual placeholder; not part of final 12-artwork set."""
     w=max(15,width*.38);h=max(12,height*.50)
