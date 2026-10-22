@@ -14,6 +14,13 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 - **Current development series:** 0.6. Terrain editing is not yet enabled.
 - **Immediate next milestone:** **v0.6.2.6.4** — native-look road and river graphics. Requires verifying FreeCol renderer semantics; do not falsely claim pixel-perfect support.
 
+## Application startup and navigation — planned usability refinement
+- **Default post-load selection:** After an `.fsg` file is successfully loaded, open the **Players** view and automatically select the human-controlled player.
+- Determine the human player from authoritative savegame data rather than relying on player order or a hard-coded identifier.
+- If no unique human player can be identified, use a safe, clearly defined fallback without selecting an arbitrary player.
+- Add regression tests for successful loads, missing/ambiguous human-player data, and switching between savegames.
+- **Status:** Planned; no application behaviour change in this documentation-only update.
+
 ## 0.6 — Terrain viewer and editing
 | Milestone | Goal | Status |
 |---|---|---|
