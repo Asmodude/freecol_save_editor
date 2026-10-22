@@ -3,6 +3,7 @@
 Original, nation-neutral artwork can be supplied in assets/colonies/.
 The resolver never changes a FreeCol savegame.
 """
+from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
