@@ -6,6 +6,13 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Better Colony Graphics — development prototype (not accepted)
+- Added a nation-neutral twelve-state colony image resolver (size × fortification).
+- Added optional transparent-PNG artwork loading from `assets/colonies/` and visible placeholder markers.
+- Added unit tests and an asset specification for the potential Better Colony Graphics mod.
+- Population and fortification resolution await validation on real FreeCol saves.
+
+
 ### v0.6.2.6.3 — Isometric 9x9 area projection
 - Replace the 9x9 rectangle of saved coordinates with a local neighbourhood along the NE and SE screen axes.
 - Derive both tile placements and viewport dimensions from the same diamond geometry, avoiding wide ribbons or floating diamonds.
