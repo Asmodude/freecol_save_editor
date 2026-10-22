@@ -6,7 +6,7 @@ class MapEditorWindow(tk.Toplevel):
     def __init__(self, app):
         super().__init__(app)
         self.app=app
-        self.title('FreeCol Save Editor v0.6.2.6.2 — Map Editor (READ ONLY)')
+        self.title('FreeCol Save Editor v0.6.2.6.3 — Map Editor (READ ONLY)')
         self.geometry('1120x780')
         self.minsize(760,480)
         self.center_x=tk.StringVar(value=str(getattr(app,'terrain_center',(67,110))[0]))
@@ -56,20 +56,17 @@ class MapEditorWindow(tk.Toplevel):
         self.canvas.delete('all');self.regions=[];self.images=[]
         if not hasattr(self,'cx'):return
         width=max(self.canvas.winfo_width(),100);height=max(self.canvas.winfo_height(),100)
-        tw=max(4,int(min((width-48)/9.7,(height-48)/4.85)))
+        # Project a 9x9 neighborhood along the two isometric diagonal axes.
+        # Screen basis: SE=(W/2,H/2), NE=(W/2,-H/2).
+        tw=max(4,min((width-40)/9.05, (height-40)*2/9.05))
         th=tw/2
         mx=width/2;my=height/2
-        # FreeCol uses a staggered-row isometric grid: the next map row is
-        # horizontally offset by half a tile width and vertically by HALF a
-        # diamond height. The same lattice defines selection hit-testing.
-        for dy in range(-4,5):
-            y=self.cy+dy
-            for dx in range(-4,5):
-                x=self.cx+dx
+        from map_geometry import map_grid
+        for r,c,x,y in map_grid(self.cx,self.cy):
                 tile=self.app.terrain_by_xy.get((x,y))
                 if tile is None:continue
-                px=mx+dx*tw+((y&1)-(self.cy&1))*tw/2
-                py=my+dy*th/2
+                px=mx+(r+c)*tw/2
+                py=my+(r-c)*th/2
                 polygon=[px,py-th/2,px+tw/2,py,px,py+th/2,px-tw/2,py]
                 self.canvas.create_polygon(polygon,fill='#7f8f78',outline='#526856',width=1)
                 img=self.app.terrain_art.get(tile.get('type'),int(tw),int(th))
