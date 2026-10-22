@@ -32,6 +32,12 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 - Precise clickable tile boundaries and resizing in 9- and 81-tile views
 - Native road and river appearance compared with user-supplied FreeCol screenshots
 
+### Custom settlement artwork — separate development initiative
+- Prototype twelve nation-neutral replacement images: colony/stockade/fort/fortress × small/medium/large.
+- Preserve distinct artwork per state, no national variants or fortification overlays.
+- Validate population/fortification mapping before commission of final original artwork.
+- Later prepare independent Better Colony Graphics mod if asset quality and FreeCol packaging permit.
+
 ## 0.7 — European colony management
 | Milestone | Goal | Status |
 |---|---|---|
