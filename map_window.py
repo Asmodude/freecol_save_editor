@@ -6,7 +6,7 @@ class MapEditorWindow(tk.Toplevel):
     def __init__(self, app):
         super().__init__(app)
         self.app=app
-        self.title('FreeCol Save Editor v0.6.2.6.1 — Map Editor (READ ONLY)')
+        self.title('FreeCol Save Editor v0.6.2.6.2 — Map Editor (READ ONLY)')
         self.geometry('1120x780')
         self.minsize(760,480)
         self.center_x=tk.StringVar(value=str(getattr(app,'terrain_center',(67,110))[0]))
@@ -59,9 +59,9 @@ class MapEditorWindow(tk.Toplevel):
         tw=max(4,int(min((width-48)/9.7,(height-48)/4.85)))
         th=tw/2
         mx=width/2;my=height/2
-        # Each increment of map Y advances one full diamond height in the
-        # isometric viewport. Odd rows shift right by half a tile width.
-        # A two-row north/south move thus spans two diamond heights.
+        # FreeCol uses a staggered-row isometric grid: the next map row is
+        # horizontally offset by half a tile width and vertically by HALF a
+        # diamond height. The same lattice defines selection hit-testing.
         for dy in range(-4,5):
             y=self.cy+dy
             for dx in range(-4,5):
@@ -69,7 +69,7 @@ class MapEditorWindow(tk.Toplevel):
                 tile=self.app.terrain_by_xy.get((x,y))
                 if tile is None:continue
                 px=mx+dx*tw+((y&1)-(self.cy&1))*tw/2
-                py=my+dy*th
+                py=my+dy*th/2
                 polygon=[px,py-th/2,px+tw/2,py,px,py+th/2,px-tw/2,py]
                 self.canvas.create_polygon(polygon,fill='#7f8f78',outline='#526856',width=1)
                 img=self.app.terrain_art.get(tile.get('type'),int(tw),int(th))
