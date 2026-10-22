@@ -121,24 +121,24 @@ class MapEditorWindow(tk.Toplevel):
         # Compositing order matters: terrain and tile features can otherwise
         # paint over earlier colony sprites, resembling a clipped PNG.
         for px,py,tw,th,graphic in colony_layers:
-                    rendered=False
-                    if graphic.image_path and Image is not None:
-                        try:
-                            with Image.open(graphic.image_path) as original:
-                                sprite=original.convert('RGBA')
-                            # Artwork-only scaling experiment: 40% larger than the pilot.
-                            factor=min(tw*.952/sprite.width, th*1.792/sprite.height)
-                            target=(max(1,round(sprite.width*factor)),max(1,round(sprite.height*factor)))
-                            sprite=sprite.resize(target,Image.Resampling.LANCZOS)
-                            tk_image=ImageTk.PhotoImage(sprite,master=self)
-                            self.images.append(tk_image)
-                            # Raise the centre slightly while leaving terrain/tile geometry intact.
-                            self.canvas.create_image(px,py-th*.08,image=tk_image)
-                            rendered=True
-                        except (OSError,ValueError):
-                            pass
-                    if not rendered:
-                        draw_colony_placeholder(self.canvas,px,py,tw,th,graphic)
+            rendered=False
+            if graphic.image_path and Image is not None:
+                try:
+                    with Image.open(graphic.image_path) as original:
+                        sprite=original.convert('RGBA')
+                    # Artwork-only scaling experiment: 40% larger than the pilot.
+                    factor=min(tw*.952/sprite.width, th*1.792/sprite.height)
+                    target=(max(1,round(sprite.width*factor)),max(1,round(sprite.height*factor)))
+                    sprite=sprite.resize(target,Image.Resampling.LANCZOS)
+                    tk_image=ImageTk.PhotoImage(sprite,master=self)
+                    self.images.append(tk_image)
+                    # Raise the centre slightly while leaving terrain/tile geometry intact.
+                    self.canvas.create_image(px,py-th*.08,image=tk_image)
+                    rendered=True
+                except (OSError,ValueError):
+                    pass
+            if not rendered:
+                draw_colony_placeholder(self.canvas,px,py,tw,th,graphic)
         if selected_outline is not None:
             self.canvas.create_polygon(selected_outline,fill='',outline='#ff23ad',width=3)
 
