@@ -101,12 +101,14 @@ class MapEditorWindow(tk.Toplevel):
                         try:
                             with Image.open(graphic.image_path) as original:
                                 sprite=original.convert('RGBA')
-                            factor=min(tw*.68/sprite.width, th*1.28/sprite.height)
+                            # Artwork-only scaling experiment: 40% larger than the pilot.
+                            factor=min(tw*.952/sprite.width, th*1.792/sprite.height)
                             target=(max(1,round(sprite.width*factor)),max(1,round(sprite.height*factor)))
                             sprite=sprite.resize(target,Image.Resampling.LANCZOS)
                             tk_image=ImageTk.PhotoImage(sprite,master=self)
                             self.images.append(tk_image)
-                            self.canvas.create_image(px,py,image=tk_image)
+                            # Raise the centre slightly while leaving terrain/tile geometry intact.
+                            self.canvas.create_image(px,py-th*.08,image=tk_image)
                             rendered=True
                         except (OSError,ValueError):
                             pass
