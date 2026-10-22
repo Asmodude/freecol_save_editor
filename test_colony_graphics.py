@@ -10,7 +10,7 @@ class ColonyGraphicsTests(unittest.TestCase):
         for i in range(population):
             ET.SubElement(e,"unit",{"id":f"unit:{i}"})
         if building:
-            ET.SubElement(e,"building",{"type":"model.building."+building})
+            ET.SubElement(e,"building",{"buildingType":"model.building."+building})
         return e
 
     def test_all_twelve_states(self):
@@ -28,8 +28,23 @@ class ColonyGraphicsTests(unittest.TestCase):
 
     def test_fortification_highest_tier(self):
         e=self.colony(9,"stockade")
-        ET.SubElement(e,"building",{"type":"model.building.fortress"})
+        ET.SubElement(e,"building",{"buildingType":"model.building.fortress"})
         self.assertEqual(resolve_colony_graphic(e).key,"fortress_large")
+
+    def test_real_savegame_building_type_attribute(self):
+        # Morten(5).fsg: both colonies have six working units; Christiansborg
+        # has a fort, while Frederiksborg has no fortification building.
+        unfortified=self.colony(6)
+        fortified=self.colony(6,"fort")
+        self.assertEqual(resolve_colony_graphic(unfortified).key,"colony_medium")
+        self.assertEqual(resolve_colony_graphic(fortified).key,"fort_medium")
+
+    def test_missing_fort_art_does_not_fall_back_to_unfortified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp)/"colony_medium.png").write_bytes(b"dummy")
+            resolved=resolve_colony_graphic(self.colony(6,"fort"),asset_dir=tmp)
+            self.assertEqual(resolved.key,"fort_medium")
+            self.assertIsNone(resolved.image_path)
 
     def test_asset_lookup(self):
         with tempfile.TemporaryDirectory() as tmp:

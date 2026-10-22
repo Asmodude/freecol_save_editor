@@ -39,7 +39,7 @@ def resolve_colony_graphic(colony, asset_dir=None, population=None):
     size=population_size(population)
     rank=0
     for element in colony.iter("building"):
-        rank=max(rank,FORT_RANK.get(element.get("type"),0))
+        rank=max(rank,FORT_RANK.get(element.get("buildingType"),0))
     tier=TIERS[rank]
     key=f"{tier}_{size}"
     directory=Path(asset_dir) if asset_dir is not None else Path(__file__).resolve().parent/"assets"/"colonies"
