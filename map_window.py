@@ -21,6 +21,7 @@ class MapEditorWindow(tk.Toplevel):
         self.images=[]
         self.colonies_by_tile={c.get('tile'):c for c in app.records.get('Colonies',[])}
         self.preview_large=tk.BooleanVar(value=False)
+        self.show_selection_outline=tk.BooleanVar(value=False)
         top=ttk.Frame(self,padding=8);top.pack(fill='x')
         ttk.Label(top,text='Map centre X:').pack(side='left')
         ttk.Entry(top,textvariable=self.center_x,width=8).pack(side='left',padx=(4,14))
@@ -30,6 +31,8 @@ class MapEditorWindow(tk.Toplevel):
         ttk.Button(top,text='Lake test (67,110)',command=lambda:self.goto(67,110)).pack(side='left',padx=4)
         ttk.Checkbutton(top,text='TEST: show colony_large on selected colony',
                         variable=self.preview_large,command=self.refresh_preview).pack(side='left',padx=(14,4))
+        ttk.Checkbutton(top,text='Show selected tile outline',
+                        variable=self.show_selection_outline,command=self.paint).pack(side='left',padx=(8,4))
         ttk.Label(self,text='Read-only map survey · select a tile for details · colony tiles can be opened in the main editor',foreground='#286d44').pack(anchor='w',padx=12)
         area=ttk.PanedWindow(self,orient='horizontal');area.pack(fill='both',expand=True,padx=8,pady=8)
         left=ttk.Frame(area);right=ttk.Frame(area)
@@ -139,7 +142,7 @@ class MapEditorWindow(tk.Toplevel):
                     pass
             if not rendered:
                 draw_colony_placeholder(self.canvas,px,py,tw,th,graphic)
-        if selected_outline is not None:
+        if self.show_selection_outline.get() and selected_outline is not None:
             self.canvas.create_polygon(selected_outline,fill='',outline='#ff23ad',width=3)
 
     def on_click(self,event):
