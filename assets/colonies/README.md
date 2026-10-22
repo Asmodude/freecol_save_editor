@@ -1,6 +1,15 @@
 # Better Colony Graphics — asset specification
 
-**Status:** technical foundation / placeholder-only development prototype.
+**Status:** Design Direction Sheet Version 3 approved 2026-10-22. Individual asset approval and map-viewer acceptance remain separate. The approved concept image is intended to be stored at `assets/colonies/design/Better_Colony_Graphics_Design_Direction_v3.png` (upload pending).
+
+## Authoritative art direction — Version 3
+- Early Boston / New England colonial architecture; hand-painted three-quarter-isometric strategy-game illustrations, neutral across nations.
+- **Geography-neutral:** no coastlines, docks, boats, shoreline/water, or fixed terrain features baked into any core settlement sprite. Future harbour decorations must be separately placed using actual terrain geography.
+- **Colony:** unfortified buildings and courtyards; **Stockade:** vertical palisades; **Fort:** unmistakable earthworks with exterior horizontal timber revetments and low, sloped embankments inspired by Fort William Henry; **Fortress:** massive permanent stone masonry.
+- At ~80–120 px, `fort_large` must not resemble `fortress_small`; silhouettes and building materials must differ clearly.
+- Full artwork must fit inside the PNG with genuine transparent margins, consistent camera perspective and an appropriate anchor; verify these per production asset against FreeCol's rendered map.
+- The earlier harbour-bearing `colony_large.png` is **superseded pending a geography-neutral replacement**. Keep the file as a test/reference until the replacement has passed map-scale inspection; do not treat it as approved final artwork.
+- This concept approval does not imply the remaining eleven production PNGs are accepted or fully implemented.
 
 The planned nation-neutral artwork consists of twelve complete replacement images. Fortification level is **baked into** each sprite (never composed as an overlay):
 
@@ -24,7 +33,7 @@ The planned nation-neutral artwork consists of twelve complete replacement image
 - The initial population reader counts nested worker `unit` objects; confirm against FreeCol's `getApparentUnitCount()` in actual saves before acceptance.
 - The stockade/fort/fortress detection scans building type IDs and chooses the highest tier found.
 - Missing PNGs are represented by an unmistakable high-contrast **placeholder marker**.
-- A later integration step will load `assets/colonies/{key}.png`, scale it without distortion, and draw it rather than the placeholder.
+- The development Map Editor currently loads available `assets/colonies/{key}.png` images with Pillow, scales them without distortion, and uses a placeholder where missing.
 - Native settlements require separate treatment and are outside this first implementation.
 
 ## Validation
