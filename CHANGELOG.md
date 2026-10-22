@@ -6,6 +6,11 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### v0.6.2.6.1 — 9×9 local map spacing fix
+- Corrected vertical spacing between staggered rows so the 81-tile viewport is no longer compressed into a ribbon.
+- Kept coordinate lookup, read-only mode and selection hit testing unchanged.
+- Awaiting Windows acceptance testing.
+
 ### v0.6.2.6 — Standalone Map Editor preview
 - Introduced a separate, initially read-only 9 × 9 map window with coordinate navigation, tile selection and an inspector.
 - Added a Go to colony action for selected European-colony tiles.
