@@ -76,6 +76,8 @@ class MapEditorWindow(tk.Toplevel):
 
     def paint(self):
         self.canvas.delete('all');self.regions=[];self.images=[]
+        colony_layers=[]
+        selected_outline=None
         if not hasattr(self,'cx'):return
         width=max(self.canvas.winfo_width(),100);height=max(self.canvas.winfo_height(),100)
         # Project a 9x9 neighborhood along the two isometric diagonal axes.
@@ -111,7 +113,14 @@ class MapEditorWindow(tk.Toplevel):
                     if art:self.images.append(art);self.canvas.create_image(px,py,image=art)
                 colony=self.colonies_by_tile.get(tile.get('id'))
                 if colony is not None:
-                    graphic=self.graphic_for_tile(colony,x,y)
+                    colony_layers.append((px,py,tw,th,self.graphic_for_tile(colony,x,y)))
+                if (x,y)==self.selected:
+                    selected_outline=polygon
+                self.regions.append((x,y,px,py,tw,th))
+
+        # Compositing order matters: terrain and tile features can otherwise
+        # paint over earlier colony sprites, resembling a clipped PNG.
+        for px,py,tw,th,graphic in colony_layers:
                     rendered=False
                     if graphic.image_path and Image is not None:
                         try:
@@ -130,9 +139,8 @@ class MapEditorWindow(tk.Toplevel):
                             pass
                     if not rendered:
                         draw_colony_placeholder(self.canvas,px,py,tw,th,graphic)
-                if (x,y)==self.selected:
-                    self.canvas.create_polygon(polygon,fill='',outline='#ff23ad',width=3)
-                self.regions.append((x,y,px,py,tw,th))
+        if selected_outline is not None:
+            self.canvas.create_polygon(selected_outline,fill='',outline='#ff23ad',width=3)
 
     def on_click(self,event):
         candidates=[]
