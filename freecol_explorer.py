@@ -17,7 +17,7 @@ from map_window import MapEditorWindow
 class Explorer(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title('FreeCol Save Editor v0.6.2.6.1 — Context-Sensitive Interface (READ-ONLY TERRAIN)')
+        self.title('FreeCol Save Editor v0.6.2.6.2 — Context-Sensitive Interface (READ-ONLY TERRAIN)')
         self.geometry('1180x750')
         self.records = {}
         self.edits = {}
