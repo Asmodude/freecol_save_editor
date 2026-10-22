@@ -6,6 +6,12 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### v0.6.2.6.3 — Isometric 9x9 area projection
+- Replace the 9x9 rectangle of saved coordinates with a local neighbourhood along the NE and SE screen axes.
+- Derive both tile placements and viewport dimensions from the same diamond geometry, avoiding wide ribbons or floating diamonds.
+- Add 81-tile topology and edge-sharing regression tests for odd/even centre rows.
+- Read-only; pending Windows visual acceptance.
+
 ### v0.6.2.6.2 — 9×9 shared-edge lattice correction
 - Fixed screen placement so adjacent odd/even staggered rows share edges rather than leaving large gaps.
 - Verified the diamond lattice for both odd- and even-Y centres; Windows acceptance testing pending.
