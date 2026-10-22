@@ -1,12 +1,13 @@
 """Standalone read-only terrain atlas, using FreeCol's staggered-row map coordinates."""
 import tkinter as tk
 from tkinter import ttk, messagebox
+from colony_graphics import resolve_colony_graphic, draw_colony_placeholder
 
 class MapEditorWindow(tk.Toplevel):
     def __init__(self, app):
         super().__init__(app)
         self.app=app
-        self.title('FreeCol Save Editor v0.6.2.6.3 — Map Editor (READ ONLY)')
+        self.title('FreeCol Save Editor Colony Graphics Prototype — Map Editor (READ ONLY)')
         self.geometry('1120x780')
         self.minsize(760,480)
         self.center_x=tk.StringVar(value=str(getattr(app,'terrain_center',(67,110))[0]))
@@ -14,6 +15,7 @@ class MapEditorWindow(tk.Toplevel):
         self.selected=None
         self.regions=[]
         self.images=[]
+        self.colonies_by_tile={c.get('tile'):c for c in app.records.get('Colonies',[])}
         top=ttk.Frame(self,padding=8);top.pack(fill='x')
         ttk.Label(top,text='Map centre X:').pack(side='left')
         ttk.Entry(top,textvariable=self.center_x,width=8).pack(side='left',padx=(4,14))
@@ -87,6 +89,10 @@ class MapEditorWindow(tk.Toplevel):
                 if resources:
                     art=self.app.terrain_art.get_bonus(resources[0].get('type'),max(12,int(th*.3)))
                     if art:self.images.append(art);self.canvas.create_image(px,py,image=art)
+                colony=self.colonies_by_tile.get(tile.get('id'))
+                if colony is not None:
+                    graphic=resolve_colony_graphic(colony)
+                    draw_colony_placeholder(self.canvas,px,py,tw,th,graphic)
                 if (x,y)==self.selected:
                     self.canvas.create_polygon(polygon,fill='',outline='#ff23ad',width=3)
                 self.regions.append((x,y,px,py,tw,th))
@@ -104,8 +110,7 @@ class MapEditorWindow(tk.Toplevel):
 
     def inspect(self,x,y):
         tile=self.app.terrain_by_xy[(x,y)]
-        self.colony=next((c for c in self.app.records.get('Colonies',[])
-                          if c.get('tile')==tile.get('id')),None)
+        self.colony=self.colonies_by_tile.get(tile.get('id'))
         lines=[f'Coordinates: ({x}, {y})',f'Terrain: {self.app.readable(tile.get("type"))}',
                f'Tile ID: {tile.get("id")}',f'Owner: {tile.get("owner","—")}', '']
         resources,improvements=self.app.tile_item_summary(tile)
@@ -115,7 +120,11 @@ class MapEditorWindow(tk.Toplevel):
         for item in improvements:
             lines.append('Improvement: '+self.app.readable(item.get('type')))
             if item.get('style'):lines.append('Style: '+item.get('style'))
-        if self.colony:lines.extend(['','Colony: '+self.colony.get('name','')])
+        if self.colony:
+            graphic=resolve_colony_graphic(self.colony)
+            lines.extend(['','Colony: '+self.colony.get('name',''),
+                          'Graphic state: '+graphic.key,
+                          'Artwork: '+('available' if graphic.image_path else 'placeholder')])
         self.info.configure(state='normal');self.info.delete('1.0','end')
         self.info.insert('1.0','\n'.join(lines));self.info.configure(state='disabled')
         self.colony_button.configure(state='normal' if self.colony else 'disabled')
