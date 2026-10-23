@@ -2,7 +2,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from colony_graphics import resolve_colony_graphic, population_size, preview_colony_large
+from colony_graphics import resolve_colony_graphic, population_size
 
 class ColonyGraphicsTests(unittest.TestCase):
     def colony(self, population, building=None, owner="player:19"):
@@ -45,25 +45,6 @@ class ColonyGraphicsTests(unittest.TestCase):
             resolved=resolve_colony_graphic(self.colony(6,"fort"),asset_dir=tmp)
             self.assertEqual(resolved.key,"fort_medium")
             self.assertIsNone(resolved.image_path)
-
-    def test_preview_is_visual_only(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            art=Path(tmp)/"colony_large.png"
-            art.write_bytes(b"dummy")
-            actual=resolve_colony_graphic(self.colony(6,"fort"),asset_dir=tmp)
-            preview=preview_colony_large(actual,asset_dir=tmp)
-            self.assertEqual(actual.key,"fort_medium")
-            self.assertIsNone(actual.image_path)
-            self.assertEqual(preview.key,"colony_large")
-            self.assertEqual(preview.population,6)
-            self.assertEqual(preview.image_path,art)
-
-    def test_preview_without_art_uses_missing_art_placeholder(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            actual=resolve_colony_graphic(self.colony(6),asset_dir=tmp)
-            preview=preview_colony_large(actual,asset_dir=tmp)
-            self.assertEqual(preview.key,"colony_large")
-            self.assertIsNone(preview.image_path)
 
     def test_asset_lookup(self):
         with tempfile.TemporaryDirectory() as tmp:

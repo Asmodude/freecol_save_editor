@@ -1,7 +1,7 @@
 """Standalone read-only terrain atlas, using FreeCol's staggered-row map coordinates."""
 import tkinter as tk
 from tkinter import ttk, messagebox
-from colony_graphics import resolve_colony_graphic, draw_colony_placeholder, preview_colony_large
+from colony_graphics import resolve_colony_graphic, draw_colony_placeholder
 try:
     from PIL import Image, ImageTk
 except ImportError:
@@ -20,7 +20,6 @@ class MapEditorWindow(tk.Toplevel):
         self.regions=[]
         self.images=[]
         self.colonies_by_tile={c.get('tile'):c for c in app.records.get('Colonies',[])}
-        self.preview_large=tk.BooleanVar(value=False)
         self.show_selection_outline=tk.BooleanVar(value=False)
         top=ttk.Frame(self,padding=8);top.pack(fill='x')
         ttk.Label(top,text='Map centre X:').pack(side='left')
@@ -29,8 +28,6 @@ class MapEditorWindow(tk.Toplevel):
         ttk.Entry(top,textvariable=self.center_y,width=8).pack(side='left',padx=(4,14))
         ttk.Button(top,text='Show 9 × 9 tiles',command=self.jump).pack(side='left',padx=4)
         ttk.Button(top,text='Lake test (67,110)',command=lambda:self.goto(67,110)).pack(side='left',padx=4)
-        ttk.Checkbutton(top,text='TEST: show colony_large on selected colony',
-                        variable=self.preview_large,command=self.refresh_preview).pack(side='left',padx=(14,4))
         ttk.Checkbutton(top,text='Show selected tile outline',
                         variable=self.show_selection_outline,command=self.paint).pack(side='left',padx=(8,4))
         ttk.Label(self,text='Read-only map survey · select a tile for details · colony tiles can be opened in the main editor',foreground='#286d44').pack(anchor='w',padx=12)
@@ -49,19 +46,6 @@ class MapEditorWindow(tk.Toplevel):
         self.colony_button.configure(state='disabled')
         self.colony=None
         self.goto(int(self.center_x.get()),int(self.center_y.get()))
-
-    def refresh_preview(self):
-        """Refresh the visual-only test override and inspector together."""
-        if hasattr(self,"cx"):
-            self.paint()
-            if self.selected:
-                self.inspect(*self.selected)
-
-    def graphic_for_tile(self, colony, x, y):
-        graphic=resolve_colony_graphic(colony)
-        if self.preview_large.get() and (x,y)==self.selected:
-            return preview_colony_large(graphic)
-        return graphic
 
     def goto(self,x,y):
         self.center_x.set(str(x));self.center_y.set(str(y))
@@ -116,7 +100,7 @@ class MapEditorWindow(tk.Toplevel):
                     if art:self.images.append(art);self.canvas.create_image(px,py,image=art)
                 colony=self.colonies_by_tile.get(tile.get('id'))
                 if colony is not None:
-                    colony_layers.append((px,py,tw,th,self.graphic_for_tile(colony,x,y)))
+                    colony_layers.append((px,py,tw,th,resolve_colony_graphic(colony)))
                 if (x,y)==self.selected:
                     selected_outline=polygon
                 self.regions.append((x,y,px,py,tw,th))
@@ -169,13 +153,10 @@ class MapEditorWindow(tk.Toplevel):
             lines.append('Improvement: '+self.app.readable(item.get('type')))
             if item.get('style'):lines.append('Style: '+item.get('style'))
         if self.colony:
-            actual=resolve_colony_graphic(self.colony)
-            graphic=self.graphic_for_tile(self.colony,x,y)
+            graphic=resolve_colony_graphic(self.colony)
             lines.extend(['','Colony: '+self.colony.get('name',''),
-                          'Graphic state: '+actual.key])
-            if graphic.key!=actual.key:
-                lines.append('TEST preview: '+graphic.key+' (visual only)')
-            lines.append('Artwork: '+('available' if graphic.image_path else 'placeholder'))
+                          'Graphic state: '+graphic.key,
+                          'Artwork: '+('available' if graphic.image_path else 'placeholder')])
         self.info.configure(state='normal');self.info.delete('1.0','end')
         self.info.insert('1.0','\n'.join(lines));self.info.configure(state='disabled')
         self.colony_button.configure(state='normal' if self.colony else 'disabled')
