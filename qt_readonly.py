@@ -23,6 +23,7 @@ from qt_settlement_details import settlement_units
 from qt_overview import record_overview
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
+from qt_display import display_row
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units')
 HEADERS = {
@@ -297,7 +298,7 @@ class QtExplorer(QMainWindow):
         query = self.search.text().strip().casefold()
         rows = []
         for element in rows_for_scope(doc, self.group, self.scope):
-            values = presentation.row_values(self.group, element, doc, self.session)
+            values = display_row(self.group, presentation.row_values(self.group, element, doc, self.session))
             if query and query not in ' '.join(str(value) for value in values).casefold():
                 continue
             rows.append((element, values))
