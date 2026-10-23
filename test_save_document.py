@@ -41,6 +41,29 @@ class SaveDocumentTests(unittest.TestCase):
             self.assertEqual(doc.colony_tile_names["tile:10"],"Christiansborg")
             self.assertEqual(doc.terrain_by_xy[(83,118)].get("id"),"tile:10")
 
+    def test_lookups_and_tile_items(self):
+        xml=b'''<freecol><game turn="4"><player id="player:1" username="Tester"/>
+        <map><tile id="tile:1" x="4" y="6">
+        <colony id="colony:1" name="Christiansborg" owner="player:1" tile="tile:1"/>
+        <tileItemContainer><resource type="model.resource.sugar"/>
+        <tileImprovement type="model.improvement.road"/></tileItemContainer>
+        </tile><tile id="tile:2" x="5" y="6"><unit id="unit:1" owner="player:1"/></tile>
+        </map></game></freecol>'''
+        with tempfile.TemporaryDirectory() as td:
+            p=Path(td)/'test.fsg'
+            with zipfile.ZipFile(p,'w') as z:z.writestr('savegame.xml',xml)
+            doc=SaveDocument.load(p)
+            self.assertEqual(doc.owner_name('player:1'),'Tester')
+            self.assertEqual(doc.location_name('tile:1'),'Christiansborg')
+            self.assertEqual(doc.unit_by_id('unit:1').get('owner'),'player:1')
+            self.assertIsNone(doc.unit_by_id('unit:missing'))
+            self.assertEqual(doc.colony_at_tile('tile:1').get('id'),'colony:1')
+            self.assertIsNone(doc.colony_at_tile('tile:99'))
+            resources, improvements=doc.tile_item_summary(doc.terrain_by_xy[(4,6)])
+            self.assertEqual(len(resources),1)
+            self.assertEqual(len(improvements),1)
+            self.assertEqual(doc.tile_items(None),[])
+
     def test_missing_game_rejected(self):
         with tempfile.TemporaryDirectory() as td:
             p=Path(td)/"fixture.fsg"
