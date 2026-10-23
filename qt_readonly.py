@@ -126,32 +126,61 @@ class QtExplorer(QMainWindow):
         return label
 
     def install_navigation(self):
-        """Visible hierarchy without inventing unsupported Qt views."""
+        """Build the approved navigation structure; disable views not implemented yet."""
+        self.navigation.blockSignals(True)
         self.navigation.clear()
-        primary = QTreeWidgetItem(['My Nation'])
-        primary.setFlags(primary.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-        self.navigation.addTopLevelItem(primary)
-        for label, group in (('Overview', 'Players'), ('Colonies', 'Colonies'),
-                             ('Units', 'Units')):
+
+        def entry(parent, label, group=None, scope=None, ready=True):
             item = QTreeWidgetItem([label])
-            item.setData(0, Qt.ItemDataRole.UserRole, (group, 'mine'))
-            primary.addChild(item)
-        others = QTreeWidgetItem(['Other Nations'])
-        others.setFlags(others.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-        self.navigation.addTopLevelItem(others)
-        rivals = QTreeWidgetItem(['European rivals'])
-        rivals.setData(0, Qt.ItemDataRole.UserRole, ('Players', 'rivals'))
-        others.addChild(rivals)
-        native_group = QTreeWidgetItem(['Native Nations'])
-        native_group.setFlags(native_group.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-        self.navigation.addTopLevelItem(native_group)
-        natives = QTreeWidgetItem(['Native settlements'])
-        natives.setData(0, Qt.ItemDataRole.UserRole, ('Native settlements', 'native'))
-        native_group.addChild(natives)
-        native_group.setExpanded(True)
-        primary.setExpanded(True)
-        others.setExpanded(True)
-        self.navigation.setCurrentItem(primary.child(0))
+            if parent is None:
+                self.navigation.addTopLevelItem(item)
+            else:
+                parent.addChild(item)
+            if group and ready:
+                item.setData(0, Qt.ItemDataRole.UserRole, (group, scope))
+            else:
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+                if not ready:
+                    item.setText(0, label + '  (planned)')
+                    item.setToolTip(0, 'Not yet implemented in the Phase 1 Qt preview')
+            return item
+
+        doc = self.document
+        own = human_player_id(doc) if doc else None
+        human = doc.players.get(own) if doc and own else None
+        nation = presentation.readable(human.get('nationId')) if human is not None else 'My Nation'
+        my = entry(None, nation + ' (Player)')
+        overview = entry(my, 'Overview', 'Players', 'mine')
+        entry(my, 'Diplomacy', ready=False)
+        entry(my, 'Colonies', 'Colonies', 'mine')
+        entry(my, 'Units', 'Units', 'mine')
+        for label in ('Goods', 'Research', 'Founding Fathers', 'Player Options'):
+            entry(my, label, ready=False)
+
+        rivals = entry(None, 'Rival Nations')
+        entry(rivals, 'All European rivals', 'Players', 'rivals')
+        natives = entry(None, 'Native Nations')
+        entry(natives, 'All native settlements', 'Native settlements', 'native')
+        if doc:
+            for player in doc.players.values():
+                pid = player.get('id')
+                if pid == own:
+                    continue
+                nation_id = player.get('nationId') or player.get('nation')
+                if player.get('playerType') == 'colonial':
+                    label = presentation.readable(nation_id) or pid
+                    entry(rivals, label, 'Players', 'player:' + pid)
+                elif player.get('playerType') in ('indian', 'native'):
+                    label = presentation.readable(nation_id) or pid
+                    entry(natives, label, 'Native settlements', 'native-owner:' + pid)
+
+        entry(None, 'Map', ready=False)
+        entry(None, 'Game Options', ready=False)
+        my.setExpanded(True)
+        rivals.setExpanded(True)
+        natives.setExpanded(True)
+        self.navigation.blockSignals(False)
+        self.navigation.setCurrentItem(overview)
 
     def open_save(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -165,6 +194,7 @@ class QtExplorer(QMainWindow):
             QMessageBox.critical(self, 'Could not open save', str(exc))
             return
         self.document = document
+        self.install_navigation()
         self.heading.setText(f'{Path(path).name} · Turn {document.turn} · READ ONLY')
         self.populate()
         self.statusBar().showMessage(
@@ -214,7 +244,7 @@ class QtExplorer(QMainWindow):
                 cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.grid.setItem(row, col, cell)
         self.grid.resizeColumnsToContents()
-        context = {'mine':'My Nation', 'rivals':'European rivals', 'native':'Native Nations', 'all':'All'}[self.scope]
+        context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
         note = ('Human player could not be uniquely identified; no player was guessed.\n' 
                 if self.scope=='mine' and human_player_id(doc) is None else '')
         self.overview.setPlainText(
