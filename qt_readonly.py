@@ -19,6 +19,7 @@ import presentation
 from qt_navigation import rows_for_scope, human_player_id
 from qt_colony_details import colony_sections
 from qt_settlement_details import settlement_units
+from qt_overview import record_overview
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units')
 HEADERS = {
@@ -95,6 +96,7 @@ class QtExplorer(QMainWindow):
             table.setAlternatingRowColors(True)
             self.tabs.addTab(table, name)
             self.colony_tables[name] = table
+        self.tab_widgets = {'Overview': self.overview, **self.colony_tables}
         center_layout.addWidget(self.tabs, 2)
         panes.addWidget(center)
 
@@ -272,6 +274,22 @@ class QtExplorer(QMainWindow):
         sections = colony_sections(colony, self.document) if colony is not None else {}
         if settlement is not None:
             sections['Affiliated units'] = settlement_units(settlement, self.document)
+        # Qt tabs are physically removed when irrelevant, not greyed out.
+        allowed = {'Overview'}
+        if colony is not None:
+            allowed.update(('Buildings', 'Workers', 'Stationed units', 'Goods'))
+        elif settlement is not None:
+            allowed.add('Affiliated units')
+        active_name = self.tabs.tabText(self.tabs.currentIndex()) if self.tabs.currentIndex() >= 0 else 'Overview'
+        for i in range(self.tabs.count()-1, -1, -1):
+            self.tabs.removeTab(i)
+        for name, widget in self.tab_widgets.items():
+            if name in allowed:
+                self.tabs.addTab(widget, name)
+        if active_name in allowed:
+            self.tabs.setCurrentWidget(self.tab_widgets[active_name])
+        else:
+            self.tabs.setCurrentWidget(self.overview)
         for name, table in self.colony_tables.items():
             headings, records = sections.get(name, ((), ()))
             table.setRowCount(0)
@@ -285,8 +303,7 @@ class QtExplorer(QMainWindow):
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     table.setItem(row, col, item)
             table.resizeColumnsToContents()
-            self.tabs.setTabEnabled(self.tabs.indexOf(table),
-                settlement is not None if name == 'Affiliated units' else colony is not None)
+
 
     def inspect(self):
         row = self.grid.currentRow()
@@ -321,13 +338,7 @@ class QtExplorer(QMainWindow):
                             ('Learnable skill', presentation.short(element.get('learnableSkill')))])
         self.details.setPlainText('\n'.join(
             f'{key}: {value}' for key, value in summary if value is not None))
-        self.overview.setPlainText(
-            f'{label}\n\n'
-            f'Category: {self.group}\n'
-            f'Owner: {self.document.owner_name(element.get("owner"))}\n'
-            f'Location: {self.document.location_name(element.get("tile") or element.get("location"))}\n\n'
-            'Select other records in the table to inspect them. '
-            'Additional object-specific detail tabs are planned for Phase 1.')
+        self.overview.setPlainText(record_overview(self.group, element, doc))
 
 
 def main():
