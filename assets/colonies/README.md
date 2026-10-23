@@ -20,6 +20,21 @@ The planned nation-neutral artwork consists of twelve complete replacement image
 | Fort | `fort_small.png` | `fort_medium.png` | `fort_large.png` |
 | Fortress | `fortress_small.png` | `fortress_medium.png` | `fortress_large.png` |
 
+## Production artwork acceptance (2026-10-23)
+
+| State | Acceptance | Evidence |
+|---|---|---|
+| `colony_small` | Accepted | Windows map preview |
+| `colony_medium` | Accepted | Windows map preview (Frederiksborg) |
+| `colony_large` | Accepted visually | Revised geography-neutral asset, normal map layering verified |
+| `stockade_small` | Accepted | User inspected and approved |
+| `stockade_medium` | Accepted | Taphus Windows screenshot |
+| `stockade_large` | Accepted | User inspected and approved |
+| `fort_small`, `fort_medium`, `fort_large` | In artwork production | Version 3 timber-and-earth direction |
+| `fortress_small`, `fortress_medium`, `fortress_large` | Pending artwork | Version 3 stone masonry direction |
+
+User acceptance here is **visual artwork acceptance**, not acceptance of the combined software branch or of savegame editing regressions.
+
 ## Visual requirements
 - A strong, distinctive silhouette at typical 9×9 map zoom levels.
 - No nationality or owner indicators baked into the sprite (**Option A**).
