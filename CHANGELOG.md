@@ -2,9 +2,16 @@
 
 This is the detailed, permanent development history. It includes point releases, internal iterations and hotfixes. When a major release (0.1, 0.2, etc.) is accepted, a concise summary is also entered in README.txt. Detailed entries remain here.
 
-> Current working baseline: **v0.6.2.6**. The 0.6 major milestone is still under development. Entries below distinguish tested/accepted features from experimental previews.
+> Current accepted integration baseline: **v0.6.2.6.4**. The 0.6 major milestone is still under development. Entries below distinguish tested/accepted features from experimental previews.
 
 ## 0.6 — Terrain inspection and map work (ongoing)
+
+### Phase 0 boundaries and baseline fixtures — 2026-10-23
+- The user created a `v0.6.2.6.4` Git tag for the accepted main baseline; Phase 0 must compare against that exact tag and make no user-visible or save-editing behaviour changes.
+- Human-player auto-selection is explicitly **deferred until after Phase 0**; preserve current load-time tab, filter and selection behaviour throughout the refactor.
+- For the audited `Morten(5).fsg`, expect 2,520 authoritative unit IDs from 2,525 raw nested `unit` elements; Xaymaca must have one authoritative Danish missionary. These are save-specific reference observations, and the live UI confirmation is still open.
+- Maintain the missionary cached-snapshot deletion caveat as a known issue rather than changing behaviour in Phase 0.
+
 
 ### Accepted Phase 0 comparison baseline — 23 October 2026
 - Integration merge: `f1178c7` on `main`, followed by release housekeeping (window titles and documentation).

@@ -14,12 +14,18 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 - **Current development series:** 0.6. Terrain editing is not yet enabled.
 - **Immediate next milestone:** **Phase 0 Tkinter core extraction**, with no visible or accepted behavioural changes. Native RoadPainter-style work is deferred until after Phase 0.
 
-## Application startup and navigation — planned usability refinement
+## Application startup and navigation — planned usability refinement (AFTER Phase 0)
 - **Default post-load selection:** After an `.fsg` file is successfully loaded, open the **Players** view and automatically select the human-controlled player.
 - Determine the human player from authoritative savegame data rather than relying on player order or a hard-coded identifier.
 - If no unique human player can be identified, use a safe, clearly defined fallback without selecting an arbitrary player.
 - Add regression tests for successful loads, missing/ambiguous human-player data, and switching between savegames.
-- **Status:** Planned; no application behaviour change in this documentation-only update.
+- **Status:** Deferred until after Phase 0, as part of the Qt UI implementation or a separately accepted later release. Phase 0 must preserve the existing startup tab, owner filter, and selection exactly; do not add auto-selection during the refactor.
+
+## Phase 0 acceptance fixtures (no behaviour changes)
+- **Authoritative unit indexing:** In the audited `Morten(5).fsg` baseline, 2,525 raw nested `<unit>` elements represent 2,520 distinct unit IDs (cached terrain snapshots are excluded from the editable unit list). The expected post-fix UI status is **2,520 units**. These numbers are save-specific, not global invariants; the current `Morten(6).fsg` may differ.
+- **Xaymaca:** The Arawak capital must show **exactly one authoritative Danish missionary**, not the cached duplicate. Keep the cached missionary deletion caveat in scope as a known limitation; do not change deletion semantics during Phase 0.
+- **Still open as an explicit Windows baseline observation:** compare the user-facing unit count and Xaymaca view against the same `Morten(5).fsg` before refactoring. Phase 0 tests should capture authoritative counts and cached-snapshot exclusion using this sample, when available outside Git.
+- These checks establish the existing baseline; they do **not** authorise a user-visible fix during Phase 0.
 
 ## 0.6 — Terrain viewer and editing
 | Milestone | Goal | Status |
