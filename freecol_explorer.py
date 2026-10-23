@@ -1,5 +1,6 @@
 """FreeCol Save Editor v0.5.5 Equipment Test — inline existing-goods editing. Python 3.9+."""
 from save_document import SaveDocument
+from edit_session import EditSession, EditValidationError
 from unit_records import authoritative_units
 from location_names import colony_tile_names, location_label, unit_locations
 import collections
@@ -23,7 +24,8 @@ class Explorer(tk.Tk):
         self.title('FreeCol Save Editor v0.6.2.6.4 — Context-Sensitive Interface (READ-ONLY TERRAIN)')
         self.geometry('1180x750')
         self.records = {}
-        self.edits = {}
+        self.edit_session = EditSession()
+        self.edits = self.edit_session.edits
         self.cell_editor = None
         self.editing_cell = None
         self.xml_bytes = None
@@ -963,30 +965,16 @@ class Explorer(tk.Tk):
         table,row,key,original,column=context
         try: raw=editor.get().strip()
         except tk.TclError:return False
-        choice = key[1]=='learnableSkill' or key[1].startswith('stance|')
-        if choice:
-            allowed=self.professions if key[1]=='learnableSkill' else ['peace','war','cease_fire','alliance']
-            if raw not in allowed:
-                self.status.set('Invalid choice');return False
-            new=raw
-        else:
-            if not raw.isascii() or not raw.isdecimal():
-                self.status.set('Invalid quantity: enter a non-negative whole number. Press Esc to cancel.')
-                editor.focus_set();return False
-            new=int(raw)
-        if not choice:
-            if key[1]=='movesLeft':
-                u=next((u for u in self.records['Units'] if u.get('id')==key[0]),None)
-                try: ceiling=movement_cap(self.root,u)
-                except (UnknownMovement,TypeError) as exc:
-                    self.status.set('Movement edit unavailable: '+str(exc));return False
-            else: ceiling=None
-            ceiling=ceiling if ceiling is not None else (100 if key[1] in ('tax','sonsOfLibertyTarget') else 200 if key[1]=='experience' else 2_147_483_647)
-            if new>ceiling:
-                self.status.set(f'Invalid value: maximum is {ceiling}. Press Esc to cancel.')
-                editor.focus_set();return False
-        if new==original:self.edits.pop(key,None)
-        else:self.edits[key]=(original,new)
+        try:
+            new=self.edit_session.validate(
+                key, raw, original=original, root=self.root,
+                units=self.records['Units'], professions=self.professions)
+        except EditValidationError as exc:
+            self.status.set(str(exc))
+            if str(exc).startswith('Invalid quantity:') or str(exc).startswith('Invalid value:'):
+                editor.focus_set()
+            return False
+        self.edit_session.stage(key, original, new)
         self.cancel_cell_edit()
         if table.exists(row):
             table.set(row,column,new)
