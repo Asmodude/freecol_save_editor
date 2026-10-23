@@ -7,6 +7,8 @@ This is the detailed, permanent development history. It includes point releases,
 ## 0.6 — Terrain inspection and map work (ongoing)
 
 ### Phase 0: initial core extraction (in progress, unaccepted)
+- **Windows map visual acceptance, 2026-10-23:** user provided a screenshot of the Phase 0 renderer-neutral map extraction and confirmed “All looks good.” Terrain, roads, rivers and colony sprites showed no reported visual regression. The main v0.6.2.6.4 baseline remains unchanged; this is a component-level acceptance, not final Phase 0 acceptance.
+
 - **Renderer-neutral first pass:** added `map_render.py` for tile parity offsets, diamond hit-testing and exact legacy road/river vector instructions. The existing Tk canvas executes these primitives; native-mask image compositing and shoreline painter remain unchanged. Added four headless primitive tests to CI; pixel-equivalence still requires Windows confirmation.
 
 - **Windows checkpoint, 2026-10-23:** user ran all 55 tests successfully (0 failures, 0 skips), including real-save Save As integrity against `Morten2.fsg`; independently confirmed editor/map smoke test, intact native-mask rivers, visible colony art, staging and saving edits. Directional vector roads remain intentionally unchanged; no Phase 0 native-road redesign.
