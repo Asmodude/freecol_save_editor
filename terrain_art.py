@@ -8,6 +8,7 @@ from pathlib import Path
 import tkinter as tk
 import zipfile
 import base64
+from freecol_art_source import discover, read_bytes
 
 TERRAIN_ALIASES = {
     'highSeas': 'highSeas',
@@ -52,57 +53,10 @@ class FreeColArt:
         self.find_installation()
 
     def find_installation(self):
-        roots = [
-            Path(r'C:\Program Files\FreeCol'),
-            Path(r'C:\Program Files (x86)\FreeCol'),
-            Path(r'C:\Programmer\FreeCol'),
-            Path.home() / 'FreeCol',
-            Path.cwd(),
-        ]
-        possible = [
-            'app/data/default/resources/images',
-            'data/default/resources/images',
-            'default/resources/images',
-            'resources/images',
-            'data/base/resources/images',
-        ]
-        for root in roots:
-            for rel in possible:
-                img = root / rel
-                if (img / 'terrain').is_dir():
-                    self.base = img
-                    self.status = f'FreeCol graphics: {img} (preview uses local textures with simple overlays)'
-                    return
-            if not root.is_dir():
-                continue
-            for arc in list(root.glob('*.jar')) + list(root.glob('*.zip')):
-                try:
-                    with zipfile.ZipFile(arc) as zf:
-                        names = zf.namelist()
-                        match = next((n for n in names if n.endswith('terrain/savannah/center0.size9.png')), None)
-                        if not match:
-                            match = next((n for n in names if n.endswith('terrain/savannah/center0.png')), None)
-                    if match:
-                        suffix = 'terrain/savannah/center0.size9.png' if match.endswith('center0.size9.png') else 'terrain/savannah/center0.png'
-                        self.archive = arc
-                        self.prefix = match[:-len(suffix)]
-                        self.status = f'FreeCol graphics archive: {arc.name} (preview uses local textures with simple overlays)'
-                        return
-                except (OSError, zipfile.BadZipFile):
-                    pass
+        self.base, self.archive, self.prefix, self.status = discover()
 
     def _read_bytes(self, relpath):
-        if self.base:
-            fp = self.base / relpath
-            if fp.is_file():
-                return fp.read_bytes()
-        if self.archive:
-            try:
-                with zipfile.ZipFile(self.archive) as zf:
-                    return zf.read(self.prefix + relpath)
-            except (OSError, KeyError, zipfile.BadZipFile):
-                return None
-        return None
+        return read_bytes(self.base, self.archive, self.prefix, relpath)
 
     def _load_raw_image(self, key, candidates):
         if key in self.raw_cache:
