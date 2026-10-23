@@ -11,7 +11,7 @@ class MapEditorWindow(tk.Toplevel):
     def __init__(self, app):
         super().__init__(app)
         self.app=app
-        self.title('FreeCol Save Editor Colony Graphics Prototype — Map Editor (READ ONLY)')
+        self.title('FreeCol Save Editor v0.6.2.6.4 — Map Editor (READ ONLY)')
         self.geometry('1120x780')
         self.minsize(760,480)
         self.center_x=tk.StringVar(value=str(getattr(app,'terrain_center',(67,110))[0]))

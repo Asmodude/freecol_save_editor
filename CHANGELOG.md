@@ -6,6 +6,14 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Accepted Phase 0 comparison baseline — 23 October 2026
+- Integration merge: `f1178c7` on `main`, followed by release housekeeping (window titles and documentation).
+- `v0.6.2.6.4` scope: FreeCol-inspired native-mask rivers where source assets exist; vector-road renderer remains unchanged; twelve approved geography-neutral colony graphics.
+- Evidence: 40/40 Windows headless regression tests, real-save Save As integrity, in-game equipment/deletion confirmation, map art and river visual approvals, and post-preview-removal Map Editor smoke test.
+- Known follow-up: explicit live UI verification of the cached-missionary unit count and Xaymaca occurrence remains open. Cached missionary deletion semantics remain a separate future fix, **not** part of no-visible-change Phase 0.
+- Phase 0 must make no visible changes or change save-editing behaviour. Retire or replace obsolete GUI tests in an isolated refactor branch; keep `main` unchanged until accepted.
+
+
 ### Final Windows regression verification — 2026-10-23
 - User executed `py -m unittest -v test_colony_graphics test_map_regression test_edit_safety test_unit_records test_location_names test_real_save_integrity` on Windows (Python 3.14.3) after the 12-state preview cleanup.
 - Actual output: **Ran 40 tests in 0.685s; OK** (0 failures, 0 errors, 0 skips). The real-save integration test ran successfully.
@@ -19,37 +27,37 @@ This is the detailed, permanent development history. It includes point releases,
 - User visually approved all three sizes of Colony, Stockade, Fort and Fortress in the Windows 9×9 map viewer.
 - Removed the temporary 12-state TEST sprite dropdown after approval; the map now uses authoritative savegame classification.
 - Preserved 40%-enlarged artwork scale, deferred sprite compositing and optional selection outline.
-- No savegame mutation. Final combined release regression and `main` merge are still pending explicit approval.
+- No savegame mutation. Final combined release regression passed and integration was merged to `main` in `f1178c7`.
 
 
-### Unit list: cached missionary duplication — 2026-10-23 (Windows verification pending)
+### Unit list: cached missionary duplication — 2026-10-23 (fix merged; numeric count verification outstanding)
 - Real-save finding: `Morten(5).fsg` contains 2,525 nested `unit` elements but only 2,520 distinct IDs. Four missionaries have an additional five snapshots beneath `cachedTile`, including Danish Jesuit Missionary `unit:34086` at Xaymaca.
 - `freecol_explorer.py` now indexes unit records using `unit_records.authoritative_units(game)`, which excludes cached tile snapshots and **fails closed** on genuinely repeated authoritative unit IDs.
 - Added `test_unit_records.py` with isolated cached-missionary, duplicate-authoritative-ID, carried-unit and reference-node cases.
 - The original save is untouched. **Important:** current unit deletion engine still traverses cached XML and may refuse missionary deletion; that is a distinct safety concern and **not fixed by a display-only indexing change**. Avoid deleting affected missionary units until specifically tested.
-- **Pending:** pull feature branch, load original save, verify status shows 2,520 units and Xaymaca shows one missionary. Run full suite and Windows acceptance.
+- Authoritative-unit tests passed as part of 40/40 Windows suite. **Still to confirm explicitly in UI:** the expected unit count and single Xaymaca missionary for the audited save.
 
 
 
-### Regression suite expansion — 2026-10-23 (verification pending)
+### Regression suite expansion — 2026-10-23 (completed)
 - Added `test_edit_safety.py` with 13 headless tests covering supported and unsupported equipment changes and conservative unit deletion (external references, cargo, ambiguous IDs and unexpected containment).
 - Tests use synthetic XML and make no changes to user save files.
 - Run headlessly on the current feature branch: `python -m unittest -v test_colony_graphics test_map_regression test_edit_safety test_real_save_integrity`.
 - `test_real_save_integrity` is skipped unless `FREECOL_TEST_SAVE` points to a private sample save; when enabled it checks source immutability and no-overwrite Save As.
-- **Still pending:** executing the complete current-feature-branch suite, real-save equipment/deletion scenarios, and Windows + FreeCol gameplay regression acceptance. Do not interpret committed tests as a passing build.
+- Completed: user executed all 40 headless tests successfully on Windows including the real-save round trip; user also verified equipment/deletion Save As in FreeCol.
 
 
 
-### v0.6.2.6.4 — native river-mask integration candidate (NOT YET ACCEPTED; 2026-10-23)
+### v0.6.2.6.4 — native-mask river integration (ACCEPTED; 2026-10-23)
 - Integrated the original v0.6.2.6.4-dev2 experimental river-mask compositor into `terrain_art.py` using FreeCol assets from the local installation and optional Pillow.
 - Both the inspector terrain preview and 9×9 Map Editor now try the native-mask composite, then native exact-style sprite, then the existing directional vector fallback. Roads retain the existing vector painter; no pixel-identical RoadPainter implementation is claimed.
 - Preserved accepted colony sprite compositing, improved scale, selectable tile-outline visibility, map geometry, and the FreeCol `buildingType` fortification classification.
 - Retired the temporary `colony_large` forced-preview control after visual acceptance.
-- **Pending:** Windows visual comparison at (69,111) and representative roads/rivers, regression suite, in-game acceptance. Original dev2 GUI tests are display-dependent and cannot be run headlessly. No merge to `main`.
+- Windows visual check at (69,111) passed; the user confirmed the major river and existing road presentation. Roads remain the established directional vector painter, not native RoadPainter-equivalent. Full Windows headless suite: 40 tests, 0 failures/skips. User confirmed Save As equipment and deletion in FreeCol; merged to `main` in `f1178c7`.
 
 
 
-### Better Colony Graphics — development prototype (not accepted)
+### Better Colony Graphics — completed and visually accepted
 - Added a nation-neutral twelve-state colony image resolver (size × fortification).
 - Added optional transparent-PNG artwork loading from `assets/colonies/` and visible placeholder markers.
 - Added unit tests and an asset specification for the potential Better Colony Graphics mod.

@@ -10,9 +10,9 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 - **Original FreeCol artwork:** load from users' installed game rather than redistributing assets.
 
 ## Current status
-- **Latest visually accepted map milestone:** `v0.6.2.6.3` — compact connected 9×9 isometric map (user-verified).
+- **Latest accepted integration baseline:** `v0.6.2.6.4` — 9×9 map, native-mask river prototype, established directional roads, and 12 accepted colony sprites (user-verified on Windows).
 - **Current development series:** 0.6. Terrain editing is not yet enabled.
-- **Immediate next milestone:** **v0.6.2.6.4** — native-look road and river graphics. Requires verifying FreeCol renderer semantics; do not falsely claim pixel-perfect support.
+- **Immediate next milestone:** **Phase 0 Tkinter core extraction**, with no visible or accepted behavioural changes. Native RoadPainter-style work is deferred until after Phase 0.
 
 ## Application startup and navigation — planned usability refinement
 - **Default post-load selection:** After an `.fsg` file is successfully loaded, open the **Players** view and automatically select the human-controlled player.
@@ -25,7 +25,7 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 | Milestone | Goal | Status |
 |---|---|---|
 | 0.6.2.6.3 | Correct 81-tile 9×9 isometric neighbourhood | Visually accepted |
-| **0.6.2.6.4** | FreeCol-like roads and rivers: source/asset research, directional rendering, joins and magnitude; visual comparison at (69,111) | In development |
+| **0.6.2.6.4** | Native-mask river prototype + existing directional vector roads; 12 accepted colony graphics; 40/40 Windows tests | Accepted integration baseline |
 | 0.6.2.6.5 | Ocean/lake coastline masks, river mouths, forest/terrain transitions | Planned |
 | 0.6.3 | Safe add/remove road and plow operations with connection validation | Planned |
 | 0.6.4 | Resource quantity and compatible resource add/remove | Planned |
@@ -40,7 +40,7 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 - Native road and river appearance compared with user-supplied FreeCol screenshots
 
 ### Custom settlement artwork — separate development initiative
-- Prototype twelve nation-neutral replacement images: colony/stockade/fort/fortress × small/medium/large.
+- Twelve user-approved nation-neutral replacement images: colony/stockade/fort/fortress × small/medium/large.
 - Preserve distinct artwork per state, no national variants or fortification overlays.
 - Validate population/fortification mapping before commission of final original artwork.
 - Later prepare independent Better Colony Graphics mod if asset quality and FreeCol packaging permit.
