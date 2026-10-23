@@ -3,6 +3,10 @@
 Phase 0 preserves the existing edit dictionary schema for edit_backend.produce().
 """
 from movement_rules import movement_cap, UnknownMovement
+from equipment_rules import validate_equipment
+from deletion_engine import plan_settlement
+from edit_backend import produce
+from pathlib import Path
 
 
 class EditValidationError(ValueError):
@@ -63,3 +67,38 @@ class EditSession:
         if new > ceiling:
             raise EditValidationError(f'Invalid value: maximum is {ceiling}. Press Esc to cancel.')
         return new
+
+    def stage_equipment(self, root, unit, role, amount):
+        """Preserve the historical equipment/delete conflict and role validation."""
+        uid=unit.get('id')
+        if (uid,'deleteUnit') in self.edits or (uid,'deleteNativeUnit') in self.edits:
+            raise ValueError('Unit is already staged for deletion')
+        validate_equipment(root,unit,role,amount)
+        original=(unit.get('role','model.role.default'),int(unit.get('roleCount','1')))
+        return self.stage((uid,'equipment'),original,(role,amount))
+
+    def stage_unit_deletion(self, unit_id):
+        """Stage a confirmed standard unit deletion (confirmation stays in UI)."""
+        self.edits[(unit_id,'deleteUnit')]=('present','delete')
+
+    def plan_settlement_deletion(self, xml_bytes, settlement_id):
+        """Validate settlement dependency graph before presenting confirmation."""
+        return plan_settlement(xml_bytes,settlement_id)
+
+    def stage_settlement_deletion(self, settlement_id):
+        """Stage a previously planned and confirmed settlement deletion."""
+        self.edits[(settlement_id,'deleteSettlement')]=('present','delete')
+
+    def stage_native_unit_deletion(self, unit_id, village_id):
+        """Retain the historical composite key for native unit deletion."""
+        self.edits[(unit_id+'|'+village_id,'deleteNativeUnit')]=('present','delete')
+
+    def save_as(self, source, destination):
+        """Delegate to the accepted fail-closed producer; never overwrite a file."""
+        source=Path(source)
+        destination=Path(destination)
+        if source.resolve()==destination.resolve():
+            raise ValueError('You cannot overwrite the opened save. Choose another filename.')
+        if destination.exists():
+            raise ValueError('For safety, this editor never overwrites an existing file. Choose a new filename.')
+        return produce(source,destination,self.edits)
