@@ -6,6 +6,15 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### v0.6.2.6.4 — native river-mask integration candidate (NOT YET ACCEPTED; 2026-10-23)
+- Integrated the original v0.6.2.6.4-dev2 experimental river-mask compositor into `terrain_art.py` using FreeCol assets from the local installation and optional Pillow.
+- Both the inspector terrain preview and 9×9 Map Editor now try the native-mask composite, then native exact-style sprite, then the existing directional vector fallback. Roads retain the existing vector painter; no pixel-identical RoadPainter implementation is claimed.
+- Preserved accepted colony sprite compositing, improved scale, selectable tile-outline visibility, map geometry, and the FreeCol `buildingType` fortification classification.
+- Retired the temporary `colony_large` forced-preview control after visual acceptance.
+- **Pending:** Windows visual comparison at (69,111) and representative roads/rivers, regression suite, in-game acceptance. Original dev2 GUI tests are display-dependent and cannot be run headlessly. No merge to `main`.
+
+
+
 ### Better Colony Graphics — development prototype (not accepted)
 - Added a nation-neutral twelve-state colony image resolver (size × fortification).
 - Added optional transparent-PNG artwork loading from `assets/colonies/` and visible placeholder markers.
