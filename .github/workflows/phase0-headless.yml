@@ -27,4 +27,5 @@ jobs:
             test_real_save_integrity \
             test_save_document \
             test_edit_session \
-            test_presentation
+            test_presentation \
+            test_map_render
