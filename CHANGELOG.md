@@ -2,11 +2,14 @@
 
 This is the detailed, permanent development history. It includes point releases, internal iterations and hotfixes. When a major release (0.1, 0.2, etc.) is accepted, a concise summary is also entered in README.txt. Detailed entries remain here.
 
-> Current accepted integration baseline: **v0.6.2.6.4**. The 0.6 major milestone is still under development. Entries below distinguish tested/accepted features from experimental previews.
+> Current accepted integration baseline: **v0.6.2.6.4-phase0** (v0.6.2.6.4 features on the Phase 0 extracted core). The 0.6 major milestone is still under development. Entries below distinguish tested/accepted features from experimental previews.
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
-### Phase 0: core extraction — Windows and gameplay acceptance passed; merge pending
+### Phase 0: core extraction — accepted and merged (2026-10-23)
+- Merged pull request #2 into `main` with a merge commit; tagged `v0.6.2.6.4-phase0`. Branch `refactor/phase0-core-extraction` deleted after merge.
+- Added `*.fsg` to `.gitignore` so private savegames (e.g. the `FREECOL_TEST_SAVE` file) cannot be committed by accident.
+- Note for Phase 4: `.gitignore` currently ignores `*.spec`; the PyInstaller spec must be un-ignored and committed when packaging starts.
 - **Pre-acceptance housekeeping, 2026-10-23:** retired the obsolete Tk-driving tests `test_v061.py` and `test_terrain_parser.py` (hard-coded `/mnt/data` paths; `test_v061` referenced the removed `TERRAIN_OFFSETS`); their coverage is superseded by the headless `test_save_document`, `test_map_regression` and `test_map_render` suites. Renamed the CI workflow to `headless-tests.yml`, which now runs on pushes to `main` and the Phase 0 branch and on pull requests, and uses test discovery so every `test_*.py` (including the previously omitted `test_map_geometry`) is included. Headless run: 65 tests OK, 1 expected skip (no real save in CI). No application code changed.
 - **Final acceptance evidence, 2026-10-23:** User ran `py -m unittest discover -v` on Windows with the private `FREECOL_TEST_SAVE` path: 65 tests passed, zero skips, including real-save integrity. User additionally tested numerous deletions, unit changes and editing permissions, loaded the edited save in FreeCol, advanced a turn, saved and reloaded successfully. Windows/gameplay acceptance passed; merge into `main` remains a separately controlled step.
 - **Carried forward to Phase 3 (accepted slip of 🟡 items):** `map_window.py` still calls into the main window for road/river painting, hit-testing and artwork; forest, plow, shore and native-mask layering remain in the two Tk painting paths. Shared road/river primitives and hit-testing are already in `map_render.py`.

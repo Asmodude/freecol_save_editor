@@ -11,17 +11,18 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 
 ## Current status
 - **Latest accepted integration baseline:** `v0.6.2.6.4` — 9×9 map, native-mask river prototype, established directional roads, and 12 accepted colony sprites (user-verified on Windows).
+- **Phase 0 (core extraction):** accepted and merged 2026-10-23, tag `v0.6.2.6.4-phase0`. UI-free core: `save_document.py`, `edit_session.py`, `presentation.py`, `map_render.py`, `freecol_art_source.py`; 65 headless tests in CI on `main`. No user-visible changes.
 - **Current development series:** 0.6. Terrain editing is not yet enabled.
-- **Immediate next milestone:** **Phase 0 Tkinter core extraction** — implementation complete on `refactor/phase0-core-extraction`; awaiting final Windows acceptance and merge. No visible or accepted behavioural changes. Native RoadPainter-style work is deferred until after Phase 0.
+- **Immediate next milestone:** **Phase 1 — read-only PySide6 shell** on top of the Phase 0 core (see `UI_MODERNISATION_PLAN.md` §5). First step: confirm PySide6 installs and runs on Python 3.14. The Tk UI keeps working alongside it. Native RoadPainter-style roads remain deferred to Phase 3.
 
-## Application startup and navigation — planned usability refinement (AFTER Phase 0)
+## Application startup and navigation — planned usability refinement (Phase 1 candidate)
 - **Default post-load selection:** After an `.fsg` file is successfully loaded, open the **Players** view and automatically select the human-controlled player.
 - Determine the human player from authoritative savegame data rather than relying on player order or a hard-coded identifier.
 - If no unique human player can be identified, use a safe, clearly defined fallback without selecting an arbitrary player.
 - Add regression tests for successful loads, missing/ambiguous human-player data, and switching between savegames.
-- **Status:** Deferred until after Phase 0, as part of the Qt UI implementation or a separately accepted later release. Phase 0 must preserve the existing startup tab, owner filter, and selection exactly; do not add auto-selection during the refactor.
+- **Status:** Phase 0 is complete, so this is no longer blocked. Planned as a 🟢 Phase 1 item in the Qt UI (or a separately accepted Tk release).
 
-## Phase 0 acceptance fixtures (no behaviour changes)
+## Phase 0 acceptance fixtures (no behaviour changes) — historical, Phase 0 accepted
 - **Authoritative unit indexing:** In the audited `Morten(5).fsg` baseline, 2,525 raw nested `<unit>` elements represent 2,520 distinct unit IDs (cached terrain snapshots are excluded from the editable unit list). The expected post-fix UI status is **2,520 units**. These numbers are save-specific, not global invariants; the current `Morten(6).fsg` may differ.
 - **Xaymaca:** The Arawak capital must show **exactly one authoritative Danish missionary**, not the cached duplicate. Keep the cached missionary deletion caveat in scope as a known limitation; do not change deletion semantics during Phase 0.
 - **Superseded:** the live `Morten(5).fsg` comparison is no longer possible because that save is unavailable. Authoritative-unit indexing and cached-snapshot exclusion are covered by synthetic headless regression tests; real-save checks use a currently available save (see `UI_MODERNISATION_PLAN.md` §5).
