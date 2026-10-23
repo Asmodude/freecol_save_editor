@@ -1,4 +1,6 @@
 """FreeCol Save Editor v0.5.5 Equipment Test — inline existing-goods editing. Python 3.9+."""
+from unit_records import authoritative_units
+from location_names import colony_tile_names, location_label, unit_locations
 import collections
 import pathlib
 import tkinter as tk
@@ -254,10 +256,12 @@ class Explorer(tk.Tk):
                 raise ValueError('Duplicate authoritative colony IDs')
             nat=[e for e in game.findall('./map/tile/indianSettlement') if (e.get('id') or '').startswith('indianSettlement:')]
             if len(nat) != len({e.get('id') for e in nat}): raise ValueError('Duplicate authoritative native settlement IDs')
-            units=[e for e in game.iter('unit') if (e.get('id') or '').startswith('unit:')]
+            units=authoritative_units(game)
             locations={e.get('id'):e.get('name','') for e in col+nat}
             tiles={e.get('id'):(e.get('x'),e.get('y')) for e in game.iter('tile') if 'x' in e.attrib}
             self.players=players; self.locations=locations
+            self.colony_tile_names=colony_tile_names(game)
+            self.unit_locations=unit_locations(units)
             self.xml_bytes = xml_bytes
             self.root = root
             self.edits.clear()
@@ -295,10 +299,7 @@ class Explorer(tk.Tk):
         return self.players[key].get('username','') if key in self.players else (key or '')
 
     def loc_name(self, key):
-        if key in self.locations: return self.locations[key]
-        if key in self.tiles:
-            x,y=self.tiles[key];return f'Tile ({x},{y})'
-        return key or ''
+        return location_label(key, self.locations, self.tiles, self.colony_tile_names, self.unit_locations)
 
     def row_values(self, group,e):
         a=e.attrib
@@ -588,7 +589,8 @@ class Explorer(tk.Tk):
                     if kind=='road':
                         self.paint_directional_road(canvas,group,x,y,tw,th,style)
                     elif kind=='river':
-                        river_art=self.terrain_art.get_river(style,tw,th)
+                        river_art=(self.terrain_art.get_composited_river(style,tw,th,imp.get('magnitude','2'))
+                                   or self.terrain_art.get_river(style,tw,th))
                         if river_art is not None:
                             canvas.create_image(x,y,image=river_art,tags=(group,))
                             self.terrain_art_refs.append(river_art)
