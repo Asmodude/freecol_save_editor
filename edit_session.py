@@ -68,6 +68,19 @@ class EditSession:
             raise EditValidationError(f'Invalid value: maximum is {ceiling}. Press Esc to cancel.')
         return new
 
+    @staticmethod
+    def editable_fields(group, element):
+        """Existing Overview editability, including native gold sentinel."""
+        if group == 'Players':
+            return {'tax'} | ({'gold'} if element.get('gold') != '-2147483648' else set())
+        if group == 'Units':
+            return {'experience', 'movesLeft'}
+        if group == 'Colonies':
+            return {'sonsOfLiberty'}
+        if group == 'Native settlements':
+            return {'learnableSkill'}
+        return set()
+
     def stage_equipment(self, root, unit, role, amount):
         """Preserve the historical equipment/delete conflict and role validation."""
         uid=unit.get('id')
