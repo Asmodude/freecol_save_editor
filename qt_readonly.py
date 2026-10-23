@@ -7,11 +7,12 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont, QBrush
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
     QMessageBox, QPushButton, QSplitter, QTabWidget, QTableWidget,
     QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
-    QWidget, QPlainTextEdit, QGroupBox, QHeaderView, QSizePolicy
+    QWidget, QPlainTextEdit, QGroupBox, QHeaderView, QSizePolicy, QStyle
 )
 from save_document import SaveDocument
 from edit_session import EditSession
@@ -70,7 +71,11 @@ class QtExplorer(QMainWindow):
 
         panes = QSplitter(Qt.Orientation.Horizontal)
         self.navigation = QTreeWidget()
-        self.navigation.setHeaderLabel('Savegame')
+        self.navigation.setHeaderLabel('SAVEGAME EXPLORER')
+        self.navigation.setIndentation(19)
+        self.navigation.setUniformRowHeights(True)
+        self.navigation.setAnimated(True)
+        self.navigation.setAlternatingRowColors(True)
         self.navigation.currentItemChanged.connect(self.navigate)
         panes.addWidget(self.navigation)
 
@@ -146,8 +151,19 @@ class QtExplorer(QMainWindow):
         self.navigation.blockSignals(True)
         self.navigation.clear()
 
-        def entry(parent, label, group=None, scope=None, ready=True):
+        def entry(parent, label, group=None, scope=None, ready=True, kind='section'):
             item = QTreeWidgetItem([label])
+            icons = {
+                'nation': QStyle.StandardPixmap.SP_ComputerIcon,
+                'section': QStyle.StandardPixmap.SP_DirIcon,
+                'colony': QStyle.StandardPixmap.SP_FileIcon,
+                'planned': QStyle.StandardPixmap.SP_FileDialogDetailedView,
+            }
+            item.setIcon(0, self.style().standardIcon(icons['planned' if not ready else kind]))
+            if kind == 'nation':
+                font = QFont(item.font(0))
+                font.setBold(True)
+                item.setFont(0, font)
             if parent is None:
                 self.navigation.addTopLevelItem(item)
             else:
@@ -158,6 +174,7 @@ class QtExplorer(QMainWindow):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
                 if not ready:
                     item.setText(0, label + '  (planned)')
+                    item.setForeground(0, QBrush(self.palette().color(self.foregroundRole()).lighter(135)))
                     item.setToolTip(0, 'Not yet implemented in the Phase 1 Qt preview')
             return item
 
@@ -165,7 +182,7 @@ class QtExplorer(QMainWindow):
         own = human_player_id(doc) if doc else None
         human = doc.players.get(own) if doc and own else None
         nation = presentation.readable(human.get('nationId')) if human is not None else 'My Nation'
-        my = entry(None, nation + ' (Player)')
+        my = entry(None, nation + ' (Player)', kind='nation')
         overview = entry(my, 'Overview', 'Players', 'mine')
         entry(my, 'Diplomacy', ready=False)
         my_colonies = entry(my, 'Colonies', 'Colonies', 'mine')
@@ -173,14 +190,14 @@ class QtExplorer(QMainWindow):
             for colony in sorted((c for c in doc.colonies if c.get('owner') == own),
                                  key=lambda c: (c.get('name') or '').casefold()):
                 entry(my_colonies, colony.get('name') or colony.get('id'),
-                      'Colonies', 'colony-id:' + colony.get('id'))
+                      'Colonies', 'colony-id:' + colony.get('id'), kind='colony')
         entry(my, 'Units', 'Units', 'mine')
         for label in ('Goods', 'Research', 'Founding Fathers', 'Player Options'):
             entry(my, label, ready=False)
 
-        rivals = entry(None, 'Rival Nations')
+        rivals = entry(None, 'Rival Nations', kind='nation')
         entry(rivals, 'All European rivals', 'Players', 'rivals')
-        natives = entry(None, 'Native Nations')
+        natives = entry(None, 'Native Nations', kind='nation')
         entry(natives, 'All native settlements', 'Native settlements', 'native')
         if doc:
             for player in doc.players.values():
@@ -190,7 +207,7 @@ class QtExplorer(QMainWindow):
                 nation_id = player.get('nationId') or player.get('nation')
                 if player.get('playerType') == 'colonial':
                     label = presentation.readable(nation_id) or pid
-                    rival = entry(rivals, label)
+                    rival = entry(rivals, label, kind='nation')
                     entry(rival, 'Overview', 'Players', 'player:' + pid)
                     entry(rival, 'Diplomacy', ready=False)
                     colony_group = entry(rival, 'Colonies', 'Colonies', 'player:' + pid)
@@ -203,7 +220,7 @@ class QtExplorer(QMainWindow):
                         entry(rival, section, ready=False)
                 elif player.get('playerType') in ('indian', 'native'):
                     label = presentation.readable(nation_id) or pid
-                    native = entry(natives, label)
+                    native = entry(natives, label, kind='nation')
                     entry(native, 'Settlements', 'Native settlements', 'native-owner:' + pid)
                     entry(native, 'Units', 'Units', 'player:' + pid)
 
