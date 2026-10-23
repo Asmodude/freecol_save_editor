@@ -8,6 +8,9 @@ def human_player_id(document):
 def rows_for_scope(document, group, scope):
     records=document.records.get(group,())
     own=human_player_id(document)
+    if scope.startswith('settlement-id:') and group=='Native settlements':
+        target=scope[len('settlement-id:'):]
+        return [e for e in records if e.get('id')==target]
     if scope.startswith('colony-id:') and group=='Colonies':
         target=scope[len('colony-id:'):]
         return [e for e in records if e.get('id')==target]
