@@ -21,6 +21,12 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn('self.map_button.setEnabled(False)', self.source)
         self.assertIn('available in the Tkinter application', self.source)
 
+    def test_detail_unit_navigation_is_read_only(self):
+        self.assertIn("self.jump_unit_button.clicked.connect(self.open_detail_unit)", self.source)
+        self.assertIn("self.document.unit_by_id(unit_id)", self.source)
+        self.assertIn("self.grid.selectRow(index)", self.source)
+        self.assertNotIn('self.document.save(', self.source)
+
     def test_separate_workspace_and_inspector(self):
         self.assertIn('self.overview = QPlainTextEdit()', self.source)
         self.assertIn('self.details = QPlainTextEdit()', self.source)
