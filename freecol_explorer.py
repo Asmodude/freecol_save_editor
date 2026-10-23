@@ -588,7 +588,8 @@ class Explorer(tk.Tk):
                     if kind=='road':
                         self.paint_directional_road(canvas,group,x,y,tw,th,style)
                     elif kind=='river':
-                        river_art=self.terrain_art.get_river(style,tw,th)
+                        river_art=(self.terrain_art.get_composited_river(style,tw,th,imp.get('magnitude','2'))
+                                   or self.terrain_art.get_river(style,tw,th))
                         if river_art is not None:
                             canvas.create_image(x,y,image=river_art,tags=(group,))
                             self.terrain_art_refs.append(river_art)

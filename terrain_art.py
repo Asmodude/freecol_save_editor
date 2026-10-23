@@ -203,3 +203,65 @@ class FreeColArt:
             f'terrain/river/river{style}.png',
         ])
         return self._scaled_image(raw, ('river-style', style, int(width), int(height)), width, height) if raw else None
+
+    def get_composited_river(self, style, width, height, magnitude=None, major_transitions=()):
+        """Experimental FreeCol-inspired river texture/mask composite.
+
+        Uses assets exclusively from the user's installed FreeCol copy.
+        Falls back to the existing renderer if Pillow or masks are unavailable.
+        This is not a pixel-identical port of FreeCol's Java renderer.
+        """
+        if len(style) != 4 or any(v not in '0123' for v in style) or style == '0000':
+            return None
+        from io import BytesIO
+        try:
+            from PIL import Image, ImageChops, ImageTk, ImageDraw
+        except ImportError:
+            return None
+        directions=('ne','se','sw','nw')
+        active=sorted(d for d,v in zip(directions,style) if v!='0')
+        variant='_'.join(active)
+        minor=(int(magnitude) if magnitude is not None else max(int(v) for v in style)) <= 1
+        cache_key=('freecol-river',style,minor,tuple(sorted(major_transitions)),int(width),int(height))
+        if cache_key in self.scaled_cache:
+            return self.scaled_cache[cache_key]
+        prefix='river_mask_minor' if minor else 'river_mask'
+        suffix=('_'+variant) if variant else ''
+        paths=(
+            'terrain/river_masks/'+prefix+suffix+'.png',
+            'terrain/river_masks/'+prefix+suffix+'.size9.png',
+        )
+        mask_bytes=next((data for path in paths if (data:=self._read_bytes(path))),None)
+        water_bytes=self._read_bytes('terrain/river/center0.png')
+        pebbles_bytes=self._read_bytes('terrain/river/pebbles.png')
+        if not all((mask_bytes,water_bytes,pebbles_bytes)):
+            return None
+        try:
+            def load(data):
+                with Image.open(BytesIO(data)) as source:
+                    return source.convert('RGBA')
+            mask=load(mask_bytes)
+            water=load(water_bytes).resize(mask.size,Image.Resampling.LANCZOS)
+            pebbles=load(pebbles_bytes).resize(mask.size,Image.Resampling.LANCZOS)
+            coverage=mask.getchannel('A')
+            for direction in major_transitions:
+                extra=self._read_bytes('terrain/river_masks/river_mask_to_major_'+direction+'.png')
+                if extra:
+                    overlay=load(extra).resize(mask.size,Image.Resampling.LANCZOS)
+                    coverage=ImageChops.lighter(coverage,overlay.getchannel('A'))
+            bed=Image.blend(pebbles,water,0.9)
+            expanded=coverage.resize((round(mask.width*1.25),round(mask.height*1.25)),Image.Resampling.BICUBIC)
+            left=(expanded.width-mask.width)//2
+            top=(expanded.height-mask.height)//2
+            spread=expanded.crop((left,top,left+mask.width,top+mask.height))
+            bed.putalpha(ImageChops.lighter(spread,coverage))
+            diamond=Image.new('L',mask.size,0)
+            w,h=mask.size
+            ImageDraw.Draw(diamond).polygon(((w//2,0),(w-1,h//2),(w//2,h-1),(0,h//2)),fill=255)
+            bed.putalpha(ImageChops.multiply(bed.getchannel('A'),diamond))
+            out=bed.resize((max(1,int(width)),max(1,int(height))),Image.Resampling.LANCZOS)
+            photo=ImageTk.PhotoImage(out,master=self.master)
+            self.scaled_cache[cache_key]=photo
+            return photo
+        except (OSError,ValueError):
+            return None

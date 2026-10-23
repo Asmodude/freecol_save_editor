@@ -91,7 +91,14 @@ class MapEditorWindow(tk.Toplevel):
                     kind=self.app.readable(imp.get('type')).lower()
                     style=imp.get('style','')
                     if kind=='road':self.app.paint_directional_road(self.canvas,'',px,py,tw,th,style)
-                    elif kind=='river':self.app.paint_directional_river(self.canvas,'',px,py,tw,th,style)
+                    elif kind=='river':
+                        river_art=(self.app.terrain_art.get_composited_river(style,tw,th,imp.get('magnitude','2'))
+                                   or self.app.terrain_art.get_river(style,tw,th))
+                        if river_art is not None:
+                            self.images.append(river_art)
+                            self.canvas.create_image(px,py,image=river_art)
+                        else:
+                            self.app.paint_directional_river(self.canvas,'',px,py,tw,th,style)
                     elif kind=='plow':
                         art=self.app.terrain_art.get_plowed(int(tw),int(th))
                         if art:self.images.append(art);self.canvas.create_image(px,py,image=art)
