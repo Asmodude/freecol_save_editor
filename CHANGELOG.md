@@ -6,6 +6,13 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Phase 1 Qt read-only shell — approved visual direction, implementation in progress
+- User approved a full visual mock-up on 2026-10-23 subject to two changes: avoid duplication between detailed workspace and contextual inspector, and make the Map Editor entry point conspicuous in the top toolbar.
+- `qt_readonly.py` now provides a separate workspace and per-selection inspector, plus a visible **Open Map Editor** control. The control is intentionally disabled and explains that the existing fully working Map Editor is still in Tkinter; Qt map implementation is deferred to Phase 3.
+- This is an experimental read-only Qt shell; the mock-up is a *visual design target*, not an assertion that the currently implemented window is pixel-identical or functionally complete. No Tk editing functionality was modified.
+- Added headless static guard tests; actual Qt launch, content and UI appearance still require Windows verification. No Phase 1 acceptance or `main` merge yet.
+
+
 ### Phase 0: core extraction — accepted and merged (2026-10-23)
 - Merged pull request #2 into `main` with a merge commit; tagged `v0.6.2.6.4-phase0`. Branch `refactor/phase0-core-extraction` deleted after merge.
 - Added `*.fsg` to `.gitignore` so private savegames (e.g. the `FREECOL_TEST_SAVE` file) cannot be committed by accident.
