@@ -252,6 +252,10 @@ class QtExplorer(QMainWindow):
             return
         self.group = group
         self.scope = scope
+        if group == 'Colonies' and scope.startswith('colony-id:'):
+            self.search.blockSignals(True)
+            self.search.clear()
+            self.search.blockSignals(False)
         self.populate()
         if group == 'Colonies' and scope.startswith('colony-id:') and self.visible_rows:
             self.grid.selectRow(0)
