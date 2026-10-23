@@ -1,6 +1,7 @@
 """FreeCol Save Editor v0.5.5 Equipment Test — inline existing-goods editing. Python 3.9+."""
 from save_document import SaveDocument
 from edit_session import EditSession, EditValidationError
+import presentation
 from unit_records import authoritative_units
 from location_names import colony_tile_names, location_label, unit_locations
 import collections
@@ -239,7 +240,7 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def short(value):
-        return (value or '').replace('model.unit.','').replace('model.role.','').replace('model.nation.','').replace('model.goods.','')
+        return presentation.short(value)
 
     def open_save(self):
         path = filedialog.askopenfilename(initialdir=self.default_directory(),filetypes=[('FreeCol saves','*.fsg'),('ZIP archives','*.zip'),('All files','*.*')])
@@ -247,6 +248,7 @@ class Explorer(tk.Tk):
         self.cancel_cell_edit()
         try:
             doc=SaveDocument.load(path)
+            self.document=doc
             game=doc.game
             players=doc.players
             col=doc.colonies
@@ -290,30 +292,11 @@ class Explorer(tk.Tk):
         return location_label(key, self.locations, self.tiles, self.colony_tile_names, self.unit_locations)
 
     def row_values(self, group,e):
-        a=e.attrib
-        if group=='Players':
-            return (a.get('id'),a.get('username'),self.short(a.get('nationId')),a.get('playerType'),self.colony_counts.get(a.get('id'),0),self.native_counts.get(a.get('id'),0), 'N/A' if a.get('gold')=='-2147483648' else self.edits.get((a.get('id'),'gold'),(None,a.get('gold')))[1],self.edits.get((a.get('id'),'tax'),(None,a.get('tax')))[1],a.get('score'),a.get('ai'),a.get('dead'))
-        if group=='Colonies':
-            return (a.get('id'),a.get('name'),self.owner_name(a.get('owner')),self.loc_name(a.get('tile')),a.get('established'),a.get('liberty'),self.edits.get((a.get('id'),'sonsOfLibertyTarget'),(None,a.get('sonsOfLiberty')))[1],a.get('productionBonus'))
-        if group=='Native settlements':
-            wanted=', '.join(self.short(a.get('wantedGoods'+str(i))) for i in range(3) if a.get('wantedGoods'+str(i)))
-            return (a.get('id'),a.get('name'),self.owner_name(a.get('owner')),self.loc_name(a.get('tile')),self.short(a.get('learnableSkill')),wanted)
-        
-        staged=self.edits.get((a.get('id'),'equipment'))
-        move_unit=e
-        if staged:
-            move_unit=ET.Element('unit',dict(a,role=staged[1][0],roleCount=str(staged[1][1])))
-        try: max_moves=movement_cap(self.root,move_unit)
-        except (UnknownMovement,TypeError):max_moves='—'
-        return (a.get('id'),self.short(a.get('unitType')),self.owner_name(a.get('owner')),self.loc_name(a.get('location')),self.short(self.edits.get((a.get('id'),'equipment'),(None,(a.get('role','model.role.default'),1)))[1][0]),self.experience_towards(a),self.edits.get((a.get('id'),'experience'),(None,a.get('experience')))[1],self.edits.get((a.get('id'),'movesLeft'),(None,a.get('movesLeft')))[1],max_moves,a.get('hitPoints'),a.get('state'))
+        return presentation.row_values(group,e,self.document,self.edit_session)
 
     @staticmethod
     def experience_towards(attrs):
-        goods=(attrs.get('experienceType') or '')
-        if not goods:return '—'
-        known={'lumber':'Expert Lumberjack','food':'Expert Farmer / Fisherman','cotton':'Expert Cotton Planter','tobacco':'Expert Tobacco Planter','sugar':'Expert Sugar Planter','furs':'Expert Fur Trapper','ore':'Expert Ore Miner','silver':'Expert Silver Miner'}
-        key=goods.rsplit('.',1)[-1]
-        return known.get(key, f'{key.title()} (experience)')
+        return presentation.experience_towards(attrs)
 
     def edit_unit_list(self,event):
         table=self.tables['Units']
@@ -379,10 +362,7 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def readable(value):
-        if not value:return ''
-        value=value.rsplit('.',1)[-1]
-        import re
-        return re.sub(r'(?<!^)(?=[A-Z])',' ',value).replace('_',' ').title()
+        return presentation.readable(value)
 
     def render_details(self,group,e,raw_lines):
         self.clear_details()
@@ -1095,11 +1075,7 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def building_tier(name):
-        # Explicit upgrade chains; standalone facilities have no upgrade level.
-        chains=(('stockade','fort','fortress'),('carpenterHouse','lumberMill'),('schoolhouse','college','university'),('chapel','church','cathedral'),('blacksmithHouse','blacksmithShop','ironWorks'),('tobacconistHouse','tobacconistShop','cigarFactory'),('weaverHouse','weaverShop','textileMill'),('rumDistillery','rumFactory'),('furTraderHouse','furTraderShop','furFactory'),('warehouse','warehouseExpansion'),('printingPress','newspaper'))
-        for chain in chains:
-            if name in chain:return Explorer.readable(chain[0]),f'{chain.index(name)+1}/{len(chain)}'
-        return 'Standalone','—'
+        return presentation.building_tier(name)
 
 if __name__=='__main__':
     Explorer().mainloop()
