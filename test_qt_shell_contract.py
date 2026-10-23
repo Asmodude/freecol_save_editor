@@ -21,6 +21,13 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn('self.map_button.setEnabled(False)', self.source)
         self.assertIn('available in the Tkinter application', self.source)
 
+    def test_navigation_styles_preserve_semantic_filters(self):
+        self.assertIn("self.navigation.setIndentation(19)", self.source)
+        self.assertIn("kind='nation'", self.source)
+        self.assertIn("kind='colony'", self.source)
+        self.assertIn("item.setData(0, Qt.ItemDataRole.UserRole, (group, scope))", self.source)
+        self.assertIn("item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)", self.source)
+
     def test_detail_unit_navigation_is_read_only(self):
         self.assertIn("self.jump_unit_button.clicked.connect(self.open_detail_unit)", self.source)
         self.assertIn("self.document.unit_by_id(unit_id)", self.source)
