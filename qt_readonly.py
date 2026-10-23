@@ -17,7 +17,7 @@ from save_document import SaveDocument
 from edit_session import EditSession
 import presentation
 from qt_navigation import rows_for_scope, human_player_id
-from qt_colony_details import colony_sections
+from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
 from qt_detail_inspector import detail_inspection
@@ -44,6 +44,7 @@ class QtExplorer(QMainWindow):
         self.visible_rows = []
         self.selected_element = None
         self.detail_unit_id = None
+        self.detail_nodes = {}
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -290,6 +291,7 @@ class QtExplorer(QMainWindow):
         colony = element if self.group == 'Colonies' else None
         settlement = element if self.group == 'Native settlements' else None
         sections = colony_sections(colony, self.document) if colony is not None else {}
+        self.detail_nodes = colony_detail_nodes(colony, self.document) if colony is not None else {}
         if settlement is not None:
             sections['Affiliated units'] = settlement_units(settlement, self.document)
         # Qt tabs are physically removed when irrelevant, not greyed out.
@@ -344,7 +346,9 @@ class QtExplorer(QMainWindow):
             description += '\n\nFull unit attributes\n' + '\n'.join(
                 f'{key}: {value}' for key, value in unit.attrib.items())
         self.details.setPlainText(description)
-        self.raw_xml.setPlainText(formatted_record_xml(unit if unit is not None else self.selected_element))
+        exact_nodes = self.detail_nodes.get(section, ())
+        exact = exact_nodes[row] if row < len(exact_nodes) else None
+        self.raw_xml.setPlainText(formatted_record_xml(unit if unit is not None else exact if exact is not None else self.selected_element))
 
     def open_detail_unit(self):
         unit_id = self.detail_unit_id
