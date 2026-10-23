@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 from save_document import SaveDocument
 from edit_session import EditSession
 import presentation
+from qt_navigation import rows_for_scope, human_player_id
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units')
 HEADERS = {
@@ -34,6 +35,7 @@ class QtExplorer(QMainWindow):
         self.document = None
         self.session = EditSession()
         self.group = 'Players'
+        self.scope = 'mine'
         self.visible_rows = []
         self.selected_element = None
 
@@ -125,14 +127,21 @@ class QtExplorer(QMainWindow):
         for label, group in (('Overview', 'Players'), ('Colonies', 'Colonies'),
                              ('Units', 'Units')):
             item = QTreeWidgetItem([label])
-            item.setData(0, Qt.ItemDataRole.UserRole, group)
+            item.setData(0, Qt.ItemDataRole.UserRole, (group, 'mine'))
             primary.addChild(item)
         others = QTreeWidgetItem(['Other Nations'])
         others.setFlags(others.flags() & ~Qt.ItemFlag.ItemIsSelectable)
         self.navigation.addTopLevelItem(others)
+        rivals = QTreeWidgetItem(['European rivals'])
+        rivals.setData(0, Qt.ItemDataRole.UserRole, ('Players', 'rivals'))
+        others.addChild(rivals)
+        native_group = QTreeWidgetItem(['Native Nations'])
+        native_group.setFlags(native_group.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.navigation.addTopLevelItem(native_group)
         natives = QTreeWidgetItem(['Native settlements'])
-        natives.setData(0, Qt.ItemDataRole.UserRole, 'Native settlements')
-        others.addChild(natives)
+        natives.setData(0, Qt.ItemDataRole.UserRole, ('Native settlements', 'native'))
+        native_group.addChild(natives)
+        native_group.setExpanded(True)
         primary.setExpanded(True)
         others.setExpanded(True)
         self.navigation.setCurrentItem(primary.child(0))
@@ -159,10 +168,14 @@ class QtExplorer(QMainWindow):
     def navigate(self, current, previous):
         if current is None:
             return
-        group = current.data(0, Qt.ItemDataRole.UserRole)
+        selection = current.data(0, Qt.ItemDataRole.UserRole)
+        if not isinstance(selection, tuple) or len(selection)!=2:
+            return
+        group, scope = selection
         if group not in GROUPS:
             return
         self.group = group
+        self.scope = scope
         self.populate()
 
     def populate(self):
@@ -180,7 +193,7 @@ class QtExplorer(QMainWindow):
             return
         query = self.search.text().strip().casefold()
         rows = []
-        for element in doc.records.get(self.group, ()):
+        for element in rows_for_scope(doc, self.group, self.scope):
             values = presentation.row_values(self.group, element, doc, self.session)
             if query and query not in ' '.join(str(value) for value in values).casefold():
                 continue
@@ -193,8 +206,11 @@ class QtExplorer(QMainWindow):
                 cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.grid.setItem(row, col, cell)
         self.grid.resizeColumnsToContents()
+        context = {'mine':'My Nation', 'rivals':'European rivals', 'native':'Native Nations', 'all':'All'}[self.scope]
+        note = ('Human player could not be uniquely identified; no player was guessed.\n' 
+                if self.scope=='mine' and human_player_id(doc) is None else '')
         self.overview.setPlainText(
-            f'{self.group}: {len(rows)} displayed\n'
+            f'{context} · {self.group}: {len(rows)} displayed\n' + note +
             'Choose a row above to see its full read-only record here.\n'
             'The inspector on the right shows only the currently selected object.')
 
