@@ -7,6 +7,8 @@ This is the detailed, permanent development history. It includes point releases,
 ## 0.6 — Terrain inspection and map work (ongoing)
 
 ### Phase 0: initial core extraction (in progress, unaccepted)
+- **Mandatory lookup and permission audit, 2026-10-23:** completed `SaveDocument` owner/location/unit/colony/tile lookup API and delegated existing UI lookup calls; routed Overview, main unit table and colony worker permission checks through `EditSession.editable_fields`, retaining legacy numeric and ruleset validation gates. New headless lookup test added. Final Windows and in-game acceptance remain open.
+
 - **Windows artwork-source smoke check, 2026-10-23:** user confirmed the application smoke test passed with no problems after `freecol_art_source.py` extraction. This confirms no reported Windows visual or functional regressions at this checkpoint, not final Phase 0 sign-off.
 
 - **Artwork source extraction, 2026-10-23:** new UI-free `freecol_art_source.py` handles local image directory/JAR discovery and byte reading; `terrain_art.FreeColArt` remains the Tk image and scaling adapter. Three source tests passed in GitHub Actions; the full headless run passed 62 tests, 1 expected skip (real save not available). Windows visual confirmation after this extraction is still outstanding.
