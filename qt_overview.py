@@ -1,0 +1,53 @@
+"""Read-only contextual summaries for Phase 1 Qt.
+
+Only fields present in the savegame are shown; absent values are not guessed.
+"""
+from qt_colony_details import colony_sections
+import presentation
+
+
+def record_overview(group, element, document):
+    name = element.get('name') or element.get('username') or element.get('id') or 'Unnamed record'
+    lines = [name, '']
+    def field(label, value):
+        if value is not None and value != '':
+            lines.append(f'{label}: {value}')
+    if group == 'Colonies':
+        sections = colony_sections(element, document)
+        field('Owner', document.owner_name(element.get('owner')))
+        field('Map location', document.location_name(element.get('tile')))
+        field('Established', element.get('established'))
+        field('Liberty bells', element.get('liberty'))
+        field('Sons of Liberty', element.get('sonsOfLiberty'))
+        field('Production bonus', element.get('productionBonus'))
+        lines.extend(['', 'Population and activity'])
+        field('Workplace workers', len(sections['Workers'][1]))
+        field('Stationed units', len(sections['Stationed units'][1]))
+        field('Buildings', len(sections['Buildings'][1]))
+        field('Stored goods types', len(sections['Goods'][1]))
+        field('Warehouse goods total', sum(int(v[1]) for v in sections['Goods'][1] if v[1].isdigit()))
+        lines.extend(['', 'Select Buildings, Workers, Stationed units or Goods for item-level details.'])
+    elif group == 'Native settlements':
+        field('Nation', document.owner_name(element.get('owner')))
+        field('Location', document.location_name(element.get('tile')))
+        field('Learnable skill', presentation.readable(element.get('learnableSkill')))
+        for i in range(3):
+            field(f'Wanted goods {i+1}', presentation.readable(element.get(f'wantedGoods{i}')))
+        lines.extend(['', 'Select Affiliated units for units with this settlement as home or explicit affiliation.'])
+    elif group == 'Players':
+        field('Nation', presentation.readable(element.get('nationId')))
+        field('Type', element.get('playerType'))
+        field('Gold', element.get('gold'))
+        field('Tax', element.get('tax'))
+        field('Score', element.get('score'))
+        field('Colonies', document.colony_counts.get(element.get('id'), 0))
+        field('Native settlements', document.native_counts.get(element.get('id'), 0))
+    elif group == 'Units':
+        field('Type', presentation.readable(element.get('unitType')))
+        field('Owner', document.owner_name(element.get('owner')))
+        field('Location', document.location_name(element.get('location')))
+        field('Role', presentation.readable(element.get('role')))
+        field('Experience', element.get('experience'))
+        field('Moves left', element.get('movesLeft'))
+        field('State', element.get('state'))
+    return '\n'.join(lines)
