@@ -378,7 +378,7 @@ class Explorer(tk.Tk):
             if group=='Units' and k in ('role','roleCount') and (e.get('id'),'equipment') in self.edits:
                 role_count=self.edits[(e.get('id'),'equipment')][1]
                 shown=role_count[0] if k=='role' else role_count[1]
-            permitted=(group=='Native settlements' and k=='learnableSkill') or (group=='Players' and k in ('gold','tax') and v!='-2147483648') or (group=='Units' and k in ('experience','movesLeft')) or (group=='Colonies' and k=='sonsOfLiberty')
+            permitted=k in self.edit_session.editable_fields(group,e)
             tags=('changed',) if key in self.edits else (('editable',) if permitted else ())
             overview.insert('', 'end',iid=k,values=(self.readable(k),shown),tags=tags)
         self.detail_tabs.tab(self.detail_frames['Buildings'],state='normal' if group=='Colonies' else 'disabled')
