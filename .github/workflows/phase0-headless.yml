@@ -28,4 +28,5 @@ jobs:
             test_save_document \
             test_edit_session \
             test_presentation \
-            test_map_render
+            test_map_render \
+            test_freecol_art_source
