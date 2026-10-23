@@ -1,7 +1,7 @@
 """Phase 1 read-only colony details contract."""
 import unittest
 from xml.etree.ElementTree import fromstring
-from qt_colony_details import colony_sections
+from qt_colony_details import colony_sections, colony_detail_nodes
 
 
 class ColonyDetailsTests(unittest.TestCase):
@@ -25,6 +25,15 @@ class ColonyDetailsTests(unittest.TestCase):
         sections=colony_sections(colony,doc)
         self.assertEqual([row[0] for row in sections['Workers'][1]],['unit:1'])
         self.assertEqual([row[0] for row in sections['Stationed units'][1]],['unit:2'])
+
+    def test_xml_nodes_match_display_rows(self):
+        colony=fromstring('<colony id="colony:4"><building buildingType="model.building.fort"/><building buildingType="model.building.chapel"/><goodsContainer><storedGoods><goods type="model.goods.food" amount="12"/><goods type="model.goods.cotton" amount="5"/></storedGoods></goodsContainer></colony>')
+        rows=colony_sections(colony,None)
+        nodes=colony_detail_nodes(colony,None)
+        self.assertEqual(len(rows['Buildings'][1]),len(nodes['Buildings']))
+        self.assertEqual(len(rows['Goods'][1]),len(nodes['Goods']))
+        self.assertEqual(nodes['Buildings'][1].get('buildingType'),'model.building.chapel')
+        self.assertEqual(nodes['Goods'][1].get('type'),'model.goods.cotton')
 
     def test_empty_colony_still_has_schema(self):
         sections=colony_sections(fromstring('<colony/>'),None)
