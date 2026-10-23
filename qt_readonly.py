@@ -21,6 +21,7 @@ from qt_colony_details import colony_sections
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
 from qt_detail_inspector import detail_inspection
+from qt_raw_xml import formatted_record_xml
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units')
 HEADERS = {
@@ -111,7 +112,12 @@ class QtExplorer(QMainWindow):
         inspector_layout.addWidget(self.inspector_label)
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
-        inspector_layout.addWidget(self.details, 1)
+        self.inspector_tabs = QTabWidget()
+        self.inspector_tabs.addTab(self.details, 'Details')
+        self.raw_xml = QPlainTextEdit()
+        self.raw_xml.setReadOnly(True)
+        self.inspector_tabs.addTab(self.raw_xml, 'Raw XML')
+        inspector_layout.addWidget(self.inspector_tabs, 1)
         self.jump_unit_button = QPushButton('Open full unit record →')
         self.jump_unit_button.setEnabled(False)
         self.jump_unit_button.clicked.connect(self.open_detail_unit)
@@ -246,6 +252,7 @@ class QtExplorer(QMainWindow):
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
         self.details.clear()
+        self.raw_xml.clear()
         self.inspector_label.setText('Select an individual row to inspect its attributes.')
         self.overview.clear()
         self.update_detail_tabs(None)
@@ -337,6 +344,7 @@ class QtExplorer(QMainWindow):
             description += '\n\nFull unit attributes\n' + '\n'.join(
                 f'{key}: {value}' for key, value in unit.attrib.items())
         self.details.setPlainText(description)
+        self.raw_xml.setPlainText(formatted_record_xml(unit if unit is not None else self.selected_element))
 
     def open_detail_unit(self):
         unit_id = self.detail_unit_id
@@ -405,6 +413,7 @@ class QtExplorer(QMainWindow):
         self.details.setPlainText('\n'.join(
             f'{key}: {value}' for key, value in summary if value is not None))
         self.overview.setPlainText(record_overview(self.group, element, doc))
+        self.raw_xml.setPlainText(formatted_record_xml(element))
 
 
 def main():
