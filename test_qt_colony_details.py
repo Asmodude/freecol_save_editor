@@ -12,13 +12,26 @@ class ColonyDetailsTests(unittest.TestCase):
         </colony>""")
         sections=colony_sections(colony,None)
         self.assertEqual(sections['Buildings'][1],[('Fort','Stockade','2/3','1')])
-        self.assertEqual(sections['Units'][1],[('unit:1','Free Colonist','Soldier','42')])
+        self.assertEqual(sections['Workers'][1],[('unit:1','Free Colonist','Fort','','42')])
         self.assertEqual(sections['Goods'][1],[('Cotton','80')])
+    def test_stationed_units_distinct_from_workplace_workers(self):
+        from types import SimpleNamespace
+        colony=fromstring('<colony id="colony:1" tile="tile:1" owner="player:1"><building buildingType="model.building.fort"><unit id="unit:1" unitType="model.unit.freeColonist"/></building></colony>')
+        doc=SimpleNamespace(units=[
+            fromstring('<unit id="unit:1" owner="player:1" location="colony:1"/>'),
+            fromstring('<unit id="unit:2" owner="player:1" location="colony:1" unitType="model.unit.soldier"/>'),
+            fromstring('<unit id="unit:3" owner="player:2" location="colony:1"/>')],
+            location_name=lambda value: value)
+        sections=colony_sections(colony,doc)
+        self.assertEqual([row[0] for row in sections['Workers'][1]],['unit:1'])
+        self.assertEqual([row[0] for row in sections['Stationed units'][1]],['unit:2'])
+
     def test_empty_colony_still_has_schema(self):
         sections=colony_sections(fromstring('<colony/>'),None)
         self.assertEqual(sections['Buildings'][1],[])
-        self.assertEqual(sections['Units'][1],[])
+        self.assertEqual(sections['Workers'][1],[])
         self.assertEqual(sections['Goods'][1],[])
+        self.assertEqual(sections['Stationed units'][1],[])
 
 
 if __name__=='__main__':
