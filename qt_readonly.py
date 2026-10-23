@@ -454,6 +454,10 @@ class QtExplorer(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    # Phase 1 readability baseline: point size remains DPI-aware under Windows.
+    font = app.font()
+    font.setPointSize(11)
+    app.setFont(font)
     window = QtExplorer()
     window.show()
     return app.exec()
