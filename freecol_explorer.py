@@ -1,5 +1,5 @@
-from unit_records import authoritative_units
 """FreeCol Save Editor v0.5.5 Equipment Test — inline existing-goods editing. Python 3.9+."""
+from unit_records import authoritative_units
 import collections
 import pathlib
 import tkinter as tk
