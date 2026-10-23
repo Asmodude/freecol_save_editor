@@ -222,7 +222,13 @@ class QtExplorer(QMainWindow):
                 elif player.get('playerType') in ('indian', 'native'):
                     label = presentation.readable(nation_id) or pid
                     native = entry(natives, label, kind='nation')
-                    entry(native, 'Settlements', 'Native settlements', 'native-owner:' + pid)
+                    settlements = entry(native, 'Settlements', 'Native settlements', 'native-owner:' + pid)
+                    for village in sorted((v for v in doc.native_settlements if v.get('owner') == pid),
+                                          key=lambda v: (v.get('name') or '').casefold()):
+                        if village.get('id'):
+                            entry(settlements, village.get('name') or village.get('id'),
+                                  'Native settlements', 'settlement-id:' + village.get('id'),
+                                  kind='colony')
                     entry(native, 'Units', 'Units', 'player:' + pid)
 
         entry(None, 'Map', ready=False)
@@ -270,12 +276,13 @@ class QtExplorer(QMainWindow):
             return
         self.group = group
         self.scope = scope
-        if group == 'Colonies' and scope.startswith('colony-id:'):
+        direct = (group == 'Colonies' and scope.startswith('colony-id:')) or (group == 'Native settlements' and scope.startswith('settlement-id:'))
+        if direct:
             self.search.blockSignals(True)
             self.search.clear()
             self.search.blockSignals(False)
         self.populate()
-        if group == 'Colonies' and scope.startswith('colony-id:') and self.visible_rows:
+        if direct and self.visible_rows:
             self.grid.selectRow(0)
 
     def populate(self):
