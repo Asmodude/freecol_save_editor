@@ -54,3 +54,32 @@ def colony_sections(colony, document):
         'Stationed units': (('ID','Unit type','Location','Role','State'),stationed),
         'Goods': (('Goods','Amount'),goods),
     }
+
+def colony_detail_nodes(colony, document):
+    """Source XML element for each displayed detail row, in matching row order.
+
+    The same traversal/order as colony_sections. These are references only.
+    """
+    buildings=list(colony.findall('building'))
+    workers=[]
+    seen=set()
+    for workplace in colony.iter():
+        if workplace.tag not in ('building','colonyTile'):
+            continue
+        for unit in workplace.findall('unit'):
+            uid=unit.get('id')
+            if uid and uid not in seen:
+                seen.add(uid)
+                workers.append(document.unit_by_id(uid) if document is not None
+                               and document.unit_by_id(uid) is not None else unit)
+    stationed=[]
+    if document is not None:
+        for unit in document.units:
+            uid=unit.get('id')
+            if (uid and uid not in seen and unit.get('owner')==colony.get('owner')
+                    and unit.get('location') in (colony.get('id'),colony.get('tile'))):
+                stationed.append(unit)
+    store=colony.find('./goodsContainer/storedGoods')
+    goods=list(store.findall('goods')) if store is not None else []
+    return {'Buildings':buildings,'Workers':workers,
+            'Stationed units':stationed,'Goods':goods}
