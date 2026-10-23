@@ -6,6 +6,15 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Regression suite expansion — 2026-10-23 (verification pending)
+- Added `test_edit_safety.py` with 13 headless tests covering supported and unsupported equipment changes and conservative unit deletion (external references, cargo, ambiguous IDs and unexpected containment).
+- Tests use synthetic XML and make no changes to user save files.
+- Run headlessly on the current feature branch: `python -m unittest -v test_colony_graphics test_map_regression test_edit_safety test_real_save_integrity`.
+- `test_real_save_integrity` is skipped unless `FREECOL_TEST_SAVE` points to a private sample save; when enabled it checks source immutability and no-overwrite Save As.
+- **Still pending:** executing the complete current-feature-branch suite, real-save equipment/deletion scenarios, and Windows + FreeCol gameplay regression acceptance. Do not interpret committed tests as a passing build.
+
+
+
 ### v0.6.2.6.4 — native river-mask integration candidate (NOT YET ACCEPTED; 2026-10-23)
 - Integrated the original v0.6.2.6.4-dev2 experimental river-mask compositor into `terrain_art.py` using FreeCol assets from the local installation and optional Pillow.
 - Both the inspector terrain preview and 9×9 Map Editor now try the native-mask composite, then native exact-style sprite, then the existing directional vector fallback. Roads retain the existing vector painter; no pixel-identical RoadPainter implementation is claimed.
