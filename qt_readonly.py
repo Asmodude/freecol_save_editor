@@ -88,7 +88,7 @@ class QtExplorer(QMainWindow):
         self.overview.setReadOnly(True)
         self.tabs.addTab(self.overview, 'Overview')
         self.colony_tables = {}
-        for name in ('Buildings', 'Units', 'Goods', 'Affiliated units'):
+        for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units'):
             table = QTableWidget()
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
