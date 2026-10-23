@@ -1,6 +1,6 @@
 # Better Colony Graphics — asset specification
 
-**Status:** Design Direction Sheet Version 3 approved 2026-10-22. Individual asset approval and map-viewer acceptance remain separate. The approved concept image is intended to be stored at `assets/colonies/design/Better_Colony_Graphics_Design_Direction_v3.png` (upload pending).
+**Status:** Design Direction Sheet Version 3 approved 2026-10-22. All 12 settlement graphics visually accepted by the user in the Windows Map Editor on 2026-10-23. Software release acceptance remains separate.
 
 ## Authoritative art direction — Version 3
 - Early Boston / New England colonial architecture; hand-painted three-quarter-isometric strategy-game illustrations, neutral across nations.
@@ -8,8 +8,8 @@
 - **Colony:** unfortified buildings and courtyards; **Stockade:** vertical palisades; **Fort:** unmistakable earthworks with exterior horizontal timber revetments and low, sloped embankments inspired by Fort William Henry; **Fortress:** massive permanent stone masonry.
 - At ~80–120 px, `fort_large` must not resemble `fortress_small`; silhouettes and building materials must differ clearly.
 - Full artwork must fit inside the PNG with genuine transparent margins, consistent camera perspective and an appropriate anchor; verify these per production asset against FreeCol's rendered map.
-- The earlier harbour-bearing `colony_large.png` is **superseded pending a geography-neutral replacement**. Keep the file as a test/reference until the replacement has passed map-scale inspection; do not treat it as approved final artwork.
-- This concept approval does not imply the remaining eleven production PNGs are accepted or fully implemented.
+- The original harbour-bearing `colony_large.png` was replaced by a geography-neutral production asset, which passed Windows map-scale acceptance.
+- All twelve production PNGs are now present, and every state has passed user visual inspection using the temporary 12-state development preview (subsequently removed).
 
 The planned nation-neutral artwork consists of twelve complete replacement images. Fortification level is **baked into** each sprite (never composed as an overlay):
 
@@ -30,8 +30,8 @@ The planned nation-neutral artwork consists of twelve complete replacement image
 | `stockade_small` | Accepted | User inspected and approved |
 | `stockade_medium` | Accepted | Taphus Windows screenshot |
 | `stockade_large` | Accepted | User inspected and approved |
-| `fort_small`, `fort_medium`, `fort_large` | Files delivered; visual acceptance pending | Version 3 timber-and-earth direction |
-| `fortress_small`, `fortress_medium`, `fortress_large` | Files delivered; visual acceptance pending | Version 3 stone masonry direction |
+| `fort_small`, `fort_medium`, `fort_large` | Accepted | Windows 12-state map preview; timber-and-earth design |
+| `fortress_small`, `fortress_medium`, `fortress_large` | Accepted | Windows 12-state map preview; stone-masonry design |
 
 User acceptance here is **visual artwork acceptance**, not acceptance of the combined software branch or of savegame editing regressions.
 

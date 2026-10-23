@@ -6,6 +6,13 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Better Colony Graphics — all 12 artworks accepted (2026-10-23)
+- User visually approved all three sizes of Colony, Stockade, Fort and Fortress in the Windows 9×9 map viewer.
+- Removed the temporary 12-state TEST sprite dropdown after approval; the map now uses authoritative savegame classification.
+- Preserved 40%-enlarged artwork scale, deferred sprite compositing and optional selection outline.
+- No savegame mutation. Final combined release regression and `main` merge are still pending explicit approval.
+
+
 ### Unit list: cached missionary duplication — 2026-10-23 (Windows verification pending)
 - Real-save finding: `Morten(5).fsg` contains 2,525 nested `unit` elements but only 2,520 distinct IDs. Four missionaries have an additional five snapshots beneath `cachedTile`, including Danish Jesuit Missionary `unit:34086` at Xaymaca.
 - `freecol_explorer.py` now indexes unit records using `unit_records.authoritative_units(game)`, which excludes cached tile snapshots and **fails closed** on genuinely repeated authoritative unit IDs.

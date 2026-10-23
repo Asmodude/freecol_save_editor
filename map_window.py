@@ -1,8 +1,7 @@
 """Standalone read-only terrain atlas, using FreeCol's staggered-row map coordinates."""
 import tkinter as tk
 from tkinter import ttk, messagebox
-from colony_graphics import resolve_colony_graphic, draw_colony_placeholder, ColonyGraphic, TIERS, SIZES
-from pathlib import Path
+from colony_graphics import resolve_colony_graphic, draw_colony_placeholder
 try:
     from PIL import Image, ImageTk
 except ImportError:
@@ -22,7 +21,6 @@ class MapEditorWindow(tk.Toplevel):
         self.images=[]
         self.colonies_by_tile={c.get('tile'):c for c in app.records.get('Colonies',[])}
         self.show_selection_outline=tk.BooleanVar(value=False)
-        self.preview_graphic=tk.StringVar(value='Actual (from save)')
         top=ttk.Frame(self,padding=8);top.pack(fill='x')
         ttk.Label(top,text='Map centre X:').pack(side='left')
         ttk.Entry(top,textvariable=self.center_x,width=8).pack(side='left',padx=(4,14))
@@ -32,12 +30,6 @@ class MapEditorWindow(tk.Toplevel):
         ttk.Button(top,text='Lake test (67,110)',command=lambda:self.goto(67,110)).pack(side='left',padx=4)
         ttk.Checkbutton(top,text='Show selected tile outline',
                         variable=self.show_selection_outline,command=self.paint).pack(side='left',padx=(8,4))
-        ttk.Label(top,text='TEST sprite:').pack(side='left',padx=(12,4))
-        self.preview_combo=ttk.Combobox(top,textvariable=self.preview_graphic,
-                         values=['Actual (from save)']+[f'{tier}_{size}' for tier in TIERS for size in SIZES],
-                         state='readonly',width=22)
-        self.preview_combo.pack(side='left')
-        self.preview_combo.bind('<<ComboboxSelected>>',self.on_preview_change)
         ttk.Label(self,text='Read-only map survey · select a tile for details · colony tiles can be opened in the main editor',foreground='#286d44').pack(anchor='w',padx=12)
         area=ttk.PanedWindow(self,orient='horizontal');area.pack(fill='both',expand=True,padx=8,pady=8)
         left=ttk.Frame(area);right=ttk.Frame(area)
@@ -54,21 +46,6 @@ class MapEditorWindow(tk.Toplevel):
         self.colony_button.configure(state='disabled')
         self.colony=None
         self.goto(int(self.center_x.get()),int(self.center_y.get()))
-
-    def on_preview_change(self, _event=None):
-        # Visual test only; changing selection or save data is never part of preview.
-        self.paint()
-        if self.selected is not None:
-            self.inspect(*self.selected)
-
-    def display_graphic(self, colony, coordinates):
-        actual=resolve_colony_graphic(colony)
-        key=self.preview_graphic.get()
-        if coordinates!=self.selected or key=='Actual (from save)' or key not in self.preview_combo['values']:
-            return actual
-        tier,size=key.rsplit('_',1)
-        image=Path(__file__).resolve().parent/'assets'/'colonies'/f'{key}.png'
-        return ColonyGraphic(key,actual.population,size,tier,image if image.is_file() else None)
 
     def goto(self,x,y):
         self.center_x.set(str(x));self.center_y.set(str(y))
@@ -130,7 +107,7 @@ class MapEditorWindow(tk.Toplevel):
                     if art:self.images.append(art);self.canvas.create_image(px,py,image=art)
                 colony=self.colonies_by_tile.get(tile.get('id'))
                 if colony is not None:
-                    colony_layers.append((px,py,tw,th,self.display_graphic(colony,(x,y))))
+                    colony_layers.append((px,py,tw,th,resolve_colony_graphic(colony)))
                 if (x,y)==self.selected:
                     selected_outline=polygon
                 self.regions.append((x,y,px,py,tw,th))
@@ -184,13 +161,9 @@ class MapEditorWindow(tk.Toplevel):
             if item.get('style'):lines.append('Style: '+item.get('style'))
         if self.colony:
             graphic=resolve_colony_graphic(self.colony)
-            preview=self.display_graphic(self.colony,(x,y))
             lines.extend(['','Colony: '+self.colony.get('name',''),
-                          'Actual graphic: '+graphic.key,
-                          'Displayed graphic: '+preview.key,
-                          'Artwork: '+('available' if preview.image_path else 'placeholder')])
-            if preview.key != graphic.key:
-                lines.append('TEST PREVIEW ONLY — save unchanged')
+                          'Graphic state: '+graphic.key,
+                          'Artwork: '+('available' if graphic.image_path else 'placeholder')])
         self.info.configure(state='normal');self.info.delete('1.0','end')
         self.info.insert('1.0','\n'.join(lines));self.info.configure(state='disabled')
         self.colony_button.configure(state='normal' if self.colony else 'disabled')
