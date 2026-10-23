@@ -1,6 +1,6 @@
 """FreeCol Save Editor v0.5.5 Equipment Test — inline existing-goods editing. Python 3.9+."""
 from unit_records import authoritative_units
-from location_names import colony_tile_names, location_label
+from location_names import colony_tile_names, location_label, unit_locations
 import collections
 import pathlib
 import tkinter as tk
@@ -261,6 +261,7 @@ class Explorer(tk.Tk):
             tiles={e.get('id'):(e.get('x'),e.get('y')) for e in game.iter('tile') if 'x' in e.attrib}
             self.players=players; self.locations=locations
             self.colony_tile_names=colony_tile_names(game)
+            self.unit_locations=unit_locations(units)
             self.xml_bytes = xml_bytes
             self.root = root
             self.edits.clear()
@@ -298,7 +299,7 @@ class Explorer(tk.Tk):
         return self.players[key].get('username','') if key in self.players else (key or '')
 
     def loc_name(self, key):
-        return location_label(key, self.locations, self.tiles, self.colony_tile_names)
+        return location_label(key, self.locations, self.tiles, self.colony_tile_names, self.unit_locations)
 
     def row_values(self, group,e):
         a=e.attrib
