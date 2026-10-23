@@ -891,7 +891,7 @@ class Explorer(tk.Tk):
         if table.identify_column(event.x)!='#2' or not field:return
         if group=='Native settlements' and field=='learnableSkill':
             self.start_choice_edit(table,field,'Value',(obj.get('id'),'learnableSkill'),obj.get(field),self.professions);return
-        if (group=='Players' and field not in ('gold','tax')) or (group=='Units' and field not in ('experience','movesLeft')) or (group=='Colonies' and field!='sonsOfLiberty') or group=='Native settlements':return
+        if field not in self.edit_session.editable_fields(group,obj):return
         if group=='Units' and field=='movesLeft':
             try: movement_cap(self.root,obj)
             except UnknownMovement as exc:
