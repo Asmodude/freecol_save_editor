@@ -306,6 +306,7 @@ class Explorer(tk.Tk):
         if not row:return
         unit=self.records['Units'][int(row)]
         field='movesLeft' if table.identify_column(event.x)=='#8' else 'experience'
+        if field not in self.edit_session.editable_fields('Units',unit):return
         raw=unit.get(field)
         if raw is None or not raw.isdecimal():
             self.status.set('This unit has no editable '+field+' attribute.')
@@ -790,6 +791,7 @@ class Explorer(tk.Tk):
         if not row:return
         units=[u for u in self.records['Units'] if u.get('id')==row]
         if len(units)!=1:return
+        if 'experience' not in self.edit_session.editable_fields('Units',units[0]):return
         raw=units[0].get('experience')
         if raw is None or not raw.isdecimal():
             self.status.set('This unit has no editable experience attribute.');return
@@ -847,7 +849,7 @@ class Explorer(tk.Tk):
         table=self.detail_tables['Overview']
         field=table.identify_row(event.y)
         if table.identify_column(event.x)!='#2' or not field:return
-        if group=='Native settlements' and field=='learnableSkill':
+        if group=='Native settlements' and field=='learnableSkill' and field in self.edit_session.editable_fields(group,obj):
             self.start_choice_edit(table,field,'Value',(obj.get('id'),'learnableSkill'),obj.get(field),self.professions);return
         if field not in self.edit_session.editable_fields(group,obj):return
         if group=='Units' and field=='movesLeft':
