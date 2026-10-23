@@ -795,12 +795,7 @@ class Explorer(tk.Tk):
         try:
             role=self.equip_choice.get()
             amount=int(self.equip_sets.get().split()[0])//20 if role=='model.role.pioneer' else 1
-            if (uid,'deleteUnit') in self.edits or (uid,'deleteNativeUnit') in self.edits:
-                raise ValueError('Unit is already staged for deletion')
-            validate_equipment(self.root,unit,role,amount)
-            old=(unit.get('role','model.role.default'),int(unit.get('roleCount','1')))
-            if (role,amount)==old:self.edits.pop((uid,'equipment'),None)
-            else:self.edits[(uid,'equipment')]=(old,(role,amount))
+            self.edit_session.stage_equipment(self.root,unit,role,amount)
             self.refresh()
             self.status.set(f'{len(self.edits)} staged changes — {uid}: {self.short(role)} x{amount}; no warehouse goods consumed')
         except (ValueError,UnknownMovement) as exc:
@@ -829,7 +824,7 @@ class Explorer(tk.Tk):
         key=(uid,'deleteUnit')
         if not messagebox.askyesno('Confirm staged unit deletion',f'Stage deletion of {uid} ({self.short(unit.get("unitType"))})?\n\nHome: {self.locations.get(unit.get("indianSettlement"),unit.get("indianSettlement") or "not native")}.\nOnly safely resolvable units can be deleted. Save As will verify dependencies.'):
             return
-        self.edits[key]=('present','delete')
+        self.edit_session.stage_unit_deletion(uid)
         self.status.set(f'{len(self.edits)} staged changes. Unit {uid} marked for deletion; original untouched.')
 
     def delete_selected_settlement(self):
@@ -838,14 +833,14 @@ class Explorer(tk.Tk):
         if not selection:return
         village=self.records['Native settlements'][int(selection[0])]
         sid=village.get('id')
-        try:plan=plan_settlement(self.xml_bytes,sid)
+        try:plan=self.edit_session.plan_settlement_deletion(self.xml_bytes,sid)
         except (UnsafeDeletion,ValueError) as exc:
             messagebox.showwarning('Deletion blocked',f'{sid} cannot currently be safely deleted:\n\n{exc}')
             return
         label=f'{plan["name"]} ({sid})\n{len(plan["units"])} units; {plan["cached_copies"]} cached views; {plan["claimed_tiles"]} linked tiles'
         if not messagebox.askyesno('Confirm entire settlement deletion',f'Stage removal of:\n\n{label}\n\nAll connected native units will be removed. No combat consequences are simulated.\n\nOriginal save remains untouched.'):
             return
-        key=(sid,'deleteSettlement');self.edits[key]=('present','delete')
+        self.edit_session.stage_settlement_deletion(sid)
         self.status.set(f'{len(self.edits)} staged changes. Settlement deletion pending Save As.')
 
     def edit_colony_unit(self,event):
@@ -1070,7 +1065,7 @@ class Explorer(tk.Tk):
             if not selected:return
             uid=selected[0];key=(uid+'|'+vid,'deleteNativeUnit')
             if not messagebox.askyesno('Confirm deletion',f'Delete {uid} affiliated with {village.get("name")}?\n\nThis will remove its unit record, AI controller, and home-settlement reference. External dependencies cause Save As to fail safely.',parent=win):return
-            self.edits[key]=('present','delete')
+            self.edit_session.stage_native_unit_deletion(uid,vid)
             self.status.set(f'{len(self.edits)} staged changes — includes deletion of {uid}; original untouched')
             win.destroy()
         ttk.Button(win,text='Stage deletion',command=stage).pack(pady=8)
@@ -1092,7 +1087,7 @@ class Explorer(tk.Tk):
         if target.exists():
             messagebox.showerror('Already exists','For safety, this editor never overwrites an existing file. Choose a new filename.');return
         try:
-            report=produce(source,target,self.edits)
+            report=self.edit_session.save_as(source,target)
         except Exception as exc:
             messagebox.showerror('Save failed',str(exc));return
         self.status.set(f"Saved {len(self.edits)} changes to {target.name} | Original unchanged")
