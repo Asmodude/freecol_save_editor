@@ -30,8 +30,8 @@ The planned nation-neutral artwork consists of twelve complete replacement image
 | `stockade_small` | Accepted | User inspected and approved |
 | `stockade_medium` | Accepted | Taphus Windows screenshot |
 | `stockade_large` | Accepted | User inspected and approved |
-| `fort_small`, `fort_medium`, `fort_large` | In artwork production | Version 3 timber-and-earth direction |
-| `fortress_small`, `fortress_medium`, `fortress_large` | Pending artwork | Version 3 stone masonry direction |
+| `fort_small`, `fort_medium`, `fort_large` | Files delivered; visual acceptance pending | Version 3 timber-and-earth direction |
+| `fortress_small`, `fortress_medium`, `fortress_large` | Files delivered; visual acceptance pending | Version 3 stone masonry direction |
 
 User acceptance here is **visual artwork acceptance**, not acceptance of the combined software branch or of savegame editing regressions.
 
