@@ -14,12 +14,13 @@ class ColonyGraphicsTests(unittest.TestCase):
         return e
 
     def test_all_twelve_states(self):
-        for size,pop in (("small",2),("medium",5),("large",9)):
-            for tier,building in (("colony",None),("stockade","stockade"),("fort","fort"),("fortress","fortress")):
-                g=resolve_colony_graphic(self.colony(pop,building))
-                self.assertEqual(g.key,f"{tier}_{size}")
-                self.assertEqual(g.population,pop)
-                self.assertIsNone(g.image_path)
+        with tempfile.TemporaryDirectory() as empty_assets:
+            for size,pop in (("small",2),("medium",5),("large",9)):
+                for tier,building in (("colony",None),("stockade","stockade"),("fort","fort"),("fortress","fortress")):
+                    g=resolve_colony_graphic(self.colony(pop,building),asset_dir=empty_assets)
+                    self.assertEqual(g.key,f"{tier}_{size}")
+                    self.assertEqual(g.population,pop)
+                    self.assertIsNone(g.image_path)
 
     def test_nationality_does_not_change_artwork(self):
         a=resolve_colony_graphic(self.colony(5,"fort","player:19"))
@@ -45,6 +46,22 @@ class ColonyGraphicsTests(unittest.TestCase):
             resolved=resolve_colony_graphic(self.colony(6,"fort"),asset_dir=tmp)
             self.assertEqual(resolved.key,"fort_medium")
             self.assertIsNone(resolved.image_path)
+
+    def test_population_size_boundaries(self):
+        for count, expected in ((0,"small"),(1,"small"),(3,"small"),(4,"medium"),(7,"medium"),(8,"large"),(20,"large")):
+            self.assertEqual(population_size(count),expected)
+        with self.assertRaises(ValueError):
+            population_size(-1)
+
+    def test_irrelevant_building_does_not_change_tier(self):
+        e=self.colony(5)
+        ET.SubElement(e,"building",{"buildingType":"model.building.carpentersHouse"})
+        self.assertEqual(resolve_colony_graphic(e).key,"colony_medium")
+
+    def test_missing_or_legacy_building_type_does_not_invent_fort(self):
+        e=self.colony(5)
+        ET.SubElement(e,"building",{"type":"model.building.fort"})
+        self.assertEqual(resolve_colony_graphic(e).key,"colony_medium")
 
     def test_asset_lookup(self):
         with tempfile.TemporaryDirectory() as tmp:
