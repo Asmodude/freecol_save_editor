@@ -169,10 +169,18 @@ class QtExplorer(QMainWindow):
                 nation_id = player.get('nationId') or player.get('nation')
                 if player.get('playerType') == 'colonial':
                     label = presentation.readable(nation_id) or pid
-                    entry(rivals, label, 'Players', 'player:' + pid)
+                    rival = entry(rivals, label)
+                    entry(rival, 'Overview', 'Players', 'player:' + pid)
+                    entry(rival, 'Diplomacy', ready=False)
+                    entry(rival, 'Colonies', 'Colonies', 'player:' + pid)
+                    entry(rival, 'Units', 'Units', 'player:' + pid)
+                    for section in ('Goods', 'Research', 'Founding Fathers', 'Player Options'):
+                        entry(rival, section, ready=False)
                 elif player.get('playerType') in ('indian', 'native'):
                     label = presentation.readable(nation_id) or pid
-                    entry(natives, label, 'Native settlements', 'native-owner:' + pid)
+                    native = entry(natives, label)
+                    entry(native, 'Settlements', 'Native settlements', 'native-owner:' + pid)
+                    entry(native, 'Units', 'Units', 'player:' + pid)
 
         entry(None, 'Map', ready=False)
         entry(None, 'Game Options', ready=False)
