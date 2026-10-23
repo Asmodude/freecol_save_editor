@@ -49,6 +49,16 @@ class NationNavigationTests(unittest.TestCase):
         self.assertEqual(rows_for_scope(self.doc,'Colonies','colony-id:colony:999'),[])
         self.assertEqual(rows_for_scope(self.doc,'Units','colony-id:colony:123'),[])
 
+    def test_direct_native_settlement_id_scoping(self):
+        village=self.doc.records['Native settlements'][0]
+        village.set('id','indianSettlement:75')
+        self.assertEqual(rows_for_scope(self.doc,'Native settlements',
+                                         'settlement-id:indianSettlement:75'),[village])
+        self.assertEqual(rows_for_scope(self.doc,'Native settlements',
+                                         'settlement-id:indianSettlement:76'),[])
+        self.assertEqual(rows_for_scope(self.doc,'Colonies',
+                                         'settlement-id:indianSettlement:75'),[])
+
     def test_ambiguous_human_identity_is_not_guessed(self):
         self.doc.players['player:20'].set('ai','false')
         self.assertIsNone(human_player_id(self.doc))
