@@ -58,6 +58,8 @@ class EditSession:
         new = int(raw)
         if field == 'movesLeft':
             unit = next((u for u in units if u.get('id') == key[0]), None)
+            if unit is None:
+                raise EditValidationError('Movement edit unavailable: Unit not found in authoritative records')
             try:
                 ceiling = movement_cap(root, unit)
             except (UnknownMovement, TypeError) as exc:
