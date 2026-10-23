@@ -6,7 +6,7 @@ import collections
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import zipfile
-from location_names import colony_tile_names, unit_locations
+from location_names import colony_tile_names, unit_locations, location_label
 from unit_records import authoritative_units
 
 
@@ -51,3 +51,36 @@ class SaveDocument:
         self.terrain_by_xy={(int(t.get('x')),int(t.get('y'))):t for t in game.findall('./map/tile') if t.get('x') is not None and t.get('y') is not None}
         self.turn=game.get('turn')
         return self
+
+    def owner_name(self, key):
+        return self.players[key].get('username','') if key in self.players else (key or '')
+
+    def location_name(self, key):
+        return location_label(key, self.locations, self.tiles,
+                              self.colony_tile_names, self.unit_locations)
+
+    def unit_by_id(self, key):
+        return next((u for u in self.units if u.get('id') == key), None)
+
+    def colony_at_tile(self, tile_id):
+        return next((c for c in self.colonies if c.get('tile') == tile_id), None)
+
+    @staticmethod
+    def tile_items(tile):
+        if tile is None:
+            return []
+        container=tile.find('tileItemContainer')
+        items=([child for child in container if child.tag in ('tileImprovement','resource')]
+               if container is not None else [])
+        items.extend(child for child in tile if child.tag in ('tileImprovement','resource'))
+        return items
+
+    @classmethod
+    def tile_item_summary(cls, tile):
+        resources=[]; improvements=[]
+        for child in cls.tile_items(tile):
+            if child.tag == 'resource':
+                resources.append(child)
+            elif child.tag == 'tileImprovement':
+                improvements.append(child)
+        return resources, improvements
