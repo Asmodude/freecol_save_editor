@@ -27,6 +27,11 @@ class NationNavigationTests(unittest.TestCase):
         self.assertEqual([p.get('id') for p in rows_for_scope(self.doc,'Players','rivals')],['player:20'])
         self.assertEqual(len(rows_for_scope(self.doc,'Native settlements','native')),1)
 
+    def test_individual_rival_and_native_owner_filters(self):
+        self.assertEqual([p.get('id') for p in rows_for_scope(self.doc,'Players','player:player:20')],['player:20'])
+        self.assertEqual(len(rows_for_scope(self.doc,'Native settlements','native-owner:player:21')),1)
+        self.assertEqual(rows_for_scope(self.doc,'Native settlements','native-owner:player:20'),[])
+
     def test_ambiguous_human_identity_is_not_guessed(self):
         self.doc.players['player:20'].set('ai','false')
         self.assertIsNone(human_player_id(self.doc))
