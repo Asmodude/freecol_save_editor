@@ -17,6 +17,7 @@ from save_document import SaveDocument
 from edit_session import EditSession
 import presentation
 from qt_navigation import rows_for_scope, human_player_id
+from qt_colony_details import colony_sections
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units')
 HEADERS = {
@@ -85,9 +86,14 @@ class QtExplorer(QMainWindow):
         self.overview = QPlainTextEdit()
         self.overview.setReadOnly(True)
         self.tabs.addTab(self.overview, 'Overview')
-        self.tabs.addTab(self._read_only_note(
-            'Detailed Buildings, Units, Goods and Production workspaces '
-            'will be introduced as Phase 1 progresses.'), 'Details (planned)')
+        self.colony_tables = {}
+        for name in ('Buildings', 'Units', 'Goods'):
+            table = QTableWidget()
+            table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+            table.setAlternatingRowColors(True)
+            self.tabs.addTab(table, name)
+            self.colony_tables[name] = table
         center_layout.addWidget(self.tabs, 2)
         panes.addWidget(center)
 
@@ -186,6 +192,7 @@ class QtExplorer(QMainWindow):
         self.details.clear()
         self.inspector_label.setText('Select an individual row to inspect its attributes.')
         self.overview.clear()
+        self.update_colony_tabs(None)
         self.grid.setColumnCount(len(HEADERS[self.group]))
         self.grid.setHorizontalHeaderLabels(HEADERS[self.group])
         doc = self.document
@@ -214,12 +221,30 @@ class QtExplorer(QMainWindow):
             'Choose a row above to see its full read-only record here.\n'
             'The inspector on the right shows only the currently selected object.')
 
+    def update_colony_tabs(self, colony):
+        sections = colony_sections(colony, self.document) if colony is not None else {}
+        for name, table in self.colony_tables.items():
+            headings, records = sections.get(name, ((), ()))
+            table.setRowCount(0)
+            table.clearContents()
+            table.setColumnCount(len(headings))
+            table.setHorizontalHeaderLabels(headings)
+            table.setRowCount(len(records))
+            for row, values in enumerate(records):
+                for col, value in enumerate(values):
+                    item = QTableWidgetItem('' if value is None else str(value))
+                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    table.setItem(row, col, item)
+            table.resizeColumnsToContents()
+            self.tabs.setTabEnabled(self.tabs.indexOf(table), colony is not None)
+
     def inspect(self):
         row = self.grid.currentRow()
         if self.document is None or row < 0 or row >= len(self.visible_rows):
             return
         element = self.visible_rows[row]
         self.selected_element = element
+        self.update_colony_tabs(element if self.group == 'Colonies' else None)
         label = element.get('name') or element.get('username') or element.get('id') or 'Record'
         self.inspector_label.setText(label)
         doc = self.document
