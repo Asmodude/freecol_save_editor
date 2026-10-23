@@ -41,6 +41,14 @@ class NationNavigationTests(unittest.TestCase):
         self.assertEqual(rows_for_scope(self.doc,'Units','player:player:20'),[])
         self.assertEqual(len(rows_for_scope(self.doc,'Units','player:player:19')),1)
 
+    def test_direct_colony_id_scope_never_matches_other_colonies(self):
+        colony=self.doc.records['Colonies'][0]
+        colony.set('id','colony:123')
+        self.doc.records['Colonies'][1].set('id','colony:456')
+        self.assertEqual(rows_for_scope(self.doc,'Colonies','colony-id:colony:123'),[colony])
+        self.assertEqual(rows_for_scope(self.doc,'Colonies','colony-id:colony:999'),[])
+        self.assertEqual(rows_for_scope(self.doc,'Units','colony-id:colony:123'),[])
+
     def test_ambiguous_human_identity_is_not_guessed(self):
         self.doc.players['player:20'].set('ai','false')
         self.assertIsNone(human_player_id(self.doc))
