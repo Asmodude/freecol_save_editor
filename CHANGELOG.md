@@ -6,6 +6,15 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Unit list: cached missionary duplication — 2026-10-23 (Windows verification pending)
+- Real-save finding: `Morten(5).fsg` contains 2,525 nested `unit` elements but only 2,520 distinct IDs. Four missionaries have an additional five snapshots beneath `cachedTile`, including Danish Jesuit Missionary `unit:34086` at Xaymaca.
+- `freecol_explorer.py` now indexes unit records using `unit_records.authoritative_units(game)`, which excludes cached tile snapshots and **fails closed** on genuinely repeated authoritative unit IDs.
+- Added `test_unit_records.py` with isolated cached-missionary, duplicate-authoritative-ID, carried-unit and reference-node cases.
+- The original save is untouched. **Important:** current unit deletion engine still traverses cached XML and may refuse missionary deletion; that is a distinct safety concern and **not fixed by a display-only indexing change**. Avoid deleting affected missionary units until specifically tested.
+- **Pending:** pull feature branch, load original save, verify status shows 2,520 units and Xaymaca shows one missionary. Run full suite and Windows acceptance.
+
+
+
 ### Regression suite expansion — 2026-10-23 (verification pending)
 - Added `test_edit_safety.py` with 13 headless tests covering supported and unsupported equipment changes and conservative unit deletion (external references, cargo, ambiguous IDs and unexpected containment).
 - Tests use synthetic XML and make no changes to user save files.
