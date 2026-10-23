@@ -151,7 +151,7 @@ After phase 0, `freecol_explorer.py` and `map_window.py` contain only widgets, l
 
 ### Tests to add (headless, no Tk)
 
-- `SaveDocument` loads the user's sample save. Counts match the current status bar (e.g. turn 155, 17 players, 64 colonies, 227 native settlements, 2,525 units for `Morten.fsg`).
+- `SaveDocument` loads the user's available sample save. Counts match the current status bar; do not assert stale figures from an unavailable save. The 2,525 raw unit elements historical count included cached representations.
 - Map regression fixtures from `ROADMAP.md`:
   - even-Y neighbours at Christiansborg (83,118)
   - odd-Y neighbours and the three-way major river at (69,111), style 2220
@@ -189,7 +189,7 @@ Every phase runs on its own branch. `main` changes only after the user accepts t
 - 🔴 `SaveDocument` handles loading, indexing and lookups with no UI imports.
 - 🔴 `EditSession` holds all staging and validation rules, keeps the existing edit key shape, and is the single place that decides what is editable.
 - 🔴 Headless tests cover `SaveDocument`, `EditSession` validation, a Save As round trip and the map regression fixtures.
-- 🔴 First confirm the Xaymaca / 2,520-unit baseline in the live UI, then encode it in the tests.
+- 🔴 Preserve the Xaymaca cached-missionary authoritative indexing through synthetic regression tests. The original `Morten(5).fsg` is no longer available; do not block Phase 0 on its historical 2,520-unit count. Use a currently available save for new real-world baseline measurements.
 - 🟡 `map_render.py` produces renderer-neutral drawing primitives; the two duplicated painting paths (inspector preview and Map Editor) become one.
 - 🟡 `terrain_art.py` is split into a UI-free byte loader and a thin Tk image adapter.
 - 🟡 `presentation.py` holds the formatting functions (`readable`, `row_values` etc.).
