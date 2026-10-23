@@ -190,9 +190,15 @@ class QtExplorer(QMainWindow):
         self.navigation.blockSignals(False)
         self.navigation.setCurrentItem(overview)
 
+    @staticmethod
+    def _default_save_directory():
+        # DEVELOPMENT ONLY: remove this local override before release packaging.
+        dev_save = Path(r'C:\Users\morte\OneDrive\Dokumenter\freecol\save')
+        return dev_save if dev_save.is_dir() else Path.home()
+
     def open_save(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, 'Open FreeCol save', str(Path.home()),
+            self, 'Open FreeCol save', str(self._default_save_directory()),
             'FreeCol saves (*.fsg);;ZIP archives (*.zip);;All files (*)')
         if not path:
             return
