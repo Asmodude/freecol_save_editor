@@ -1,4 +1,5 @@
 """FreeCol Save Editor v0.5.5 Equipment Test — inline existing-goods editing. Python 3.9+."""
+from save_document import SaveDocument
 from unit_records import authoritative_units
 from location_names import colony_tile_names, location_label, unit_locations
 import collections
@@ -243,44 +244,29 @@ class Explorer(tk.Tk):
         if not path: return
         self.cancel_cell_edit()
         try:
-            with zipfile.ZipFile(path) as z:
-                if 'savegame.xml' not in z.namelist():
-                    raise ValueError('Archive has no savegame.xml.')
-                xml_bytes=z.read('savegame.xml')
-                root=ET.fromstring(xml_bytes)
-            game=root.find('game')
-            if game is None: raise ValueError('Missing <game> node.')
-            players={p.get('id'):p for p in game.findall('player')}
-            col=[e for e in game.findall('./map/tile/colony') if (e.get('id') or '').startswith('colony:')]
-            if len(col) != len({e.get('id') for e in col}):
-                raise ValueError('Duplicate authoritative colony IDs')
-            nat=[e for e in game.findall('./map/tile/indianSettlement') if (e.get('id') or '').startswith('indianSettlement:')]
-            if len(nat) != len({e.get('id') for e in nat}): raise ValueError('Duplicate authoritative native settlement IDs')
-            units=authoritative_units(game)
-            locations={e.get('id'):e.get('name','') for e in col+nat}
-            tiles={e.get('id'):(e.get('x'),e.get('y')) for e in game.iter('tile') if 'x' in e.attrib}
-            self.players=players; self.locations=locations
-            self.colony_tile_names=colony_tile_names(game)
-            self.unit_locations=unit_locations(units)
-            self.xml_bytes = xml_bytes
-            self.root = root
+            doc=SaveDocument.load(path)
+            game=doc.game
+            players=doc.players
+            col=doc.colonies
+            nat=doc.native_settlements
+            units=doc.units
+            self.players=players; self.locations=doc.locations
+            self.colony_tile_names=doc.colony_tile_names
+            self.unit_locations=doc.unit_locations
+            self.xml_bytes=doc.xml_bytes
+            self.root=doc.root
             self.edits.clear()
             self.current_path=path
             self.settings['last_directory']=str(pathlib.Path(path).parent)
             try:self.config_path.write_text(json.dumps(self.settings),encoding='utf-8')
             except OSError:pass
-            self.colony_counts=collections.Counter(e.get('owner') for e in col)
-            self.native_counts=collections.Counter(e.get('owner') for e in nat)
-            self.professions=sorted({e.get('learnableSkill') for e in nat if e.get('learnableSkill')})
-            self.goods_types=sorted({g.get('type') for g in game.iter('goods') if g.get('type')} | {g.get('id') for g in root.iter('goods-type') if g.get('id')})
-            self.records={
-                'Players': list(players.values()),
-                'Colonies':col,
-                'Native settlements':nat,
-                'Units':units,
-            }
-            self.tiles=tiles
-            self.terrain_by_xy={(int(t.get('x')),int(t.get('y'))):t for t in game.findall('./map/tile') if t.get('x') is not None and t.get('y') is not None}
+            self.colony_counts=doc.colony_counts
+            self.native_counts=doc.native_counts
+            self.professions=doc.professions
+            self.goods_types=doc.goods_types
+            self.records=doc.records
+            self.tiles=doc.tiles
+            self.terrain_by_xy=doc.terrain_by_xy
             self.terrain_tiles={}
             if (67,110) in self.terrain_by_xy:
                 self.terrain_x.set('67');self.terrain_y.set('110')
