@@ -236,7 +236,7 @@ Every phase runs on its own branch. `main` changes only after the user accepts t
 - 🔴 Native-mask rivers and all 12 colony sprites render at least as well as in v0.6.2.6.4.
 - 🔴 FreeCol artwork is still loaded only from the local installation.
 - 🟡 Terrain images are scaled smoothly, replacing Tk's integer-ratio `zoom()`/`subsample()`.
-- 🟡 One map widget is reused for the colony neighbourhood view.
+- 🟡 One map widget is reused for the colony neighbourhood view. **Existing gap to close after Phase 0:** unlike the separate Map Editor, the legacy Colony → Terrain preview does not display colony sprites. The shared Qt map/neighbourhood view must render the accepted colony/stockade/fort/fortress artwork (all twelve states) over terrain in correct compositing order, preserving native rivers and directional roads. User reported this with a screenshot on 2026-10-23; do not alter the Tk baseline during Phase 0.
 - 🟢 Pan and zoom beyond the 9×9 view.
 - 🟢 Native-style roads (the deferred RoadPainter work), written once in `map_render`.
 
