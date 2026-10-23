@@ -20,6 +20,7 @@ from qt_navigation import rows_for_scope, human_player_id
 from qt_colony_details import colony_sections
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
+from qt_detail_inspector import detail_inspection
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units')
 HEADERS = {
@@ -94,6 +95,7 @@ class QtExplorer(QMainWindow):
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
             table.setAlternatingRowColors(True)
+            table.itemSelectionChanged.connect(lambda section=name: self.inspect_detail(section))
             self.tabs.addTab(table, name)
             self.colony_tables[name] = table
         self.tab_widgets = {'Overview': self.overview, **self.colony_tables}
@@ -291,6 +293,8 @@ class QtExplorer(QMainWindow):
         else:
             self.tabs.setCurrentWidget(self.overview)
         for name, table in self.colony_tables.items():
+            table.blockSignals(True)
+            table.clearSelection()
             headings, records = sections.get(name, ((), ()))
             table.setRowCount(0)
             table.clearContents()
@@ -303,7 +307,20 @@ class QtExplorer(QMainWindow):
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     table.setItem(row, col, item)
             table.resizeColumnsToContents()
+            table.blockSignals(False)
 
+    def inspect_detail(self, section):
+        table = self.colony_tables[section]
+        row = table.currentRow()
+        if (self.selected_element is None or self.tabs.indexOf(table) < 0
+                or row < 0 or row >= table.rowCount()):
+            return
+        headings = [table.horizontalHeaderItem(col).text() for col in range(table.columnCount())]
+        values = [(table.item(row, col).text() if table.item(row, col) else '')
+                  for col in range(table.columnCount())]
+        label, description = detail_inspection(section, headings, values)
+        self.inspector_label.setText(label)
+        self.details.setPlainText(description)
 
     def inspect(self):
         row = self.grid.currentRow()
