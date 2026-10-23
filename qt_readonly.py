@@ -14,6 +14,13 @@ from edit_session import EditSession
 import presentation
 
 GROUPS=('Players','Colonies','Native settlements','Units')
+HEADERS={
+    'Players':('ID','Username','Nation','Type','Colonies','Settlements','Gold','Tax','Score','AI','Dead'),
+    'Colonies':('ID','Name','Owner','Location','Established','Liberty','Sons of Liberty','Production bonus'),
+    'Native settlements':('ID','Name','Owner','Location','Learnable skill','Wanted goods'),
+    'Units':('ID','Type','Owner','Location','Role','Experience toward','Experience','Moves left','Max moves','Hit points','State'),
+}
+
 
 
 class QtExplorer(QMainWindow):
@@ -108,11 +115,10 @@ class QtExplorer(QMainWindow):
                 continue
             rows.append((element,values))
         self.visible_rows=[element for element,values in rows]
-        cols=max((len(values) for element,values in rows),default={
-            'Players':11,'Colonies':8,'Native settlements':6,'Units':11}[self.group])
+        cols=len(HEADERS[self.group])
         self.grid.setColumnCount(cols)
         self.grid.setRowCount(len(rows))
-        self.grid.setHorizontalHeaderLabels([f'Field {i+1}' for i in range(cols)])
+        self.grid.setHorizontalHeaderLabels(HEADERS[self.group])
         for row,(element,values) in enumerate(rows):
             for col,value in enumerate(values):
                 cell=QTableWidgetItem('' if value is None else str(value))
