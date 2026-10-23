@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
     QMessageBox, QPushButton, QSplitter, QTabWidget, QTableWidget,
     QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
-    QWidget, QPlainTextEdit, QGroupBox, QHeaderView
+    QWidget, QPlainTextEdit, QGroupBox, QHeaderView, QSizePolicy
 )
 from save_document import SaveDocument
 from edit_session import EditSession
@@ -40,7 +40,11 @@ class QtExplorer(QMainWindow):
         root = QWidget()
         self.setCentralWidget(root)
         layout = QVBoxLayout(root)
-        toolbar = QHBoxLayout()
+        layout.setSpacing(7)
+        toolbar_widget = QWidget()
+        toolbar_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        toolbar = QHBoxLayout(toolbar_widget)
+        toolbar.setContentsMargins(0, 0, 0, 0)
         self.open_button = QPushButton('Open Save…')
         self.open_button.clicked.connect(self.open_save)
         self.map_button = QPushButton('Open Map Editor')
@@ -52,7 +56,8 @@ class QtExplorer(QMainWindow):
         toolbar.addWidget(self.open_button)
         toolbar.addWidget(self.map_button)
         toolbar.addWidget(self.heading, 1)
-        layout.addLayout(toolbar)
+        layout.addWidget(toolbar_widget, 0)
+
 
         panes = QSplitter(Qt.Orientation.Horizontal)
         self.navigation = QTreeWidget()
@@ -98,7 +103,7 @@ class QtExplorer(QMainWindow):
         panes.addWidget(inspector)
         panes.setChildrenCollapsible(False)
         panes.setSizes([240, 885, 325])
-        layout.addWidget(panes)
+        layout.addWidget(panes, 1)
 
         self.statusBar().showMessage(
             'Read-only preview · Save As and the Map Editor remain in the Tkinter application')
@@ -112,12 +117,25 @@ class QtExplorer(QMainWindow):
         return label
 
     def install_navigation(self):
+        """Visible hierarchy without inventing unsupported Qt views."""
         self.navigation.clear()
-        for group in GROUPS:
-            item = QTreeWidgetItem([group])
+        primary = QTreeWidgetItem(['My Nation'])
+        primary.setFlags(primary.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.navigation.addTopLevelItem(primary)
+        for label, group in (('Overview', 'Players'), ('Colonies', 'Colonies'),
+                             ('Units', 'Units')):
+            item = QTreeWidgetItem([label])
             item.setData(0, Qt.ItemDataRole.UserRole, group)
-            self.navigation.addTopLevelItem(item)
-        self.navigation.setCurrentItem(self.navigation.topLevelItem(0))
+            primary.addChild(item)
+        others = QTreeWidgetItem(['Other Nations'])
+        others.setFlags(others.flags() & ~Qt.ItemFlag.ItemIsSelectable)
+        self.navigation.addTopLevelItem(others)
+        natives = QTreeWidgetItem(['Native settlements'])
+        natives.setData(0, Qt.ItemDataRole.UserRole, 'Native settlements')
+        others.addChild(natives)
+        primary.setExpanded(True)
+        others.setExpanded(True)
+        self.navigation.setCurrentItem(primary.child(0))
 
     def open_save(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -141,7 +159,10 @@ class QtExplorer(QMainWindow):
     def navigate(self, current, previous):
         if current is None:
             return
-        self.group = current.data(0, Qt.ItemDataRole.UserRole) or 'Players'
+        group = current.data(0, Qt.ItemDataRole.UserRole)
+        if group not in GROUPS:
+            return
+        self.group = group
         self.populate()
 
     def populate(self):
@@ -185,7 +206,30 @@ class QtExplorer(QMainWindow):
         self.selected_element = element
         label = element.get('name') or element.get('username') or element.get('id') or 'Record'
         self.inspector_label.setText(label)
-        self.details.setPlainText('\n'.join(f'{key}: {value}' for key, value in element.attrib.items()))
+        doc = self.document
+        summary = [('Name', label), ('Category', self.group)]
+        if self.group == 'Players':
+            summary.extend([('Nation', presentation.short(element.get('nationId'))),
+                            ('Gold', element.get('gold')), ('Tax', element.get('tax')),
+                            ('AI controlled', element.get('ai'))])
+        elif self.group == 'Colonies':
+            summary.extend([('Owner', doc.owner_name(element.get('owner'))),
+                            ('Location', doc.location_name(element.get('tile'))),
+                            ('Sons of Liberty', element.get('sonsOfLiberty')),
+                            ('Production bonus', element.get('productionBonus'))])
+        elif self.group == 'Units':
+            summary.extend([('Unit type', presentation.readable(element.get('unitType'))),
+                            ('Owner', doc.owner_name(element.get('owner'))),
+                            ('Location', doc.location_name(element.get('location'))),
+                            ('Role', presentation.short(element.get('role'))),
+                            ('Experience', element.get('experience')),
+                            ('Moves left', element.get('movesLeft'))])
+        else:
+            summary.extend([('Owner', doc.owner_name(element.get('owner'))),
+                            ('Location', doc.location_name(element.get('tile'))),
+                            ('Learnable skill', presentation.short(element.get('learnableSkill')))])
+        self.details.setPlainText('\n'.join(
+            f'{key}: {value}' for key, value in summary if value is not None))
         self.overview.setPlainText(
             f'{label}\n\n'
             f'Category: {self.group}\n'
