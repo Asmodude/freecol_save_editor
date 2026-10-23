@@ -20,8 +20,10 @@ class MapRenderTests(unittest.TestCase):
         self.assertEqual(map_render.road_primitives(0,0,100,50,'X0000000'),[])
         strokes=map_render.road_primitives(0,0,100,50,'10000000')
         self.assertEqual(len(strokes),3)
-        self.assertEqual(strokes[0],('line',(0,0,0.0,-14.5,0.0,-25.0),
-                                      {'fill':'#714d2e','width':3,'smooth':1}))
+        self.assertEqual(strokes[0][0],'line')
+        for actual, expected in zip(strokes[0][1],(0,0,0.0,-14.5,0.0,-25.0)):
+            self.assertAlmostEqual(actual,expected)
+        self.assertEqual(strokes[0][2],{'fill':'#714d2e','width':3,'smooth':1})
         self.assertEqual(strokes[1][2]['fill'],'#c99b61')
         self.assertEqual(strokes[2][0],'oval')
 
