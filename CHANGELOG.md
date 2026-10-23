@@ -6,7 +6,10 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
-### Phase 0: initial core extraction (in progress, unaccepted)
+### Phase 0: core extraction — implementation complete, awaiting final Windows acceptance
+- **Pre-acceptance housekeeping, 2026-10-23:** retired the obsolete Tk-driving tests `test_v061.py` and `test_terrain_parser.py` (hard-coded `/mnt/data` paths; `test_v061` referenced the removed `TERRAIN_OFFSETS`); their coverage is superseded by the headless `test_save_document`, `test_map_regression` and `test_map_render` suites. Renamed the CI workflow to `headless-tests.yml`, which now runs on pushes to `main` and the Phase 0 branch and on pull requests, and uses test discovery so every `test_*.py` (including the previously omitted `test_map_geometry`) is included. Headless run: 65 tests OK, 1 expected skip (no real save in CI). No application code changed.
+- **Remaining before merge:** final Windows acceptance on this exact commit (full suite with a real save, every edit entry point, Save As → FreeCol load/turn/resave, map fixtures), then merge to `main` and record acceptance here.
+- **Carried forward to Phase 3 (accepted slip of 🟡 items):** `map_window.py` still calls into the main window for road/river painting, hit-testing and artwork; forest, plow, shore and native-mask layering remain in the two Tk painting paths. Shared road/river primitives and hit-testing are already in `map_render.py`.
 - **Mandatory lookup and permission audit, 2026-10-23:** completed `SaveDocument` owner/location/unit/colony/tile lookup API and delegated existing UI lookup calls; routed Overview, main unit table and colony worker permission checks through `EditSession.editable_fields`, retaining legacy numeric and ruleset validation gates. New headless lookup test added. Final Windows and in-game acceptance remain open.
 
 - **Windows artwork-source smoke check, 2026-10-23:** user confirmed the application smoke test passed with no problems after `freecol_art_source.py` extraction. This confirms no reported Windows visual or functional regressions at this checkpoint, not final Phase 0 sign-off.

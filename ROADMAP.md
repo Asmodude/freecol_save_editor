@@ -12,7 +12,7 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 ## Current status
 - **Latest accepted integration baseline:** `v0.6.2.6.4` — 9×9 map, native-mask river prototype, established directional roads, and 12 accepted colony sprites (user-verified on Windows).
 - **Current development series:** 0.6. Terrain editing is not yet enabled.
-- **Immediate next milestone:** **Phase 0 Tkinter core extraction**, with no visible or accepted behavioural changes. Native RoadPainter-style work is deferred until after Phase 0.
+- **Immediate next milestone:** **Phase 0 Tkinter core extraction** — implementation complete on `refactor/phase0-core-extraction`; awaiting final Windows acceptance and merge. No visible or accepted behavioural changes. Native RoadPainter-style work is deferred until after Phase 0.
 
 ## Application startup and navigation — planned usability refinement (AFTER Phase 0)
 - **Default post-load selection:** After an `.fsg` file is successfully loaded, open the **Players** view and automatically select the human-controlled player.
@@ -24,7 +24,7 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 ## Phase 0 acceptance fixtures (no behaviour changes)
 - **Authoritative unit indexing:** In the audited `Morten(5).fsg` baseline, 2,525 raw nested `<unit>` elements represent 2,520 distinct unit IDs (cached terrain snapshots are excluded from the editable unit list). The expected post-fix UI status is **2,520 units**. These numbers are save-specific, not global invariants; the current `Morten(6).fsg` may differ.
 - **Xaymaca:** The Arawak capital must show **exactly one authoritative Danish missionary**, not the cached duplicate. Keep the cached missionary deletion caveat in scope as a known limitation; do not change deletion semantics during Phase 0.
-- **Still open as an explicit Windows baseline observation:** compare the user-facing unit count and Xaymaca view against the same `Morten(5).fsg` before refactoring. Phase 0 tests should capture authoritative counts and cached-snapshot exclusion using this sample, when available outside Git.
+- **Superseded:** the live `Morten(5).fsg` comparison is no longer possible because that save is unavailable. Authoritative-unit indexing and cached-snapshot exclusion are covered by synthetic headless regression tests; real-save checks use a currently available save (see `UI_MODERNISATION_PLAN.md` §5).
 - These checks establish the existing baseline; they do **not** authorise a user-visible fix during Phase 0.
 
 ## 0.6 — Terrain viewer and editing
