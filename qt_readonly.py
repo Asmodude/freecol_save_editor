@@ -168,7 +168,12 @@ class QtExplorer(QMainWindow):
         my = entry(None, nation + ' (Player)')
         overview = entry(my, 'Overview', 'Players', 'mine')
         entry(my, 'Diplomacy', ready=False)
-        entry(my, 'Colonies', 'Colonies', 'mine')
+        my_colonies = entry(my, 'Colonies', 'Colonies', 'mine')
+        if doc and own:
+            for colony in sorted((c for c in doc.colonies if c.get('owner') == own),
+                                 key=lambda c: (c.get('name') or '').casefold()):
+                entry(my_colonies, colony.get('name') or colony.get('id'),
+                      'Colonies', 'colony-id:' + colony.get('id'))
         entry(my, 'Units', 'Units', 'mine')
         for label in ('Goods', 'Research', 'Founding Fathers', 'Player Options'):
             entry(my, label, ready=False)
@@ -188,7 +193,11 @@ class QtExplorer(QMainWindow):
                     rival = entry(rivals, label)
                     entry(rival, 'Overview', 'Players', 'player:' + pid)
                     entry(rival, 'Diplomacy', ready=False)
-                    entry(rival, 'Colonies', 'Colonies', 'player:' + pid)
+                    colony_group = entry(rival, 'Colonies', 'Colonies', 'player:' + pid)
+                    for colony in sorted((c for c in doc.colonies if c.get('owner') == pid),
+                                         key=lambda c: (c.get('name') or '').casefold()):
+                        entry(colony_group, colony.get('name') or colony.get('id'),
+                              'Colonies', 'colony-id:' + colony.get('id'))
                     entry(rival, 'Units', 'Units', 'player:' + pid)
                     for section in ('Goods', 'Research', 'Founding Fathers', 'Player Options'):
                         entry(rival, section, ready=False)
@@ -244,6 +253,8 @@ class QtExplorer(QMainWindow):
         self.group = group
         self.scope = scope
         self.populate()
+        if group == 'Colonies' and scope.startswith('colony-id:') and self.visible_rows:
+            self.grid.selectRow(0)
 
     def populate(self):
         self.grid.setRowCount(0)
