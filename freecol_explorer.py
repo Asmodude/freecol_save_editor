@@ -1,3 +1,4 @@
+from unit_records import authoritative_units
 """FreeCol Save Editor v0.5.5 Equipment Test — inline existing-goods editing. Python 3.9+."""
 import collections
 import pathlib
@@ -254,7 +255,7 @@ class Explorer(tk.Tk):
                 raise ValueError('Duplicate authoritative colony IDs')
             nat=[e for e in game.findall('./map/tile/indianSettlement') if (e.get('id') or '').startswith('indianSettlement:')]
             if len(nat) != len({e.get('id') for e in nat}): raise ValueError('Duplicate authoritative native settlement IDs')
-            units=[e for e in game.iter('unit') if (e.get('id') or '').startswith('unit:')]
+            units=authoritative_units(game)
             locations={e.get('id'):e.get('name','') for e in col+nat}
             tiles={e.get('id'):(e.get('x'),e.get('y')) for e in game.iter('tile') if 'x' in e.attrib}
             self.players=players; self.locations=locations
