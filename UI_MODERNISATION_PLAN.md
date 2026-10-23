@@ -170,16 +170,112 @@ Use a small redacted sample `.fsg` kept outside git, or a path from an environme
 
 ---
 
-## 5. Later phases (PySide6), for orientation
+## 5. Phase goals and priorities
 
-| Phase | Content | Rough size |
+_Added 23 October 2026. Baseline for all phases: Git tag `v0.6.2.6.4` (commit `a8fa7ab`)._
+
+**Priority key:**
+- 🔴 **Must**: required before the phase can be accepted.
+- 🟡 **Should**: expected, but may slip to the next phase if it blocks progress.
+- 🟢 **Could**: only if it comes cheaply.
+
+Every phase runs on its own branch. `main` changes only after the user accepts the phase on Windows (and in-game where saves are involved). Test results must be reported with actual evidence.
+
+### Phase 0: Core extraction (Tkinter, no visible change)
+**Purpose:** separate non-UI logic from window code so any future UI can sit on the same core. §4 has the detailed specification.
+
+- 🔴 Every accepted feature behaves and looks exactly as at tag `v0.6.2.6.4`, on Windows and in-game.
+- 🔴 Save-editing behaviour is untouched, including the no-overwrite rule, `produce()` verification, deletion safety checks and the missionary cached-snapshot caveat as it currently stands.
+- 🔴 `SaveDocument` handles loading, indexing and lookups with no UI imports.
+- 🔴 `EditSession` holds all staging and validation rules, keeps the existing edit key shape, and is the single place that decides what is editable.
+- 🔴 Headless tests cover `SaveDocument`, `EditSession` validation, a Save As round trip and the map regression fixtures.
+- 🔴 First confirm the Xaymaca / 2,520-unit baseline in the live UI, then encode it in the tests.
+- 🟡 `map_render.py` produces renderer-neutral drawing primitives; the two duplicated painting paths (inspector preview and Map Editor) become one.
+- 🟡 `terrain_art.py` is split into a UI-free byte loader and a thin Tk image adapter.
+- 🟡 `presentation.py` holds the formatting functions (`readable`, `row_values` etc.).
+- 🟡 Obsolete GUI tests (`test_v061.py`, `test_terrain_parser.py`) are retired or rewritten headless.
+- 🟢 Drawing code in `colony_graphics.py` is clearly marked as Tk adapter code.
+
+**Exit:** all tests pass on Windows with evidence shown; screenshots match the baseline; an edited save loads in FreeCol and survives a turn; the user accepts before the merge to `main`.
+
+### Phase 1: Qt shell, read-only
+**Purpose:** prove the new UI on top of the phase 0 core, with no editing yet.
+
+- 🔴 Confirm PySide6 installs and runs on Python 3.14 before writing any UI code.
+- 🔴 The main window uses the three-pane layout from §2: navigation tree, content area and inspector.
+- 🔴 Tables are built on Qt models with sorting and filtering, showing all current data for players, colonies, native settlements and units.
+- 🔴 Locations show names rather than raw IDs; raw IDs stay available in the Raw XML view.
+- 🔴 Correct high-DPI rendering on the user's display.
+- 🔴 The Tk version keeps working alongside it.
+- 🟡 Units are grouped by colony and location (inside colony, outside, aboard ship).
+- 🟡 The inspector shows only relevant tabs; irrelevant ones are hidden rather than greyed out.
+- 🟡 Global search works across all categories.
+- 🟡 Table basics: right-aligned numbers, alternating row backgrounds, ✓ for booleans, natives and Europeans separated.
+- 🟢 The human player is selected by default after loading (the roadmap item deferred from phase 0).
+- 🟢 Dark mode follows the Windows setting.
+
+**Exit:** the user can find everything they can find in the Tk version, faster.
+
+### Phase 2: Editing in Qt
+**Purpose:** reach feature parity for all save edits.
+
+- 🔴 Every edit available in Tk works in Qt, through `EditSession` and `produce()` only. That covers gold, tax, XP, moves, goods, SoL, diplomacy, learnable skills, equipment and deletions.
+- 🔴 Editable fields look editable, and changed values are visibly marked.
+- 🔴 Edited saves load and play in FreeCol, confirmed in the existing in-game acceptance test.
+- 🟡 A staged-changes panel lists the pending edits with per-item undo; the Save button shows the count.
+- 🟡 Destructive actions are visually separated from routine edits and always confirmed.
+- 🟢 Keyboard workflow: Tab between fields, Enter to stage, Esc to cancel.
+
+**Exit:** the Qt version can do everything the Tk version can, and the user is willing to use it instead.
+
+### Phase 3: Map in Qt
+**Purpose:** move the map into the main window and improve its rendering.
+
+- 🔴 The map is a main tab rather than a separate window, preserving the accepted geometry: the diagonal-axis 9×9 layout and the staggered-row parity rules.
+- 🔴 It passes the regression fixtures (Christiansborg (83,118), (69,111) style 2220, the (67,110) lake), with click selection matching the drawn diamonds.
+- 🔴 Native-mask rivers and all 12 colony sprites render at least as well as in v0.6.2.6.4.
+- 🔴 FreeCol artwork is still loaded only from the local installation.
+- 🟡 Terrain images are scaled smoothly, replacing Tk's integer-ratio `zoom()`/`subsample()`.
+- 🟡 One map widget is reused for the colony neighbourhood view.
+- 🟢 Pan and zoom beyond the 9×9 view.
+- 🟢 Native-style roads (the deferred RoadPainter work), written once in `map_render`.
+
+**Exit:** the user visually accepts the map against the baseline screenshots.
+
+### Phase 4: Packaging and release
+**Purpose:** ship a Windows .exe the community can use.
+
+- 🔴 A PyInstaller build runs on a clean Windows machine without Python installed.
+- 🔴 It finds the FreeCol artwork on a typical install and degrades gracefully if the artwork is missing.
+- 🔴 The full regression suite passes on the release build.
+- 🟡 Pillow is dropped if Qt now covers all image handling, shrinking the build.
+- 🟡 A community README covers installation, the safety guarantees, and the fact that artwork is not bundled.
+- 🟢 Exe size is reported and trimmed where easy.
+- 🟢 The Tk UI is retired from the codebase once Qt is accepted.
+
+**Exit:** a tagged release the user is happy to publish.
+
+### Rough effort
+
+| Phase | Sessions |
+|---|---|
+| 0 | ~1 |
+| 1 | ~2 |
+| 2 | 1–2 |
+| 3 | 1–2 |
+| 4 | ~1 |
+
+Total: about 6–8 working sessions, plus the user's Windows and in-game testing between phases.
+
+### Deferred items and where they land
+
+| Item | Earliest phase | Priority |
 |---|---|---|
-| 1 | Qt main window, read-only: navigation tree, `QAbstractTableModel` + `QSortFilterProxyModel` tables (name-resolved locations, grouping, right-aligned numbers), context-sensitive inspector, global search, human player as default focus | ~2 sessions |
-| 2 | Editing: item delegates wired to `EditSession.validate`, visible changed-value marking, staged-changes panel with per-item undo, equipment and deletion actions (destructive actions separated), Save As via `produce()` | 1–2 sessions |
-| 3 | Map as a `QGraphicsView` tab executing `map_render` primitives; `QPixmap` terrain adapter with smooth scaling; colony sprites; one map widget reused for the colony neighbourhood view | 1–2 sessions |
-| 4 | PyInstaller spec for PySide6, clean-machine test, exe size check, FreeCol artwork still loaded from the local install only | 1 session |
-
-Estimated total, including phase 0: **about 6–8 working sessions**, plus the user's Windows and in-game testing between phases. During phases 1–3 the Tk UI keeps working, because both UIs sit on the same core. The Tk UI is retired only after the Qt version is accepted.
+| Human player selected by default | Phase 1 | 🟢 |
+| Native-style roads (RoadPainter) | Phase 3 | 🟢 |
+| Missionary cached-snapshot deletion fix | After Phase 2; a save-safety change needing its own tests and in-game check | 🟡 |
+| 0.6.2.6.5 coastlines, 0.6.3+ terrain editing | After Phase 3, built on `map_render` and `EditSession` | Per `ROADMAP.md` |
+| 0.7 colony management | After Phase 2 | Per `ROADMAP.md` |
 
 ---
 
