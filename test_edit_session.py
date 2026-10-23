@@ -51,6 +51,35 @@ class EditSessionTests(unittest.TestCase):
         with self.assertRaisesRegex(EditValidationError,'Movement edit unavailable'):
             self.session.validate(key,'1',original=0,root=root,units=[])
 
+    def test_delete_stage_keys_remain_compatible(self):
+        self.session.stage_unit_deletion('unit:7')
+        self.session.stage_native_unit_deletion('unit:8','indianSettlement:9')
+        self.session.stage_settlement_deletion('indianSettlement:10')
+        self.assertEqual(self.session.edits[('unit:7','deleteUnit')],('present','delete'))
+        self.assertEqual(self.session.edits[('unit:8|indianSettlement:9','deleteNativeUnit')],('present','delete'))
+        self.assertEqual(self.session.edits[('indianSettlement:10','deleteSettlement')],('present','delete'))
+
+    def test_equipment_refuses_staged_deletion_before_rule_validation(self):
+        self.session.stage_unit_deletion('unit:7')
+        unit=ET.Element('unit',{'id':'unit:7'})
+        with self.assertRaisesRegex(ValueError,'already staged for deletion'):
+            self.session.stage_equipment(ET.Element('game'),unit,'model.role.pioneer',1)
+
+    def test_save_as_never_overwrites_original_or_existing_target(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory:
+            source=Path(directory)/'original.fsg'
+            source.write_bytes(b'not a real save')
+            target=Path(directory)/'other.fsg'
+            target.write_bytes(b'existing file')
+            with self.assertRaisesRegex(ValueError,'cannot overwrite'):
+                self.session.save_as(source,source)
+            with self.assertRaisesRegex(ValueError,'never overwrites'):
+                self.session.save_as(source,target)
+            self.assertEqual(source.read_bytes(),b'not a real save')
+            self.assertEqual(target.read_bytes(),b'existing file')
+
     def test_unstage_and_clear(self):
         self.session.stage(('unit:1','experience'),0,10)
         self.assertTrue(self.session.is_changed(('unit:1','experience')))
