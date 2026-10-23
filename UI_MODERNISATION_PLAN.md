@@ -286,3 +286,12 @@ Total: about 6–8 working sessions, plus the user's Windows and in-game testing
 - Report test results honestly with actual evidence. A build that compiles is not an accepted build.
 - Do not redistribute FreeCol artwork; load it from the user's installation.
 - Do not change accepted map geometry (the 0.6.2.6.3 diagonal-axis 9×9 layout, staggered-row parity rules).
+
+
+### Founding Fathers — user-requested capability (23 October 2026)
+
+**Phase 1 — required read-only nation view:** The My Nation → Founding Fathers navigation item must become a real, searchable view of the saved game's founding-father state. Display acquired fathers, their names and categories, and any reliably derived current recruitment/progress details. Clearly distinguish fields stored in the save from values derived from FreeCol rules. Do not invent progress or ownership for unavailable data. Make selection show useful contextual details and optionally raw identifiers.
+
+**Phase 2 — eventual editable capability:** Support staging/revoking a founding father's acquisition **only after** researching FreeCol's actual save representation and any linked invariants (e.g. recruitment state, abilities or pending choice). Validate and apply the smallest safe change through EditSession and Save As, with original-file preservation, post-save validation and a FreeCol load → advance turn → save → reload test. Never flip an arbitrary XML flag on an assumption. Destructive/removal operations require additional validation. User must separately review editing behavior before release.
+
+This is an explicit scope addition, not a claim that Founding Fathers are currently editable in the Qt preview. The present navigation placeholder stays labelled planned until its Phase 1 view is functional.
