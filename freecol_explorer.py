@@ -2,6 +2,7 @@
 from save_document import SaveDocument
 from edit_session import EditSession, EditValidationError
 import presentation
+import map_render
 from unit_records import authoritative_units
 from location_names import colony_tile_names, location_label, unit_locations
 import collections
@@ -419,18 +420,7 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def terrain_offsets(y):
-        """FreeCol staggered rows: diagonal X offsets depend on centre-row parity.
-
-        Even rows lean left, odd rows lean right. This is the saved map's
-        coordinate topology and must be used for every neighbour lookup.
-        """
-        shift = int(y) & 1
-        return {
-            'N': (0, -2), 'NE': (shift, -1), 'E': (1, 0),
-            'SE': (shift, 1), 'S': (0, 2),
-            'SW': (shift-1, 1), 'W': (-1, 0),
-            'NW': (shift-1, -1), 'C': (0, 0),
-        }
+        return map_render.terrain_offsets(y)
 
     def set_terrain_center(self,x,y):
         """Set a preview centre without touching the save data."""
@@ -592,38 +582,21 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def direction_endpoint(direction,tw,th):
-        # The four cardinal points are the vertices of the isometric diamond;
-        # the diagonal directions are midpoints of the diamond's sloping sides.
-        endpoints=((0,-th/2),(tw/4,-th/4),(tw/2,0),(tw/4,th/4),
-                   (0,th/2),(-tw/4,th/4),(-tw/2,0),(-tw/4,-th/4))
-        return endpoints[direction]
+        return map_render.direction_endpoint(direction,tw,th)
+
+    @staticmethod
+    def _paint_primitives(canvas,tag,primitives):
+        for kind,coords,options in primitives:
+            if kind=='line':
+                canvas.create_line(*coords,tags=(tag,),**options)
+            elif kind=='oval':
+                canvas.create_oval(*coords,tags=(tag,),**options)
 
     def paint_directional_road(self,canvas,tag,x,y,tw,th,style):
-        if len(style)!=8 or any(c not in '01' for c in style):
-            return
-        active=[i for i,c in enumerate(style) if c=='1']
-        # Zero-style roads can exist; draw no connections rather than inventing one.
-        for d in active:
-            dx,dy=self.direction_endpoint(d,tw,th)
-            path=(x,y,x+dx*.56,y+dy*.58,x+dx,y+dy)
-            canvas.create_line(*path,fill='#714d2e',width=max(3,round(th*.067)),smooth=1,tags=(tag,))
-            canvas.create_line(*path,fill='#c99b61',width=max(1,round(th*.035)),smooth=1,tags=(tag,))
-        if active:
-            r=max(2,round(th*.045))
-            canvas.create_oval(x-r,y-r,x+r,y+r,fill='#c99b61',outline='',tags=(tag,))
+        self._paint_primitives(canvas,tag,map_render.road_primitives(x,y,tw,th,style))
 
     def paint_directional_river(self,canvas,tag,x,y,tw,th,style):
-        if len(style)!=4 or any(c not in '012' for c in style):
-            return
-        # Four river edges run NE, SE, SW, NW. Each digit also carries
-        # the river's magnitude: 1=minor, 2=major.
-        for pos,c in enumerate(style):
-            if c=='0':continue
-            dx,dy=self.direction_endpoint(1+pos*2,tw,th)
-            breadth=max(3,round(th*(.09 if c=='2' else .055)))
-            path=(x,y,x+dx*.53,y+dy*.45,x+dx,y+dy)
-            canvas.create_line(*path,fill='#3d7189',width=breadth+2,smooth=1,tags=(tag,))
-            canvas.create_line(*path,fill='#8dc4da',width=breadth,smooth=1,tags=(tag,))
+        self._paint_primitives(canvas,tag,map_render.river_primitives(x,y,tw,th,style))
 
     def paint_shore_edges(self,canvas,tag,tile,x,y,tw,th):
         # Read neighbouring tiles from the saved map. Coastline transparency
@@ -643,11 +616,8 @@ class Explorer(tk.Tk):
                                fill='#d0c49e',width=max(2,int(th*.045)),tags=(tag,))
 
     @staticmethod
-    def diamond_contains(px, py, cx, cy, width, height, tolerance=0.0):
-        """Hit test matching the four vertices used to draw the tile border."""
-        if width <= 0 or height <= 0:
-            return False
-        return (abs(px-cx)/(width/2) + abs(py-cy)/(height/2)) <= (1.0 + tolerance)
+    def diamond_contains(px,py,cx,cy,width,height,tolerance=0.0):
+        return map_render.diamond_contains(px,py,cx,cy,width,height,tolerance)
 
     def on_terrain_click(self, event):
         """Find the geometric diamond, independent of stacked PNG overlays."""
