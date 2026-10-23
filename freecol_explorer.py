@@ -287,10 +287,10 @@ class Explorer(tk.Tk):
         self.refresh()
 
     def owner_name(self, key):
-        return self.players[key].get('username','') if key in self.players else (key or '')
+        return self.document.owner_name(key)
 
     def loc_name(self, key):
-        return location_label(key, self.locations, self.tiles, self.colony_tile_names, self.unit_locations)
+        return self.document.location_name(key)
 
     def row_values(self, group,e):
         return presentation.row_values(group,e,self.document,self.edit_session)
@@ -472,22 +472,10 @@ class Explorer(tk.Tk):
         self.inspect_terrain_tile(tile,dx,dy)
 
     def tile_items(self, tile):
-        if tile is None:
-            return []
-        tile_items = tile.find('tileItemContainer')
-        items = ([child for child in tile_items if child.tag in ('tileImprovement', 'resource')]
-                 if tile_items is not None else [])
-        items.extend(child for child in tile if child.tag in ('tileImprovement', 'resource'))
-        return items
+        return self.document.tile_items(tile)
 
     def tile_item_summary(self, tile):
-        resources=[]; improvements=[]
-        for child in self.tile_items(tile):
-            if child.tag == 'resource':
-                resources.append(child)
-            elif child.tag == 'tileImprovement':
-                improvements.append(child)
-        return resources, improvements
+        return self.document.tile_item_summary(tile)
 
     def paint_terrain(self):
         canvas=getattr(self,'terrain_view',None)
