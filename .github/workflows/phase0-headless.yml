@@ -1,0 +1,30 @@
+name: Phase 0 headless regression
+
+on:
+  push:
+    branches:
+      - refactor/phase0-core-extraction
+  workflow_dispatch:
+
+jobs:
+  headless:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check Pillow
+      - name: Run headless regression suite
+        run: |
+          python -m unittest -v \
+            test_colony_graphics \
+            test_map_regression \
+            test_edit_safety \
+            test_unit_records \
+            test_location_names \
+            test_real_save_integrity \
+            test_save_document \
+            test_edit_session \
+            test_presentation
