@@ -42,6 +42,7 @@ class QtExplorer(QMainWindow):
         self.scope = 'mine'
         self.visible_rows = []
         self.selected_element = None
+        self.detail_unit_id = None
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -111,6 +112,10 @@ class QtExplorer(QMainWindow):
         self.details = QPlainTextEdit()
         self.details.setReadOnly(True)
         inspector_layout.addWidget(self.details, 1)
+        self.jump_unit_button = QPushButton('Open full unit record →')
+        self.jump_unit_button.setEnabled(False)
+        self.jump_unit_button.clicked.connect(self.open_detail_unit)
+        inspector_layout.addWidget(self.jump_unit_button)
         self.inspector_hint = QLabel('Read only · no values can be changed here')
         inspector_layout.addWidget(self.inspector_hint)
         panes.addWidget(inspector)
@@ -238,6 +243,8 @@ class QtExplorer(QMainWindow):
         self.grid.clearContents()
         self.visible_rows = []
         self.selected_element = None
+        self.detail_unit_id = None
+        self.jump_unit_button.setEnabled(False)
         self.details.clear()
         self.inspector_label.setText('Select an individual row to inspect its attributes.')
         self.overview.clear()
@@ -271,6 +278,8 @@ class QtExplorer(QMainWindow):
             'The inspector on the right shows only the currently selected object.')
 
     def update_detail_tabs(self, element):
+        self.detail_unit_id = None
+        self.jump_unit_button.setEnabled(False)
         colony = element if self.group == 'Colonies' else None
         settlement = element if self.group == 'Native settlements' else None
         sections = colony_sections(colony, self.document) if colony is not None else {}
@@ -320,7 +329,47 @@ class QtExplorer(QMainWindow):
                   for col in range(table.columnCount())]
         label, description = detail_inspection(section, headings, values)
         self.inspector_label.setText(label)
+        unit_id = values[0] if section in ('Workers', 'Stationed units', 'Affiliated units') else None
+        unit = self.document.unit_by_id(unit_id) if unit_id else None
+        self.detail_unit_id = unit_id if unit is not None else None
+        self.jump_unit_button.setEnabled(unit is not None)
+        if unit is not None:
+            description += '\n\nFull unit attributes\n' + '\n'.join(
+                f'{key}: {value}' for key, value in unit.attrib.items())
         self.details.setPlainText(description)
+
+    def open_detail_unit(self):
+        unit_id = self.detail_unit_id
+        if not unit_id or not self.document:
+            return
+        unit = self.document.unit_by_id(unit_id)
+        if unit is None:
+            return
+        owner = unit.get('owner')
+        scope = 'mine' if owner == human_player_id(self.document) else 'player:' + owner if owner else 'all'
+        def matching_item(parent):
+            for i in range(parent.childCount()):
+                child = parent.child(i)
+                if child.data(0, Qt.ItemDataRole.UserRole) == ('Units', scope):
+                    return child
+                found = matching_item(child)
+                if found is not None:
+                    return found
+            return None
+        target = None
+        for i in range(self.navigation.topLevelItemCount()):
+            target = matching_item(self.navigation.topLevelItem(i))
+            if target is not None:
+                break
+        if target is None:
+            return
+        self.search.clear()
+        self.navigation.setCurrentItem(target)
+        for index, record in enumerate(self.visible_rows):
+            if record.get('id') == unit_id:
+                self.grid.selectRow(index)
+                self.grid.scrollToItem(self.grid.item(index, 0))
+                break
 
     def inspect(self):
         row = self.grid.currentRow()
