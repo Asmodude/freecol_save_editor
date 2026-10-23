@@ -7,6 +7,8 @@ This is the detailed, permanent development history. It includes point releases,
 ## 0.6 — Terrain inspection and map work (ongoing)
 
 ### Phase 0: initial core extraction (in progress, unaccepted)
+- **Windows checkpoint, 2026-10-23:** user ran all 55 tests successfully (0 failures, 0 skips), including real-save Save As integrity against `Morten2.fsg`; independently confirmed editor/map smoke test, intact native-mask rivers, visible colony art, staging and saving edits. Directional vector roads remain intentionally unchanged; no Phase 0 native-road redesign.
+
 - Branched from accepted `main` as `refactor/phase0-core-extraction`; `main` remains unchanged.
 - Added UI-free `SaveDocument.load()`, moved ZIP/XML parsing and authoritative indexes out of Tk `Explorer.open_save()` while retaining messageboxes, status formatting and initial selection in Tk.
 - Added UI-free `EditSession`, wired existing inline numeric and choice validation/staging into it, preserving the original `self.edits` dictionary format and visible validation messages.
