@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# FreeCol savegames (private user data, e.g. FREECOL_TEST_SAVE) — never commit
+*.fsg

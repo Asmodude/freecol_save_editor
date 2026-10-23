@@ -1,4 +1,8 @@
 """FreeCol Save Editor v0.5.5 Equipment Test — inline existing-goods editing. Python 3.9+."""
+from save_document import SaveDocument
+from edit_session import EditSession, EditValidationError
+import presentation
+import map_render
 from unit_records import authoritative_units
 from location_names import colony_tile_names, location_label, unit_locations
 import collections
@@ -22,7 +26,8 @@ class Explorer(tk.Tk):
         self.title('FreeCol Save Editor v0.6.2.6.4 — Context-Sensitive Interface (READ-ONLY TERRAIN)')
         self.geometry('1180x750')
         self.records = {}
-        self.edits = {}
+        self.edit_session = EditSession()
+        self.edits = self.edit_session.edits
         self.cell_editor = None
         self.editing_cell = None
         self.xml_bytes = None
@@ -236,51 +241,37 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def short(value):
-        return (value or '').replace('model.unit.','').replace('model.role.','').replace('model.nation.','').replace('model.goods.','')
+        return presentation.short(value)
 
     def open_save(self):
         path = filedialog.askopenfilename(initialdir=self.default_directory(),filetypes=[('FreeCol saves','*.fsg'),('ZIP archives','*.zip'),('All files','*.*')])
         if not path: return
         self.cancel_cell_edit()
         try:
-            with zipfile.ZipFile(path) as z:
-                if 'savegame.xml' not in z.namelist():
-                    raise ValueError('Archive has no savegame.xml.')
-                xml_bytes=z.read('savegame.xml')
-                root=ET.fromstring(xml_bytes)
-            game=root.find('game')
-            if game is None: raise ValueError('Missing <game> node.')
-            players={p.get('id'):p for p in game.findall('player')}
-            col=[e for e in game.findall('./map/tile/colony') if (e.get('id') or '').startswith('colony:')]
-            if len(col) != len({e.get('id') for e in col}):
-                raise ValueError('Duplicate authoritative colony IDs')
-            nat=[e for e in game.findall('./map/tile/indianSettlement') if (e.get('id') or '').startswith('indianSettlement:')]
-            if len(nat) != len({e.get('id') for e in nat}): raise ValueError('Duplicate authoritative native settlement IDs')
-            units=authoritative_units(game)
-            locations={e.get('id'):e.get('name','') for e in col+nat}
-            tiles={e.get('id'):(e.get('x'),e.get('y')) for e in game.iter('tile') if 'x' in e.attrib}
-            self.players=players; self.locations=locations
-            self.colony_tile_names=colony_tile_names(game)
-            self.unit_locations=unit_locations(units)
-            self.xml_bytes = xml_bytes
-            self.root = root
+            doc=SaveDocument.load(path)
+            self.document=doc
+            game=doc.game
+            players=doc.players
+            col=doc.colonies
+            nat=doc.native_settlements
+            units=doc.units
+            self.players=players; self.locations=doc.locations
+            self.colony_tile_names=doc.colony_tile_names
+            self.unit_locations=doc.unit_locations
+            self.xml_bytes=doc.xml_bytes
+            self.root=doc.root
             self.edits.clear()
             self.current_path=path
             self.settings['last_directory']=str(pathlib.Path(path).parent)
             try:self.config_path.write_text(json.dumps(self.settings),encoding='utf-8')
             except OSError:pass
-            self.colony_counts=collections.Counter(e.get('owner') for e in col)
-            self.native_counts=collections.Counter(e.get('owner') for e in nat)
-            self.professions=sorted({e.get('learnableSkill') for e in nat if e.get('learnableSkill')})
-            self.goods_types=sorted({g.get('type') for g in game.iter('goods') if g.get('type')} | {g.get('id') for g in root.iter('goods-type') if g.get('id')})
-            self.records={
-                'Players': list(players.values()),
-                'Colonies':col,
-                'Native settlements':nat,
-                'Units':units,
-            }
-            self.tiles=tiles
-            self.terrain_by_xy={(int(t.get('x')),int(t.get('y'))):t for t in game.findall('./map/tile') if t.get('x') is not None and t.get('y') is not None}
+            self.colony_counts=doc.colony_counts
+            self.native_counts=doc.native_counts
+            self.professions=doc.professions
+            self.goods_types=doc.goods_types
+            self.records=doc.records
+            self.tiles=doc.tiles
+            self.terrain_by_xy=doc.terrain_by_xy
             self.terrain_tiles={}
             if (67,110) in self.terrain_by_xy:
                 self.terrain_x.set('67');self.terrain_y.set('110')
@@ -296,36 +287,17 @@ class Explorer(tk.Tk):
         self.refresh()
 
     def owner_name(self, key):
-        return self.players[key].get('username','') if key in self.players else (key or '')
+        return self.document.owner_name(key)
 
     def loc_name(self, key):
-        return location_label(key, self.locations, self.tiles, self.colony_tile_names, self.unit_locations)
+        return self.document.location_name(key)
 
     def row_values(self, group,e):
-        a=e.attrib
-        if group=='Players':
-            return (a.get('id'),a.get('username'),self.short(a.get('nationId')),a.get('playerType'),self.colony_counts.get(a.get('id'),0),self.native_counts.get(a.get('id'),0), 'N/A' if a.get('gold')=='-2147483648' else self.edits.get((a.get('id'),'gold'),(None,a.get('gold')))[1],self.edits.get((a.get('id'),'tax'),(None,a.get('tax')))[1],a.get('score'),a.get('ai'),a.get('dead'))
-        if group=='Colonies':
-            return (a.get('id'),a.get('name'),self.owner_name(a.get('owner')),self.loc_name(a.get('tile')),a.get('established'),a.get('liberty'),self.edits.get((a.get('id'),'sonsOfLibertyTarget'),(None,a.get('sonsOfLiberty')))[1],a.get('productionBonus'))
-        if group=='Native settlements':
-            wanted=', '.join(self.short(a.get('wantedGoods'+str(i))) for i in range(3) if a.get('wantedGoods'+str(i)))
-            return (a.get('id'),a.get('name'),self.owner_name(a.get('owner')),self.loc_name(a.get('tile')),self.short(a.get('learnableSkill')),wanted)
-        
-        staged=self.edits.get((a.get('id'),'equipment'))
-        move_unit=e
-        if staged:
-            move_unit=ET.Element('unit',dict(a,role=staged[1][0],roleCount=str(staged[1][1])))
-        try: max_moves=movement_cap(self.root,move_unit)
-        except (UnknownMovement,TypeError):max_moves='—'
-        return (a.get('id'),self.short(a.get('unitType')),self.owner_name(a.get('owner')),self.loc_name(a.get('location')),self.short(self.edits.get((a.get('id'),'equipment'),(None,(a.get('role','model.role.default'),1)))[1][0]),self.experience_towards(a),self.edits.get((a.get('id'),'experience'),(None,a.get('experience')))[1],self.edits.get((a.get('id'),'movesLeft'),(None,a.get('movesLeft')))[1],max_moves,a.get('hitPoints'),a.get('state'))
+        return presentation.row_values(group,e,self.document,self.edit_session)
 
     @staticmethod
     def experience_towards(attrs):
-        goods=(attrs.get('experienceType') or '')
-        if not goods:return '—'
-        known={'lumber':'Expert Lumberjack','food':'Expert Farmer / Fisherman','cotton':'Expert Cotton Planter','tobacco':'Expert Tobacco Planter','sugar':'Expert Sugar Planter','furs':'Expert Fur Trapper','ore':'Expert Ore Miner','silver':'Expert Silver Miner'}
-        key=goods.rsplit('.',1)[-1]
-        return known.get(key, f'{key.title()} (experience)')
+        return presentation.experience_towards(attrs)
 
     def edit_unit_list(self,event):
         table=self.tables['Units']
@@ -334,6 +306,7 @@ class Explorer(tk.Tk):
         if not row:return
         unit=self.records['Units'][int(row)]
         field='movesLeft' if table.identify_column(event.x)=='#8' else 'experience'
+        if field not in self.edit_session.editable_fields('Units',unit):return
         raw=unit.get(field)
         if raw is None or not raw.isdecimal():
             self.status.set('This unit has no editable '+field+' attribute.')
@@ -391,10 +364,7 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def readable(value):
-        if not value:return ''
-        value=value.rsplit('.',1)[-1]
-        import re
-        return re.sub(r'(?<!^)(?=[A-Z])',' ',value).replace('_',' ').title()
+        return presentation.readable(value)
 
     def render_details(self,group,e,raw_lines):
         self.clear_details()
@@ -410,7 +380,7 @@ class Explorer(tk.Tk):
             if group=='Units' and k in ('role','roleCount') and (e.get('id'),'equipment') in self.edits:
                 role_count=self.edits[(e.get('id'),'equipment')][1]
                 shown=role_count[0] if k=='role' else role_count[1]
-            permitted=(group=='Native settlements' and k=='learnableSkill') or (group=='Players' and k in ('gold','tax') and v!='-2147483648') or (group=='Units' and k in ('experience','movesLeft')) or (group=='Colonies' and k=='sonsOfLiberty')
+            permitted=k in self.edit_session.editable_fields(group,e)
             tags=('changed',) if key in self.edits else (('editable',) if permitted else ())
             overview.insert('', 'end',iid=k,values=(self.readable(k),shown),tags=tags)
         self.detail_tabs.tab(self.detail_frames['Buildings'],state='normal' if group=='Colonies' else 'disabled')
@@ -451,18 +421,7 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def terrain_offsets(y):
-        """FreeCol staggered rows: diagonal X offsets depend on centre-row parity.
-
-        Even rows lean left, odd rows lean right. This is the saved map's
-        coordinate topology and must be used for every neighbour lookup.
-        """
-        shift = int(y) & 1
-        return {
-            'N': (0, -2), 'NE': (shift, -1), 'E': (1, 0),
-            'SE': (shift, 1), 'S': (0, 2),
-            'SW': (shift-1, 1), 'W': (-1, 0),
-            'NW': (shift-1, -1), 'C': (0, 0),
-        }
+        return map_render.terrain_offsets(y)
 
     def set_terrain_center(self,x,y):
         """Set a preview centre without touching the save data."""
@@ -514,22 +473,10 @@ class Explorer(tk.Tk):
         self.inspect_terrain_tile(tile,dx,dy)
 
     def tile_items(self, tile):
-        if tile is None:
-            return []
-        tile_items = tile.find('tileItemContainer')
-        items = ([child for child in tile_items if child.tag in ('tileImprovement', 'resource')]
-                 if tile_items is not None else [])
-        items.extend(child for child in tile if child.tag in ('tileImprovement', 'resource'))
-        return items
+        return self.document.tile_items(tile)
 
     def tile_item_summary(self, tile):
-        resources=[]; improvements=[]
-        for child in self.tile_items(tile):
-            if child.tag == 'resource':
-                resources.append(child)
-            elif child.tag == 'tileImprovement':
-                improvements.append(child)
-        return resources, improvements
+        return self.document.tile_item_summary(tile)
 
     def paint_terrain(self):
         canvas=getattr(self,'terrain_view',None)
@@ -624,38 +571,21 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def direction_endpoint(direction,tw,th):
-        # The four cardinal points are the vertices of the isometric diamond;
-        # the diagonal directions are midpoints of the diamond's sloping sides.
-        endpoints=((0,-th/2),(tw/4,-th/4),(tw/2,0),(tw/4,th/4),
-                   (0,th/2),(-tw/4,th/4),(-tw/2,0),(-tw/4,-th/4))
-        return endpoints[direction]
+        return map_render.direction_endpoint(direction,tw,th)
+
+    @staticmethod
+    def _paint_primitives(canvas,tag,primitives):
+        for kind,coords,options in primitives:
+            if kind=='line':
+                canvas.create_line(*coords,tags=(tag,),**options)
+            elif kind=='oval':
+                canvas.create_oval(*coords,tags=(tag,),**options)
 
     def paint_directional_road(self,canvas,tag,x,y,tw,th,style):
-        if len(style)!=8 or any(c not in '01' for c in style):
-            return
-        active=[i for i,c in enumerate(style) if c=='1']
-        # Zero-style roads can exist; draw no connections rather than inventing one.
-        for d in active:
-            dx,dy=self.direction_endpoint(d,tw,th)
-            path=(x,y,x+dx*.56,y+dy*.58,x+dx,y+dy)
-            canvas.create_line(*path,fill='#714d2e',width=max(3,round(th*.067)),smooth=1,tags=(tag,))
-            canvas.create_line(*path,fill='#c99b61',width=max(1,round(th*.035)),smooth=1,tags=(tag,))
-        if active:
-            r=max(2,round(th*.045))
-            canvas.create_oval(x-r,y-r,x+r,y+r,fill='#c99b61',outline='',tags=(tag,))
+        self._paint_primitives(canvas,tag,map_render.road_primitives(x,y,tw,th,style))
 
     def paint_directional_river(self,canvas,tag,x,y,tw,th,style):
-        if len(style)!=4 or any(c not in '012' for c in style):
-            return
-        # Four river edges run NE, SE, SW, NW. Each digit also carries
-        # the river's magnitude: 1=minor, 2=major.
-        for pos,c in enumerate(style):
-            if c=='0':continue
-            dx,dy=self.direction_endpoint(1+pos*2,tw,th)
-            breadth=max(3,round(th*(.09 if c=='2' else .055)))
-            path=(x,y,x+dx*.53,y+dy*.45,x+dx,y+dy)
-            canvas.create_line(*path,fill='#3d7189',width=breadth+2,smooth=1,tags=(tag,))
-            canvas.create_line(*path,fill='#8dc4da',width=breadth,smooth=1,tags=(tag,))
+        self._paint_primitives(canvas,tag,map_render.river_primitives(x,y,tw,th,style))
 
     def paint_shore_edges(self,canvas,tag,tile,x,y,tw,th):
         # Read neighbouring tiles from the saved map. Coastline transparency
@@ -675,11 +605,8 @@ class Explorer(tk.Tk):
                                fill='#d0c49e',width=max(2,int(th*.045)),tags=(tag,))
 
     @staticmethod
-    def diamond_contains(px, py, cx, cy, width, height, tolerance=0.0):
-        """Hit test matching the four vertices used to draw the tile border."""
-        if width <= 0 or height <= 0:
-            return False
-        return (abs(px-cx)/(width/2) + abs(py-cy)/(height/2)) <= (1.0 + tolerance)
+    def diamond_contains(px,py,cx,cy,width,height,tolerance=0.0):
+        return map_render.diamond_contains(px,py,cx,cy,width,height,tolerance)
 
     def on_terrain_click(self, event):
         """Find the geometric diamond, independent of stacked PNG overlays."""
@@ -807,12 +734,7 @@ class Explorer(tk.Tk):
         try:
             role=self.equip_choice.get()
             amount=int(self.equip_sets.get().split()[0])//20 if role=='model.role.pioneer' else 1
-            if (uid,'deleteUnit') in self.edits or (uid,'deleteNativeUnit') in self.edits:
-                raise ValueError('Unit is already staged for deletion')
-            validate_equipment(self.root,unit,role,amount)
-            old=(unit.get('role','model.role.default'),int(unit.get('roleCount','1')))
-            if (role,amount)==old:self.edits.pop((uid,'equipment'),None)
-            else:self.edits[(uid,'equipment')]=(old,(role,amount))
+            self.edit_session.stage_equipment(self.root,unit,role,amount)
             self.refresh()
             self.status.set(f'{len(self.edits)} staged changes — {uid}: {self.short(role)} x{amount}; no warehouse goods consumed')
         except (ValueError,UnknownMovement) as exc:
@@ -841,7 +763,7 @@ class Explorer(tk.Tk):
         key=(uid,'deleteUnit')
         if not messagebox.askyesno('Confirm staged unit deletion',f'Stage deletion of {uid} ({self.short(unit.get("unitType"))})?\n\nHome: {self.locations.get(unit.get("indianSettlement"),unit.get("indianSettlement") or "not native")}.\nOnly safely resolvable units can be deleted. Save As will verify dependencies.'):
             return
-        self.edits[key]=('present','delete')
+        self.edit_session.stage_unit_deletion(uid)
         self.status.set(f'{len(self.edits)} staged changes. Unit {uid} marked for deletion; original untouched.')
 
     def delete_selected_settlement(self):
@@ -850,14 +772,14 @@ class Explorer(tk.Tk):
         if not selection:return
         village=self.records['Native settlements'][int(selection[0])]
         sid=village.get('id')
-        try:plan=plan_settlement(self.xml_bytes,sid)
+        try:plan=self.edit_session.plan_settlement_deletion(self.xml_bytes,sid)
         except (UnsafeDeletion,ValueError) as exc:
             messagebox.showwarning('Deletion blocked',f'{sid} cannot currently be safely deleted:\n\n{exc}')
             return
         label=f'{plan["name"]} ({sid})\n{len(plan["units"])} units; {plan["cached_copies"]} cached views; {plan["claimed_tiles"]} linked tiles'
         if not messagebox.askyesno('Confirm entire settlement deletion',f'Stage removal of:\n\n{label}\n\nAll connected native units will be removed. No combat consequences are simulated.\n\nOriginal save remains untouched.'):
             return
-        key=(sid,'deleteSettlement');self.edits[key]=('present','delete')
+        self.edit_session.stage_settlement_deletion(sid)
         self.status.set(f'{len(self.edits)} staged changes. Settlement deletion pending Save As.')
 
     def edit_colony_unit(self,event):
@@ -869,6 +791,7 @@ class Explorer(tk.Tk):
         if not row:return
         units=[u for u in self.records['Units'] if u.get('id')==row]
         if len(units)!=1:return
+        if 'experience' not in self.edit_session.editable_fields('Units',units[0]):return
         raw=units[0].get('experience')
         if raw is None or not raw.isdecimal():
             self.status.set('This unit has no editable experience attribute.');return
@@ -926,9 +849,9 @@ class Explorer(tk.Tk):
         table=self.detail_tables['Overview']
         field=table.identify_row(event.y)
         if table.identify_column(event.x)!='#2' or not field:return
-        if group=='Native settlements' and field=='learnableSkill':
+        if group=='Native settlements' and field=='learnableSkill' and field in self.edit_session.editable_fields(group,obj):
             self.start_choice_edit(table,field,'Value',(obj.get('id'),'learnableSkill'),obj.get(field),self.professions);return
-        if (group=='Players' and field not in ('gold','tax')) or (group=='Units' and field not in ('experience','movesLeft')) or (group=='Colonies' and field!='sonsOfLiberty') or group=='Native settlements':return
+        if field not in self.edit_session.editable_fields(group,obj):return
         if group=='Units' and field=='movesLeft':
             try: movement_cap(self.root,obj)
             except UnknownMovement as exc:
@@ -977,30 +900,16 @@ class Explorer(tk.Tk):
         table,row,key,original,column=context
         try: raw=editor.get().strip()
         except tk.TclError:return False
-        choice = key[1]=='learnableSkill' or key[1].startswith('stance|')
-        if choice:
-            allowed=self.professions if key[1]=='learnableSkill' else ['peace','war','cease_fire','alliance']
-            if raw not in allowed:
-                self.status.set('Invalid choice');return False
-            new=raw
-        else:
-            if not raw.isascii() or not raw.isdecimal():
-                self.status.set('Invalid quantity: enter a non-negative whole number. Press Esc to cancel.')
-                editor.focus_set();return False
-            new=int(raw)
-        if not choice:
-            if key[1]=='movesLeft':
-                u=next((u for u in self.records['Units'] if u.get('id')==key[0]),None)
-                try: ceiling=movement_cap(self.root,u)
-                except (UnknownMovement,TypeError) as exc:
-                    self.status.set('Movement edit unavailable: '+str(exc));return False
-            else: ceiling=None
-            ceiling=ceiling if ceiling is not None else (100 if key[1] in ('tax','sonsOfLibertyTarget') else 200 if key[1]=='experience' else 2_147_483_647)
-            if new>ceiling:
-                self.status.set(f'Invalid value: maximum is {ceiling}. Press Esc to cancel.')
-                editor.focus_set();return False
-        if new==original:self.edits.pop(key,None)
-        else:self.edits[key]=(original,new)
+        try:
+            new=self.edit_session.validate(
+                key, raw, original=original, root=self.root,
+                units=self.records['Units'], professions=self.professions)
+        except EditValidationError as exc:
+            self.status.set(str(exc))
+            if str(exc).startswith('Invalid quantity:') or str(exc).startswith('Invalid value:'):
+                editor.focus_set()
+            return False
+        self.edit_session.stage(key, original, new)
         self.cancel_cell_edit()
         if table.exists(row):
             table.set(row,column,new)
@@ -1096,7 +1005,7 @@ class Explorer(tk.Tk):
             if not selected:return
             uid=selected[0];key=(uid+'|'+vid,'deleteNativeUnit')
             if not messagebox.askyesno('Confirm deletion',f'Delete {uid} affiliated with {village.get("name")}?\n\nThis will remove its unit record, AI controller, and home-settlement reference. External dependencies cause Save As to fail safely.',parent=win):return
-            self.edits[key]=('present','delete')
+            self.edit_session.stage_native_unit_deletion(uid,vid)
             self.status.set(f'{len(self.edits)} staged changes — includes deletion of {uid}; original untouched')
             win.destroy()
         ttk.Button(win,text='Stage deletion',command=stage).pack(pady=8)
@@ -1118,7 +1027,7 @@ class Explorer(tk.Tk):
         if target.exists():
             messagebox.showerror('Already exists','For safety, this editor never overwrites an existing file. Choose a new filename.');return
         try:
-            report=produce(source,target,self.edits)
+            report=self.edit_session.save_as(source,target)
         except Exception as exc:
             messagebox.showerror('Save failed',str(exc));return
         self.status.set(f"Saved {len(self.edits)} changes to {target.name} | Original unchanged")
@@ -1126,11 +1035,7 @@ class Explorer(tk.Tk):
 
     @staticmethod
     def building_tier(name):
-        # Explicit upgrade chains; standalone facilities have no upgrade level.
-        chains=(('stockade','fort','fortress'),('carpenterHouse','lumberMill'),('schoolhouse','college','university'),('chapel','church','cathedral'),('blacksmithHouse','blacksmithShop','ironWorks'),('tobacconistHouse','tobacconistShop','cigarFactory'),('weaverHouse','weaverShop','textileMill'),('rumDistillery','rumFactory'),('furTraderHouse','furTraderShop','furFactory'),('warehouse','warehouseExpansion'),('printingPress','newspaper'))
-        for chain in chains:
-            if name in chain:return Explorer.readable(chain[0]),f'{chain.index(name)+1}/{len(chain)}'
-        return 'Standalone','—'
+        return presentation.building_tier(name)
 
 if __name__=='__main__':
     Explorer().mainloop()

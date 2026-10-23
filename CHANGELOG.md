@@ -2,9 +2,39 @@
 
 This is the detailed, permanent development history. It includes point releases, internal iterations and hotfixes. When a major release (0.1, 0.2, etc.) is accepted, a concise summary is also entered in README.txt. Detailed entries remain here.
 
-> Current accepted integration baseline: **v0.6.2.6.4**. The 0.6 major milestone is still under development. Entries below distinguish tested/accepted features from experimental previews.
+> Current accepted integration baseline: **v0.6.2.6.4-phase0** (v0.6.2.6.4 features on the Phase 0 extracted core). The 0.6 major milestone is still under development. Entries below distinguish tested/accepted features from experimental previews.
 
 ## 0.6 — Terrain inspection and map work (ongoing)
+
+### Phase 0: core extraction — accepted and merged (2026-10-23)
+- Merged pull request #2 into `main` with a merge commit; tagged `v0.6.2.6.4-phase0`. Branch `refactor/phase0-core-extraction` deleted after merge.
+- Added `*.fsg` to `.gitignore` so private savegames (e.g. the `FREECOL_TEST_SAVE` file) cannot be committed by accident.
+- Note for Phase 4: `.gitignore` currently ignores `*.spec`; the PyInstaller spec must be un-ignored and committed when packaging starts.
+- **Pre-acceptance housekeeping, 2026-10-23:** retired the obsolete Tk-driving tests `test_v061.py` and `test_terrain_parser.py` (hard-coded `/mnt/data` paths; `test_v061` referenced the removed `TERRAIN_OFFSETS`); their coverage is superseded by the headless `test_save_document`, `test_map_regression` and `test_map_render` suites. Renamed the CI workflow to `headless-tests.yml`, which now runs on pushes to `main` and the Phase 0 branch and on pull requests, and uses test discovery so every `test_*.py` (including the previously omitted `test_map_geometry`) is included. Headless run: 65 tests OK, 1 expected skip (no real save in CI). No application code changed.
+- **Final acceptance evidence, 2026-10-23:** User ran `py -m unittest discover -v` on Windows with the private `FREECOL_TEST_SAVE` path: 65 tests passed, zero skips, including real-save integrity. User additionally tested numerous deletions, unit changes and editing permissions, loaded the edited save in FreeCol, advanced a turn, saved and reloaded successfully. Windows/gameplay acceptance passed; merge into `main` remains a separately controlled step.
+- **Carried forward to Phase 3 (accepted slip of 🟡 items):** `map_window.py` still calls into the main window for road/river painting, hit-testing and artwork; forest, plow, shore and native-mask layering remain in the two Tk painting paths. Shared road/river primitives and hit-testing are already in `map_render.py`.
+- **Mandatory lookup and permission audit, 2026-10-23:** completed `SaveDocument` owner/location/unit/colony/tile lookup API and delegated existing UI lookup calls; routed Overview, main unit table and colony worker permission checks through `EditSession.editable_fields`, retaining legacy numeric and ruleset validation gates. New headless lookup test added. Final Windows and in-game acceptance remain open.
+
+- **Windows artwork-source smoke check, 2026-10-23:** user confirmed the application smoke test passed with no problems after `freecol_art_source.py` extraction. This confirms no reported Windows visual or functional regressions at this checkpoint, not final Phase 0 sign-off.
+
+- **Artwork source extraction, 2026-10-23:** new UI-free `freecol_art_source.py` handles local image directory/JAR discovery and byte reading; `terrain_art.FreeColArt` remains the Tk image and scaling adapter. Three source tests passed in GitHub Actions; the full headless run passed 62 tests, 1 expected skip (real save not available). Windows visual confirmation after this extraction is still outstanding.
+
+- **Windows map visual acceptance, 2026-10-23:** user provided a screenshot of the Phase 0 renderer-neutral map extraction and confirmed “All looks good.” Terrain, roads, rivers and colony sprites showed no reported visual regression. The main v0.6.2.6.4 baseline remains unchanged; this is a component-level acceptance, not final Phase 0 acceptance.
+
+- **Renderer-neutral first pass:** added `map_render.py` for tile parity offsets, diamond hit-testing and exact legacy road/river vector instructions. The existing Tk canvas executes these primitives; native-mask image compositing and shoreline painter remain unchanged. Added four headless primitive tests to CI; pixel-equivalence still requires Windows confirmation.
+
+- **Windows checkpoint, 2026-10-23:** user ran all 55 tests successfully (0 failures, 0 skips), including real-save Save As integrity against `Morten2.fsg`; independently confirmed editor/map smoke test, intact native-mask rivers, visible colony art, staging and saving edits. Directional vector roads remain intentionally unchanged; no Phase 0 native-road redesign.
+
+- Branched from accepted `main` as `refactor/phase0-core-extraction`; `main` remains unchanged.
+- Added UI-free `SaveDocument.load()`, moved ZIP/XML parsing and authoritative indexes out of Tk `Explorer.open_save()` while retaining messageboxes, status formatting and initial selection in Tk.
+- Added UI-free `EditSession`, wired existing inline numeric and choice validation/staging into it, preserving the original `self.edits` dictionary format and visible validation messages.
+- Added `test_save_document.py` and `test_edit_session.py` (headless).
+- Missing historical `Morten(5).fsg` is not a Phase 0 prerequisite; synthetic cached missionary tests and currently available real saves are valid baselines.
+- Equipment staging, deletion staging and Save As delegation now flow through `EditSession`. The original `produce()`, equipment validator, deletion planner and user-facing confirmation dialogs remain in place.
+- Added tests for legacy delete-key encodings, equipment-versus-deletion conflict, and no-overwrite protection.
+- **Pending:** Windows execution of all tests, byte-for-byte real-save round trip on this branch, UI smoke testing, remaining presentation/renderer extraction and full no-visible-change acceptance. No application code has been merged into `main`.
+
+
 
 ### Phase 0 boundaries and baseline fixtures — 2026-10-23
 - The user created a `v0.6.2.6.4` Git tag for the accepted main baseline; Phase 0 must compare against that exact tag and make no user-visible or save-editing behaviour changes.
