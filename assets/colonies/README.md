@@ -1,6 +1,6 @@
 # Better Colony Graphics — asset specification
 
-**Status:** Design Direction Sheet Version 3 approved 2026-10-22. All 12 settlement graphics visually accepted by the user in the Windows Map Editor on 2026-10-23. Software release acceptance remains separate.
+**Status:** Design Direction Sheet Version 3 approved 2026-10-22 (see `design/design_direction_version_3.png`). All 12 settlement graphics visually accepted by the user in the Windows Map Editor on 2026-10-23. Software release acceptance remains separate.
 
 ## Authoritative art direction — Version 3
 - Early Boston / New England colonial architecture; hand-painted three-quarter-isometric strategy-game illustrations, neutral across nations.
