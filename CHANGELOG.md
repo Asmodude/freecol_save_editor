@@ -12,7 +12,9 @@ This is the detailed, permanent development history. It includes point releases,
 - Added UI-free `EditSession`, wired existing inline numeric and choice validation/staging into it, preserving the original `self.edits` dictionary format and visible validation messages.
 - Added `test_save_document.py` and `test_edit_session.py` (headless).
 - Missing historical `Morten(5).fsg` is not a Phase 0 prerequisite; synthetic cached missionary tests and currently available real saves are valid baselines.
-- **Pending:** Windows execution of all tests, byte-for-byte real-save round trip on this branch, equipment/deletion staging migration, renderer/presentation extraction and full no-visible-change acceptance. No application code has been merged into `main`.
+- Equipment staging, deletion staging and Save As delegation now flow through `EditSession`. The original `produce()`, equipment validator, deletion planner and user-facing confirmation dialogs remain in place.
+- Added tests for legacy delete-key encodings, equipment-versus-deletion conflict, and no-overwrite protection.
+- **Pending:** Windows execution of all tests, byte-for-byte real-save round trip on this branch, UI smoke testing, remaining presentation/renderer extraction and full no-visible-change acceptance. No application code has been merged into `main`.
 
 
 
