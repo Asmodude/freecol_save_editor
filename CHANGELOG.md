@@ -6,6 +6,16 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Phase 0: initial core extraction (in progress, unaccepted)
+- Branched from accepted `main` as `refactor/phase0-core-extraction`; `main` remains unchanged.
+- Added UI-free `SaveDocument.load()`, moved ZIP/XML parsing and authoritative indexes out of Tk `Explorer.open_save()` while retaining messageboxes, status formatting and initial selection in Tk.
+- Added UI-free `EditSession`, wired existing inline numeric and choice validation/staging into it, preserving the original `self.edits` dictionary format and visible validation messages.
+- Added `test_save_document.py` and `test_edit_session.py` (headless).
+- Missing historical `Morten(5).fsg` is not a Phase 0 prerequisite; synthetic cached missionary tests and currently available real saves are valid baselines.
+- **Pending:** Windows execution of all tests, byte-for-byte real-save round trip on this branch, equipment/deletion staging migration, renderer/presentation extraction and full no-visible-change acceptance. No application code has been merged into `main`.
+
+
+
 ### Phase 0 boundaries and baseline fixtures — 2026-10-23
 - The user created a `v0.6.2.6.4` Git tag for the accepted main baseline; Phase 0 must compare against that exact tag and make no user-visible or save-editing behaviour changes.
 - Human-player auto-selection is explicitly **deferred until after Phase 0**; preserve current load-time tab, filter and selection behaviour throughout the refactor.
