@@ -6,6 +6,15 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Final Windows regression verification — 2026-10-23
+- User executed `py -m unittest -v test_colony_graphics test_map_regression test_edit_safety test_unit_records test_location_names test_real_save_integrity` on Windows (Python 3.14.3) after the 12-state preview cleanup.
+- Actual output: **Ran 40 tests in 0.685s; OK** (0 failures, 0 errors, 0 skips). The real-save integration test ran successfully.
+- User previously confirmed Save As equipment modification and unit deletion both load and behave correctly in FreeCol.
+- All 12 colony graphics received user visual approval; software merge into `main` remains a separate explicit decision.
+- Outstanding pre-merge sanity check: launch the cleaned Map Editor and confirm normal colony rendering with no TEST sprite selector; review any development-only code/doc discrepancies.
+
+
+
 ### Better Colony Graphics — all 12 artworks accepted (2026-10-23)
 - User visually approved all three sizes of Colony, Stockade, Fort and Fortress in the Windows 9×9 map viewer.
 - Removed the temporary 12-state TEST sprite dropdown after approval; the map now uses authoritative savegame classification.
