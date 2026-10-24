@@ -372,6 +372,7 @@ class QtExplorer(QMainWindow):
         self.jump_unit_button.setEnabled(False)
         self.jump_colony_button.setEnabled(False)
         self.breakdown_target = None
+        self.breakdown_target = None
         self.details.clear()
         self.raw_xml.clear()
         self.inspector_label.setText('Select an individual row to inspect its attributes.')
@@ -539,16 +540,18 @@ class QtExplorer(QMainWindow):
                 or self.tabs.currentWidget() is not table
                 or self.selected_element is None):
             return
-        if table.rowCount() and not table.selectedItems():
-            table.selectRow(0)
-        self.inspect_detail('By colony')
+        # Opening this tab is not a selection. Require an explicit colony click.
+        self.jump_colony_button.setEnabled(bool(table.selectedItems()) and self.breakdown_target is not None)
 
     def inspect_detail(self, section):
         table = self.colony_tables[section]
         chosen = table.selectedItems()
-        row = chosen[0].row() if chosen else table.currentRow()
+        row = chosen[0].row() if chosen else (-1 if section == 'By colony' else table.currentRow())
         if (self.selected_element is None or self.tabs.indexOf(table) < 0
                 or row < 0 or row >= table.rowCount()):
+            if section == 'By colony':
+                self.breakdown_target = None
+                self.jump_colony_button.setEnabled(False)
             return
         headings = [table.horizontalHeaderItem(col).text() for col in range(table.columnCount())]
         values = [(table.item(row, col).text() if table.item(row, col) else '')
@@ -676,10 +679,8 @@ class QtExplorer(QMainWindow):
             self.update_detail_tabs(element)
             # The breakdown table is rebuilt with signals blocked. Select a
             # real colony afterwards so the inspector and action are live.
-            breakdown = self.colony_tables['By colony']
-            if breakdown.rowCount():
-                breakdown.selectRow(0)
-                self.inspect_detail('By colony')
+            self.breakdown_target = None
+            self.jump_colony_button.setEnabled(False)
             name = element.get('name', 'Goods')
             amount = element.get('amount', '0')
             count = element.get('colonies', '0')
