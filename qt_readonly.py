@@ -46,7 +46,7 @@ HEADERS = {
     'Founding Fathers': ('Founding Father', 'Status'),
     'National Goods': ('Goods', 'Total in colonies', 'Colonies with stock'),
     'Game properties': ('Source', 'Property', 'Saved value'),
-    'Diplomacy': ('Other nation', 'Relationship', 'Saved value'),
+    'Diplomacy': ('Category', 'Other nation', 'Relationship', 'Saved value'),
 }
 
 
@@ -577,7 +577,7 @@ class QtExplorer(QMainWindow):
         for element in (game_property_rows(doc) if self.group == 'Game properties' else rows_for_scope(doc, self.group, self.scope)):
             if self.group == 'Founding Fathers' and element.get('status') != 'Recruited':
                 continue
-            values = ((element.get('nation'), element.get('kind'), element.get('value'))
+            values = ((element.get('category'), element.get('nation'), element.get('kind'), element.get('value'))
                       if self.group == 'Diplomacy' else
                       (element.get('source'), element.get('name'), element.get('value'))
                       if self.group == 'Game properties' else
@@ -871,7 +871,7 @@ class QtExplorer(QMainWindow):
         self.update_detail_tabs(element)
         if self.group == 'Diplomacy':
             self.inspector_label.setText(element.get('nation'))
-            self.details.setPlainText(f"Other nation: {element.get('nation')}\nRelationship: {element.get('kind')}\nSaved value: {element.get('value')}")
+            self.details.setPlainText(f"Category: {element.get('category')}\nOther nation: {element.get('nation')}\nRelationship: {element.get('kind')}\nSaved value: {element.get('value')}")
             owner = self.document.players.get(element.get('owner'))
             self.raw_xml.setPlainText(formatted_record_xml(owner) if owner is not None else 'No source player')
             self.overview.setPlainText('Read-only diplomatic relationship from the owning player XML.')
