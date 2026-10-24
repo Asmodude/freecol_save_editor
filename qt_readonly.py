@@ -8,8 +8,8 @@ import os
 from time import perf_counter
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont, QBrush
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QFont, QBrush, QPixmap, QIcon
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
     QMessageBox, QPushButton, QSplitter, QTabWidget, QTableWidget,
@@ -27,6 +27,7 @@ from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
 from qt_display import display_row
 from qt_sorting import NUMERIC_COLUMNS, NUMERIC_DETAIL_COLUMNS, sort_key
+from qt_father_portraits import FatherPortraits
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers')
 HEADERS = {
@@ -34,7 +35,7 @@ HEADERS = {
     'Colonies': ('ID','Name','Owner','Location','Established','Liberty','Sons of Liberty','Production bonus'),
     'Native settlements': ('ID','Name','Owner','Location','Learnable skill','Wanted goods'),
     'Units': ('ID','Type','Owner','Location','Role','Experience toward','Experience','Moves left','Max moves','Hit points','State'),
-    'Founding Fathers': ('Name', 'Status', 'ID'),
+    'Founding Fathers': ('Founding Father', 'Status'),
 }
 
 
@@ -64,6 +65,8 @@ class QtExplorer(QMainWindow):
         self.selected_element = None
         self.detail_unit_id = None
         self.detail_nodes = {}
+        self.father_portraits = FatherPortraits()
+        self.recruiting_father = None
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -103,11 +106,25 @@ class QtExplorer(QMainWindow):
         self.search.setPlaceholderText('Filter visible rows…')
         self.search.textChanged.connect(self.populate)
         center_layout.addWidget(self.search)
+        self.father_banner = QWidget()
+        banner_layout = QHBoxLayout(self.father_banner)
+        banner_layout.setContentsMargins(6, 6, 6, 6)
+        self.father_portrait = QLabel()
+        self.father_portrait.setFixedSize(85, 100)
+        self.father_portrait.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        banner_layout.addWidget(self.father_portrait)
+        self.father_banner_text = QPushButton('No Founding Father currently being recruited')
+        self.father_banner_text.setEnabled(False)
+        self.father_banner_text.clicked.connect(self.inspect_recruiting_father)
+        banner_layout.addWidget(self.father_banner_text, 1)
+        center_layout.addWidget(self.father_banner)
+        self.father_banner.hide()
         self.grid = QTableWidget()
         self.grid.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.grid.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.grid.setAlternatingRowColors(True)
         self.grid.setSortingEnabled(True)
+        self.grid.setIconSize(QSize(60, 65))
         self.grid.itemSelectionChanged.connect(self.inspect)
         center_layout.addWidget(self.grid, 3)
 
@@ -330,6 +347,8 @@ class QtExplorer(QMainWindow):
         self.raw_xml.clear()
         self.inspector_label.setText('Select an individual row to inspect its attributes.')
         self.overview.clear()
+        self.father_banner.setVisible(self.group == 'Founding Fathers' and self.document is not None)
+        self.recruiting_father = None
         self.update_detail_tabs(None)
         self.grid.setColumnCount(len(HEADERS[self.group]))
         self.grid.setHorizontalHeaderLabels(HEADERS[self.group])
@@ -338,9 +357,27 @@ class QtExplorer(QMainWindow):
             self.grid.setSortingEnabled(True)
             return
         query = self.search.text().strip().casefold()
+        if self.group == 'Founding Fathers':
+            father_records = rows_for_scope(doc, self.group, self.scope)
+            self.recruiting_father = next(
+                (f for f in father_records if f.get('status') == 'Recruiting'), None)
+            father = self.recruiting_father
+            if father is not None:
+                self.father_banner_text.setText(
+                    'CURRENTLY RECRUITING\n' + father.get('name', '') +
+                    '\nIn progress · Select to inspect')
+                self.father_banner_text.setEnabled(True)
+                self._set_father_portrait(self.father_portrait, father.get('id'), 85, 100)
+            else:
+                self.father_banner_text.setText('No Founding Father currently being recruited')
+                self.father_banner_text.setEnabled(False)
+                self.father_portrait.clear()
+                self.father_portrait.setText('No portrait')
         rows = []
         for element in rows_for_scope(doc, self.group, self.scope):
-            values = ((element.get('name'), element.get('status'), element.get('id'))
+            if self.group == 'Founding Fathers' and element.get('status') == 'Recruiting':
+                continue
+            values = ((element.get('name'), element.get('status'))
                       if self.group == 'Founding Fathers' else
                       display_row(self.group, presentation.row_values(self.group, element, doc, self.session)))
             if query and query not in ' '.join(str(value) for value in values).casefold():
@@ -353,6 +390,13 @@ class QtExplorer(QMainWindow):
                 cell = SortableItem(value, HEADERS[self.group][col] in NUMERIC_COLUMNS[self.group])
                 cell.setData(Qt.ItemDataRole.UserRole, row)
                 cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                if self.group == 'Founding Fathers' and col == 0:
+                    data = self.father_portraits.get(rows[row][0].get('id'))
+                    if data:
+                        pixmap = QPixmap()
+                        if pixmap.loadFromData(data):
+                            cell.setIcon(QIcon(pixmap))
+                    self.grid.setRowHeight(row, 75)
                 self.grid.setItem(row, col, cell)
         self.grid.setSortingEnabled(True)
         self.grid.resizeColumnsToContents()
@@ -488,6 +532,9 @@ class QtExplorer(QMainWindow):
         if not isinstance(source_index, int) or source_index >= len(self.visible_rows):
             return
         element = self.visible_rows[source_index]
+        if self.group == 'Founding Fathers':
+            self.inspect_father_record(element)
+            return
         self.selected_element = element
         self.update_detail_tabs(element)
         label = element.get('name') or element.get('username') or element.get('id') or 'Record'
