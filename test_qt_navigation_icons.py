@@ -44,6 +44,16 @@ class NavigationArtworkTests(unittest.TestCase):
                         self.assertGreater(right.red(), right.green() * 1.5)
                         self.assertNotEqual(left.name(), right.name())
 
+    def test_portuguese_heraldry_contains_blue_escutcheons(self):
+        icons = NavigationIcons()
+        icons._source = (None, None, '', 'Unavailable')
+        image = icons.icon('nation', 'model.nation.portuguese', size=96).pixmap(96, 96).toImage()
+        blue_pixels = sum(
+            1 for y in range(30, 68) for x in range(35, 62)
+            if (lambda c: c.blue() > c.red() * 1.4 and c.blue() > c.green() * 1.2)(
+                image.pixelColor(x, y)))
+        self.assertGreater(blue_pixels, 8)
+
     def test_no_partial_nation_matching(self):
         self.assertIsNone(flag_for_nation('model.nation.portuguese_unknown'))
         self.assertIsNone(flag_for_nation('model.nation.portugueseREF_other'))
