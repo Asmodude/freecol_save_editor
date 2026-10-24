@@ -14,7 +14,19 @@ def display_identifier(value):
 
 def display_row(group, values):
     values=list(values)
+    if group=='Players':
+        # Player ID remains raw; nations and types are display-only labels.
+        values[2]=display_identifier(values[2])
+        values[3]=display_identifier(values[3])
+        for col in (9,10):  # AI / Dead; preserve unknown values.
+            raw=str(values[col] or '').lower()
+            if raw=='true':
+                values[col]='✓'
+            elif raw=='false':
+                values[col]=''
     if group=='Units':
+        values[10]=display_identifier(values[10])
+
         values[1]=display_identifier(values[1])
         values[4]=display_identifier(values[4])
     if group=='Native settlements':
