@@ -568,6 +568,45 @@ class QtExplorer(QMainWindow):
             self.raw_xml.setPlainText(formatted_record_xml(
                 unit if unit is not None else exact if exact is not None else self.selected_element))
 
+    def open_breakdown_colony(self):
+        target = self.breakdown_target
+        if not target or self.document is None:
+            return
+        good_id, colony_name = target
+        owner = self.selected_element.get('owner') if self.selected_element is not None else None
+        matches = [colony for colony in self.document.colonies
+                   if colony.get('owner') == owner
+                   and (colony.get('name') or colony.get('id') or 'Unnamed colony') == colony_name]
+        # Duplicate names must never cause an arbitrary navigation.
+        if len(matches) != 1 or not matches[0].get('id'):
+            return
+        scope = 'colony-id:' + matches[0].get('id')
+        def find_item(parent):
+            for index in range(parent.childCount()):
+                item = parent.child(index)
+                if item.data(0, Qt.ItemDataRole.UserRole) == ('Colonies', scope):
+                    return item
+                found = find_item(item)
+                if found is not None:
+                    return found
+            return None
+        destination = None
+        for index in range(self.navigation.topLevelItemCount()):
+            destination = find_item(self.navigation.topLevelItem(index))
+            if destination is not None:
+                break
+        if destination is None:
+            return
+        self.navigation.setCurrentItem(destination)
+        table = self.colony_tables['Goods']
+        self.tabs.setCurrentWidget(table)
+        for row in range(table.rowCount()):
+            item = table.item(row, 0)
+            if item is not None and item.text() == presentation.readable(good_id):
+                table.selectRow(row)
+                table.scrollToItem(item)
+                break
+
     def open_detail_unit(self):
         unit_id = self.detail_unit_id
         if not unit_id or not self.document:
