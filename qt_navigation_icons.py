@@ -121,8 +121,17 @@ def _paint_native_emblem(p, key, size):
 
 
 def flag_for_nation(nation_id):
-    """Exact alias matching; no guessing from prefixes such as 'port'."""
-    return EUROPEAN_FLAGS.get(nation_key(nation_id))
+    """Resolve exact European nation IDs, including recognised REF variants.
+
+    Never use a substring match: an unfamiliar nation ID must stay visibly
+    unidentified rather than receive a potentially incorrect national flag.
+    """
+    key = nation_key(nation_id)
+    if key in EUROPEAN_FLAGS:
+        return EUROPEAN_FLAGS[key]
+    if key.endswith('ref') and key[:-3] in EUROPEAN_FLAGS:
+        return EUROPEAN_FLAGS[key[:-3]]
+    return None
 
 
 class NavigationIcons:
