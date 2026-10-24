@@ -222,7 +222,7 @@ class NavigationIcons:
             _paint_native_emblem(p, key, size)
         else:
             background, foreground = ICON_PALETTE.get(kind, ICON_PALETTE['section'])
-            p.setBrush(QColor(background))
+            p.setBrush(QColor(background).darker(112))
             p.setPen(QPen(QColor(foreground).lighter(140), 1))
             p.drawRoundedRect(QRectF(1, 1, size-2, size-2), 5, 5)
             symbol = GLYPHS.get(kind, '·')
