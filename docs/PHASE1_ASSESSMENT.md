@@ -85,6 +85,7 @@ As a general rule, any search result that cannot be navigated to should give vis
 
 This item is correctly recorded in the plan (`UI_MODERNISATION_PLAN.md` §5, "Mockup fidelity"). Two additions:
 
+- **Done 24 Oct 2026:** the mockup is now committed as `docs/mockups/phase1_approved.png`, with its written checklist `docs/mockups/PHASE1_MOCKUP_CHECKLIST.md`. Implement icons and flags against that checklist.
 - **Root cause and prevention.** The approved mockup exists only as an image in a past chat conversation; it is not in the repository. Chat context does not persist between conversations and is eventually truncated within long ones, which is how this requirement was lost.
   - Commit the mockup image (e.g. `docs/mockups/phase1_approved.png`).
   - Next to it, commit a written checklist of its visual elements: which icon for each navigation node type, flags for which entries, sizes and spacing.
@@ -152,7 +153,7 @@ In addition, all tables are `QTableWidget`s that are rebuilt on every filter or 
 
 ## 6. Recommended order to close Phase 1
 
-1. Commit the approved mockup image and its written checklist (§4.3).
+1. ~~Commit the approved mockup image and its written checklist (§4.3).~~ Done: see `docs/mockups/`.
 2. Implement Diplomacy and native-nation Overview entries, which also fixes §4.2.
 3. Implement mockup icons and faction flags (§4.3).
 4. Add the off-screen Qt smoke test and PySide6 in CI. Retire the conflicting source-text assertions (§5.1).
