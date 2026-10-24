@@ -28,12 +28,13 @@ from qt_raw_xml import formatted_record_xml
 from qt_display import display_row
 from qt_sorting import NUMERIC_COLUMNS, NUMERIC_DETAIL_COLUMNS, sort_key
 
-GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units')
+GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers')
 HEADERS = {
     'Players': ('ID','Username','Nation','Type','Colonies','Settlements','Gold','Tax','Score','AI','Dead'),
     'Colonies': ('ID','Name','Owner','Location','Established','Liberty','Sons of Liberty','Production bonus'),
     'Native settlements': ('ID','Name','Owner','Location','Learnable skill','Wanted goods'),
     'Units': ('ID','Type','Owner','Location','Role','Experience toward','Experience','Moves left','Max moves','Hit points','State'),
+    'Founding Fathers': ('Name', 'Status', 'ID'),
 }
 
 
@@ -213,8 +214,10 @@ class QtExplorer(QMainWindow):
                 entry(my_colonies, colony.get('name') or colony.get('id'),
                       'Colonies', 'colony-id:' + colony.get('id'), kind='colony')
         entry(my, 'Units', 'Units', 'mine')
-        for label in ('Goods', 'Research', 'Founding Fathers', 'Player Options'):
-            entry(my, label, ready=False)
+        entry(my, 'Goods', ready=False)
+        entry(my, 'Research', ready=False)
+        entry(my, 'Founding Fathers', 'Founding Fathers', 'mine')
+        entry(my, 'Player Options', ready=False)
 
         rivals = entry(None, 'Rival Nations', kind='nation')
         entry(rivals, 'All European rivals', 'Players', 'rivals')
@@ -237,8 +240,10 @@ class QtExplorer(QMainWindow):
                         entry(colony_group, colony.get('name') or colony.get('id'),
                               'Colonies', 'colony-id:' + colony.get('id'))
                     entry(rival, 'Units', 'Units', 'player:' + pid)
-                    for section in ('Goods', 'Research', 'Founding Fathers', 'Player Options'):
-                        entry(rival, section, ready=False)
+                    entry(rival, 'Goods', ready=False)
+                    entry(rival, 'Research', ready=False)
+                    entry(rival, 'Founding Fathers', 'Founding Fathers', 'player:' + pid)
+                    entry(rival, 'Player Options', ready=False)
                 elif player.get('playerType') in ('indian', 'native'):
                     label = presentation.readable(nation_id) or pid
                     native = entry(natives, label, kind='nation')
@@ -335,7 +340,9 @@ class QtExplorer(QMainWindow):
         query = self.search.text().strip().casefold()
         rows = []
         for element in rows_for_scope(doc, self.group, self.scope):
-            values = display_row(self.group, presentation.row_values(self.group, element, doc, self.session))
+            values = ((element.get('name'), element.get('status'), element.get('id'))
+                      if self.group == 'Founding Fathers' else
+                      display_row(self.group, presentation.row_values(self.group, element, doc, self.session)))
             if query and query not in ' '.join(str(value) for value in values).casefold():
                 continue
             rows.append((element, values))
@@ -487,7 +494,10 @@ class QtExplorer(QMainWindow):
         self.inspector_label.setText(label)
         doc = self.document
         summary = [('Name', label), ('Category', self.group)]
-        if self.group == 'Players':
+        if self.group == 'Founding Fathers':
+            summary.extend([('Status', element.get('status')),
+                            ('FreeCol identifier', element.get('id'))])
+        elif self.group == 'Players':
             summary.extend([('Nation', presentation.short(element.get('nationId'))),
                             ('Gold', element.get('gold')), ('Tax', element.get('tax')),
                             ('AI controlled', element.get('ai'))])
@@ -510,7 +520,10 @@ class QtExplorer(QMainWindow):
         self.details.setPlainText('\n'.join(
             f'{key}: {value}' for key, value in summary if value is not None))
         self.overview.setPlainText(record_overview(self.group, element, doc))
-        self.raw_xml.setPlainText(formatted_record_xml(element))
+        if self.group == 'Founding Fathers':
+            self.raw_xml.setPlainText('Virtual read-only record. Membership is encoded in the owning player XML.\nSelect the player Overview to inspect the source XML.')
+        else:
+            self.raw_xml.setPlainText(formatted_record_xml(element))
 
 
 def main():
