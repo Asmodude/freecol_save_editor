@@ -25,6 +25,7 @@ from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
 from qt_overview_panel import OverviewPanel
+from colony_graphics import resolve_colony_graphic
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
 from qt_display import display_row
@@ -705,6 +706,7 @@ class QtExplorer(QMainWindow):
         if self.group == 'Founding Fathers':
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
         self.grid.setRowCount(len(rows))
+        self.grid.setIconSize(QSize(32, 30) if self.group == 'Colonies' else QSize(60, 65) if self.group == 'Founding Fathers' else QSize(20, 20))
         for row, (_, values) in enumerate(rows):
             for col, value in enumerate(values):
                 displayed = (compact_property_value(value)
@@ -725,6 +727,15 @@ class QtExplorer(QMainWindow):
                             native = record.get('playerType') in ('native', 'indian')
                             cell.setIcon(self.navigation_icons.icon(
                                 kind, nation_id=nation_id, native=native, size=20))
+                        elif self.group == 'Colonies':
+                            art = resolve_colony_graphic(record)
+                            image = QPixmap(str(art.image_path)) if art.image_path else QPixmap()
+                            if not image.isNull():
+                                cell.setIcon(QIcon(image.scaled(
+                                    32, 30, Qt.AspectRatioMode.KeepAspectRatio,
+                                    Qt.TransformationMode.SmoothTransformation)))
+                            else:
+                                cell.setIcon(self.navigation_icons.icon('colony', size=22))
                         else:
                             cell.setIcon(self.navigation_icons.icon(kind, size=20))
                 if self.group == 'Game properties' and col == 2 and displayed != value:
@@ -738,6 +749,9 @@ class QtExplorer(QMainWindow):
                             cell.setIcon(QIcon(pixmap))
                     self.grid.setRowHeight(row, 75)
                 self.grid.setItem(row, col, cell)
+        if self.group == 'Colonies':
+            for row in range(self.grid.rowCount()):
+                self.grid.setRowHeight(row, 36)
         self.grid.setSortingEnabled(True)
         self.grid.resizeColumnsToContents()
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
