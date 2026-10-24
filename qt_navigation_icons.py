@@ -149,7 +149,10 @@ class NavigationIcons:
         if cache_key in self._cache:
             return self._cache[cache_key]
         # Prefer the installation's actual artwork when it is unambiguously named.
-        local = self._local_nation_image(key) if key and kind == 'nation' else None
+        # Draw known national flags ourselves: an unrelated local nation sprite must
+        # never override a recognised flag (notably Portugal's green/red).
+        known_flag = flag_for_nation(nation_id) if not native and kind == 'nation' else None
+        local = self._local_nation_image(key) if key and kind == 'nation' and not known_flag else None
         if local:
             self._cache[cache_key] = local
             return local
