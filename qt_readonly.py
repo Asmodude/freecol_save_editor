@@ -361,11 +361,13 @@ class QtExplorer(QMainWindow):
             father_records = rows_for_scope(doc, self.group, self.scope)
             self.recruiting_father = next(
                 (f for f in father_records if f.get('status') == 'Recruiting'), None)
+            offered = [f.get('name', '') for f in father_records if f.get('status') == 'Offered']
             father = self.recruiting_father
             if father is not None:
                 self.father_banner_text.setText(
                     'CURRENTLY RECRUITING\n' + father.get('name', '') +
-                    '\nIn progress · Select to inspect')
+                    '\nIn progress · Select to inspect' +
+                    ('\nOther offered: ' + ', '.join(offered) if offered else ''))
                 self.father_banner_text.setEnabled(True)
                 self._set_father_portrait(self.father_portrait, father.get('id'), 85, 100)
             else:
@@ -375,7 +377,7 @@ class QtExplorer(QMainWindow):
                 self.father_portrait.setText('No portrait')
         rows = []
         for element in rows_for_scope(doc, self.group, self.scope):
-            if self.group == 'Founding Fathers' and element.get('status') == 'Recruiting':
+            if self.group == 'Founding Fathers' and element.get('status') != 'Recruited':
                 continue
             values = ((element.get('name'), element.get('status'))
                       if self.group == 'Founding Fathers' else
