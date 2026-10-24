@@ -26,6 +26,7 @@ from qt_overview import record_overview
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
 from qt_display import display_row
+from qt_sorting import NUMERIC_COLUMNS, NUMERIC_DETAIL_COLUMNS, sort_key
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units')
 HEADERS = {
@@ -34,6 +35,19 @@ HEADERS = {
     'Native settlements': ('ID','Name','Owner','Location','Learnable skill','Wanted goods'),
     'Units': ('ID','Type','Owner','Location','Role','Experience toward','Experience','Moves left','Max moves','Hit points','State'),
 }
+
+
+
+class SortableItem(QTableWidgetItem):
+    """Keep row identity attached to items during Qt sorting."""
+    def __init__(self, value, numeric=False):
+        super().__init__('' if value is None else str(value))
+        self.numeric = numeric
+        if numeric:
+            self.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+    def __lt__(self, other):
+        return sort_key(self.text(), self.numeric) < sort_key(other.text(), self.numeric)
 
 
 class QtExplorer(QMainWindow):
@@ -92,7 +106,7 @@ class QtExplorer(QMainWindow):
         self.grid.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.grid.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.grid.setAlternatingRowColors(True)
-        self.grid.setSortingEnabled(False)
+        self.grid.setSortingEnabled(True)
         self.grid.itemSelectionChanged.connect(self.inspect)
         center_layout.addWidget(self.grid, 3)
 
@@ -106,6 +120,7 @@ class QtExplorer(QMainWindow):
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
             table.setAlternatingRowColors(True)
+            table.setSortingEnabled(True)
             table.itemSelectionChanged.connect(lambda section=name: self.inspect_detail(section))
             self.tabs.addTab(table, name)
             self.colony_tables[name] = table
@@ -299,6 +314,7 @@ class QtExplorer(QMainWindow):
             self.grid.selectRow(0)
 
     def populate(self):
+        self.grid.setSortingEnabled(False)
         self.grid.setRowCount(0)
         self.grid.clearContents()
         self.visible_rows = []
@@ -314,6 +330,7 @@ class QtExplorer(QMainWindow):
         self.grid.setHorizontalHeaderLabels(HEADERS[self.group])
         doc = self.document
         if doc is None:
+            self.grid.setSortingEnabled(True)
             return
         query = self.search.text().strip().casefold()
         rows = []
@@ -326,9 +343,11 @@ class QtExplorer(QMainWindow):
         self.grid.setRowCount(len(rows))
         for row, (_, values) in enumerate(rows):
             for col, value in enumerate(values):
-                cell = QTableWidgetItem('' if value is None else str(value))
+                cell = SortableItem(value, HEADERS[self.group][col] in NUMERIC_COLUMNS[self.group])
+                cell.setData(Qt.ItemDataRole.UserRole, row)
                 cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.grid.setItem(row, col, cell)
+        self.grid.setSortingEnabled(True)
         self.grid.resizeColumnsToContents()
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
         note = ('Human player could not be uniquely identified; no player was guessed.\n' 
@@ -365,6 +384,7 @@ class QtExplorer(QMainWindow):
             self.tabs.setCurrentWidget(self.overview)
         for name, table in self.colony_tables.items():
             table.blockSignals(True)
+            table.setSortingEnabled(False)
             table.clearSelection()
             headings, records = sections.get(name, ((), ()))
             table.setRowCount(0)
@@ -374,9 +394,11 @@ class QtExplorer(QMainWindow):
             table.setRowCount(len(records))
             for row, values in enumerate(records):
                 for col, value in enumerate(values):
-                    item = QTableWidgetItem('' if value is None else str(value))
+                    item = SortableItem(value, headings[col] in NUMERIC_DETAIL_COLUMNS)
+                    item.setData(Qt.ItemDataRole.UserRole, row)
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     table.setItem(row, col, item)
+            table.setSortingEnabled(True)
             table.resizeColumnsToContents()
             table.blockSignals(False)
 
@@ -400,7 +422,9 @@ class QtExplorer(QMainWindow):
                 f'{key}: {value}' for key, value in unit.attrib.items())
         self.details.setPlainText(description)
         exact_nodes = self.detail_nodes.get(section, ())
-        exact = exact_nodes[row] if row < len(exact_nodes) else None
+        source_item = table.item(row, 0)
+        source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
+        exact = exact_nodes[source_index] if isinstance(source_index, int) and source_index < len(exact_nodes) else None
         self.raw_xml.setPlainText(formatted_record_xml(unit if unit is not None else exact if exact is not None else self.selected_element))
 
     def open_detail_unit(self):
@@ -432,15 +456,23 @@ class QtExplorer(QMainWindow):
         self.navigation.setCurrentItem(target)
         for index, record in enumerate(self.visible_rows):
             if record.get('id') == unit_id:
-                self.grid.selectRow(index)
-                self.grid.scrollToItem(self.grid.item(index, 0))
+                for display_row_index in range(self.grid.rowCount()):
+                    cell = self.grid.item(display_row_index, 0)
+                    if cell and cell.data(Qt.ItemDataRole.UserRole) == index:
+                        self.grid.selectRow(display_row_index)
+                        self.grid.scrollToItem(cell)
+                        break
                 break
 
     def inspect(self):
         row = self.grid.currentRow()
         if self.document is None or row < 0 or row >= len(self.visible_rows):
             return
-        element = self.visible_rows[row]
+        source_item = self.grid.item(row, 0)
+        source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
+        if not isinstance(source_index, int) or source_index >= len(self.visible_rows):
+            return
+        element = self.visible_rows[source_index]
         self.selected_element = element
         self.update_detail_tabs(element)
         label = element.get('name') or element.get('username') or element.get('id') or 'Record'
