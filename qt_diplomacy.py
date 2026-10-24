@@ -14,6 +14,8 @@ def diplomacy_rows(document, owner_id):
             result.append(Element('diplomacyView',{
                 'id':kind+'|'+other_id,'owner':owner_id,
                 'other':other_id,'nation':other.get('username') or other_id,
+                'category':('Rival Nations' if other.get('playerType')=='colonial' else
+                            'Natives' if other.get('playerType') in ('indian','native') else 'Other'),
                 'kind':kind,'value':saved.get('value','(absent)') if saved is not None else '(absent)'}))
     return result
 
