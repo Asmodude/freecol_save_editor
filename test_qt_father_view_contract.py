@@ -13,6 +13,11 @@ class FatherViewContractTests(unittest.TestCase):
         self.assertIn("self.father_banner.setVisible",self.source)
         self.assertIn("self.inspect_recruiting_father",self.source)
 
+    def test_offered_are_separate_from_congress(self):
+        self.assertIn("self.offered_banner.setText('Also offered (not recruited): '", self.source)
+        self.assertIn("self.congress_heading.setText('Continental Congress — '", self.source)
+        self.assertIn("element.get('status') != 'Recruited'", self.source)
+
     def test_names_not_raw_ids_in_upper_table(self):
         self.assertIn("'Founding Fathers': ('Founding Father', 'Status')",self.source)
         self.assertIn("element.get('name'), element.get('status')",self.source)
