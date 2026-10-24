@@ -30,13 +30,14 @@ from qt_sorting import NUMERIC_COLUMNS, NUMERIC_DETAIL_COLUMNS, sort_key
 from qt_father_portraits import FatherPortraits
 from qt_founding_fathers import father_source_node
 
-GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers')
+GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods')
 HEADERS = {
     'Players': ('ID','Username','Nation','Type','Colonies','Settlements','Gold','Tax','Score','AI','Dead'),
     'Colonies': ('ID','Name','Owner','Location','Established','Liberty','Sons of Liberty','Production bonus'),
     'Native settlements': ('ID','Name','Owner','Location','Learnable skill','Wanted goods'),
     'Units': ('ID','Type','Owner','Location','Role','Experience toward','Experience','Moves left','Max moves','Hit points','State'),
     'Founding Fathers': ('Founding Father', 'Status'),
+    'National Goods': ('Goods', 'Total in colonies', 'Colonies with stock'),
 }
 
 
@@ -248,7 +249,7 @@ class QtExplorer(QMainWindow):
                 entry(my_colonies, colony.get('name') or colony.get('id'),
                       'Colonies', 'colony-id:' + colony.get('id'), kind='colony')
         entry(my, 'Units', 'Units', 'mine')
-        entry(my, 'Goods', ready=False)
+        entry(my, 'Goods', 'National Goods', 'mine')
         entry(my, 'Research', ready=False)
         entry(my, 'Founding Fathers', 'Founding Fathers', 'mine')
         entry(my, 'Player Options', ready=False)
@@ -274,7 +275,7 @@ class QtExplorer(QMainWindow):
                         entry(colony_group, colony.get('name') or colony.get('id'),
                               'Colonies', 'colony-id:' + colony.get('id'))
                     entry(rival, 'Units', 'Units', 'player:' + pid)
-                    entry(rival, 'Goods', ready=False)
+                    entry(rival, 'Goods', 'National Goods', 'player:' + pid)
                     entry(rival, 'Research', ready=False)
                     entry(rival, 'Founding Fathers', 'Founding Fathers', 'player:' + pid)
                     entry(rival, 'Player Options', ready=False)
@@ -406,6 +407,8 @@ class QtExplorer(QMainWindow):
                 continue
             values = ((element.get('name'), element.get('status'))
                       if self.group == 'Founding Fathers' else
+                      (element.get('name'), element.get('amount'), element.get('colonies'))
+                      if self.group == 'National Goods' else
                       display_row(self.group, presentation.row_values(self.group, element, doc, self.session)))
             if query and query not in ' '.join(str(value) for value in values).casefold():
                 continue
