@@ -36,6 +36,7 @@ from qt_game_properties import game_property_rows, game_property_source
 from qt_property_display import compact_property_value
 from qt_global_search import global_results
 from qt_diplomacy import settlement_alarm_rows
+from qt_navigation_icons import NavigationIcons
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties', 'Diplomacy')
 HEADERS = {
@@ -78,6 +79,7 @@ class QtExplorer(QMainWindow):
         self.detail_nodes = {}
         self.breakdown_target = None
         self.father_portraits = FatherPortraits()
+        self.navigation_icons = NavigationIcons()
         self.recruiting_father = None
         self.offered_fathers = []
 
@@ -241,18 +243,9 @@ class QtExplorer(QMainWindow):
         self.navigation.blockSignals(True)
         self.navigation.setUpdatesEnabled(False)
         self.navigation.clear()
-        # Resolve native theme icons only once per rebuild, not for every settlement.
-        icon_types = {
-            'nation': QStyle.StandardPixmap.SP_ComputerIcon,
-            'section': QStyle.StandardPixmap.SP_DirIcon,
-            'colony': QStyle.StandardPixmap.SP_FileIcon,
-            'planned': QStyle.StandardPixmap.SP_FileDialogDetailedView,
-        }
-        icons = {kind: self.style().standardIcon(icon) for kind, icon in icon_types.items()}
-
-        def entry(parent, label, group=None, scope=None, ready=True, kind='section'):
+        def entry(parent, label, group=None, scope=None, ready=True, kind='section', nation_id=None, native=False):
             item = QTreeWidgetItem([label])
-            item.setIcon(0, icons['planned' if not ready else kind])
+            item.setIcon(0, self.navigation_icons.icon(kind, nation_id, native))
             if kind == 'nation':
                 font = QFont(item.font(0))
                 font.setBold(True)
@@ -308,25 +301,25 @@ class QtExplorer(QMainWindow):
         own = human_player_id(doc) if doc else None
         human = doc.players.get(own) if doc and own else None
         nation = presentation.readable(human.get('nationId')) if human is not None else 'My Nation'
-        my = entry(None, nation + ' (Player)', kind='nation')
-        overview = entry(my, 'Overview', 'Players', 'mine')
-        entry(my, 'Diplomacy', 'Diplomacy', 'mine')
-        my_colonies = entry(my, 'Colonies', 'Colonies', 'mine')
+        my = entry(None, nation + ' (Player)', kind='nation', nation_id=human.get('nationId') if human is not None else None)
+        overview = entry(my, 'Overview', 'Players', 'mine', kind='overview')
+        entry(my, 'Diplomacy', 'Diplomacy', 'mine', kind='diplomacy')
+        my_colonies = entry(my, 'Colonies', 'Colonies', 'mine', kind='colonies')
         if doc and own:
             for colony in sorted((c for c in doc.colonies if c.get('owner') == own),
                                  key=lambda c: (c.get('name') or '').casefold()):
                 entry(my_colonies, colony.get('name') or colony.get('id'),
                       'Colonies', 'colony-id:' + colony.get('id'), kind='colony')
-        my_units = entry(my, 'Units', 'Units', 'mine')
+        my_units = entry(my, 'Units', 'Units', 'mine', kind='units')
         grouped_unit_entries(my_units, own)
-        entry(my, 'Goods', 'National Goods', 'mine')
-        entry(my, 'Research', ready=False)
-        entry(my, 'Founding Fathers', 'Founding Fathers', 'mine')
-        entry(my, 'Player Options', ready=False)
+        entry(my, 'Goods', 'National Goods', 'mine', kind='goods')
+        entry(my, 'Research', ready=False, kind='research')
+        entry(my, 'Founding Fathers', 'Founding Fathers', 'mine', kind='fathers')
+        entry(my, 'Player Options', ready=False, kind='options')
 
         rivals = entry(None, 'Rival Nations', kind='nation')
         entry(rivals, 'All European rivals', 'Players', 'rivals')
-        natives = entry(None, 'Native Nations', kind='nation')
+        natives = entry(None, 'Native Nations', kind='nation', native=True)
         entry(natives, 'All native settlements', 'Native settlements', 'native')
         if doc:
             for player in doc.players.values():
@@ -336,9 +329,9 @@ class QtExplorer(QMainWindow):
                 nation_id = player.get('nationId') or player.get('nation')
                 if player.get('playerType') == 'colonial':
                     label = presentation.readable(nation_id) or pid
-                    rival = entry(rivals, label, kind='nation')
-                    entry(rival, 'Overview', 'Players', 'player:' + pid)
-                    entry(rival, 'Diplomacy', 'Diplomacy', 'player:' + pid)
+                    rival = entry(rivals, label, kind='nation', nation_id=nation_id)
+                    entry(rival, 'Overview', 'Players', 'player:' + pid, kind='overview')
+                    entry(rival, 'Diplomacy', 'Diplomacy', 'player:' + pid, kind='diplomacy')
                     colony_group = entry(rival, 'Colonies', 'Colonies', 'player:' + pid)
                     for colony in sorted((c for c in doc.colonies if c.get('owner') == pid),
                                          key=lambda c: (c.get('name') or '').casefold()):
@@ -352,9 +345,9 @@ class QtExplorer(QMainWindow):
                     entry(rival, 'Player Options', ready=False)
                 elif player.get('playerType') in ('indian', 'native'):
                     label = presentation.readable(nation_id) or pid
-                    native = entry(natives, label, kind='nation')
-                    entry(native, 'Overview', 'Players', 'player:' + pid)
-                    entry(native, 'Diplomacy', 'Diplomacy', 'player:' + pid)
+                    native = entry(natives, label, kind='nation', nation_id=nation_id, native=True)
+                    entry(native, 'Overview', 'Players', 'player:' + pid, kind='overview')
+                    entry(native, 'Diplomacy', 'Diplomacy', 'player:' + pid, kind='diplomacy')
                     settlements = entry(native, 'Settlements', 'Native settlements', 'native-owner:' + pid)
                     for village in sorted((v for v in doc.native_settlements if v.get('owner') == pid),
                                           key=lambda v: (v.get('name') or '').casefold()):
@@ -365,8 +358,8 @@ class QtExplorer(QMainWindow):
                     native_units = entry(native, 'Units', 'Units', 'player:' + pid)
                     grouped_unit_entries(native_units, pid)
 
-        entry(None, 'Map', ready=False)
-        entry(None, 'Game properties', 'Game properties', 'game')
+        entry(None, 'Map', ready=False, kind='map')
+        entry(None, 'Game properties', 'Game properties', 'game', kind='options')
         my.setExpanded(True)
         rivals.setExpanded(True)
         natives.setExpanded(True)
