@@ -8,6 +8,8 @@ from zipfile import ZipFile, BadZipFile
 from freecol_art_source import installation_roots
 
 IMAGE_EXTENSIONS={'.jpg','.jpeg','.png'}
+# Some shipped FreeCol portrait files use historical short names.
+PORTRAIT_ALIASES={'williamBrewster': 'brewster'}
 
 def portrait_key(father_id):
     prefix='model.foundingFather.'
@@ -57,7 +59,8 @@ class FatherPortraits:
         if self.index is None:
             self._scan()
         result=None
-        for stem in (key, key+'.size6',key+'.size3'):
+        image_key=PORTRAIT_ALIASES.get(key,key)
+        for stem in (image_key, image_key+'.size6',image_key+'.size3'):
             source=self.index.get(stem)
             if source is None:
                 continue
