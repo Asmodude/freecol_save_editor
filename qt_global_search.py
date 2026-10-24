@@ -1,5 +1,6 @@
 """UI-free global record search, preserving authoritative source elements."""
 import presentation
+from qt_founding_fathers import father_rows
 
 SEARCH_GROUPS=('Players','Colonies','Native settlements','Units')
 
@@ -23,4 +24,16 @@ def global_results(document, query, limit=250):
             found.append((group,item,name,document.owner_name(owner) if owner else ''))
             if len(found)>=limit:
                 return found
+    for player in document.players.values():
+        if player.get('playerType') != 'colonial':
+            continue
+        for father in father_rows(player):
+            owner=father.get('owner')
+            fields=(father.get('name',''),father.get('id',''),
+                    document.owner_name(owner) if owner else '')
+            if any(term in str(value).casefold() for value in fields):
+                found.append(('Founding Fathers',father,father.get('name',''),
+                              document.owner_name(owner) if owner else ''))
+                if len(found)>=limit:
+                    return found
     return found
