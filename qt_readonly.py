@@ -160,9 +160,12 @@ class QtExplorer(QMainWindow):
             table.setAlternatingRowColors(True)
             table.setSortingEnabled(True)
             table.itemSelectionChanged.connect(lambda section=name: self.inspect_detail(section))
+            if name == 'By colony':
+                table.cellClicked.connect(lambda row, column: self.inspect_detail('By colony'))
             self.tabs.addTab(table, name)
             self.colony_tables[name] = table
         self.tab_widgets = {'Overview': self.overview, **self.colony_tables}
+        self.tabs.currentChanged.connect(self.refresh_breakdown_action)
         center_layout.addWidget(self.tabs, 2)
         panes.addWidget(center)
 
@@ -528,6 +531,17 @@ class QtExplorer(QMainWindow):
             table.setSortingEnabled(True)
             table.resizeColumnsToContents()
             table.blockSignals(False)
+
+    def refresh_breakdown_action(self, _index):
+        """Synchronize the drill-down when the By colony tab becomes visible."""
+        table = self.colony_tables['By colony']
+        if (self.group != 'National Goods'
+                or self.tabs.currentWidget() is not table
+                or self.selected_element is None):
+            return
+        if table.rowCount() and not table.selectedItems():
+            table.selectRow(0)
+        self.inspect_detail('By colony')
 
     def inspect_detail(self, section):
         table = self.colony_tables[section]
