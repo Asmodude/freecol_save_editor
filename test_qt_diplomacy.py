@@ -11,10 +11,10 @@ class DiplomacyTests(unittest.TestCase):
         n=fromstring('<player id="n" username="Arawak" playerType="indian"/>')
         doc=SimpleNamespace(players={'a':a,'b':b,'n':n})
         rows=diplomacy_rows(doc,'a')
-        self.assertEqual([(r.get('nation'),r.get('kind'),r.get('value')) for r in rows],
-                         [('France','stance','war'),('France','tension','34'),('Arawak','stance','(absent)'),('Arawak','tension','(absent)')])
-        self.assertEqual([r.get('category') for r in rows],
-                         ['Rival Nations','Rival Nations','Natives','Natives'])
+        self.assertEqual([(r.get('nation'),r.get('stance'),r.get('tension')) for r in rows],
+                         [('France','war','34'),('Arawak','(absent)','(absent)')])
+        self.assertEqual([r.get('category') for r in rows],['Rival Nations','Natives'])
+        self.assertEqual(len({r.get('other') for r in rows}),len(rows))
         self.assertEqual(diplomacy_rows(doc,'missing'),[])
         self.assertEqual(a.find('stance').get('value'),'war')
 
