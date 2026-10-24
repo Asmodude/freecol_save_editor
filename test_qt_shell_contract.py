@@ -25,7 +25,8 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn('self.navigation.setUpdatesEnabled(False)', self.source)
         self.assertIn('self.navigation.setUpdatesEnabled(True)', self.source)
         self.assertIn('FREECOL_QT_PROFILE', self.source)
-        self.assertIn('icons = {kind: self.style().standardIcon(icon)', self.source)
+        self.assertIn('self.navigation_icons.icon(kind, nation_id, native)', self.source)
+        self.assertNotIn('standardIcon(', self.source)
 
     def test_navigation_styles_preserve_semantic_filters(self):
         self.assertIn("self.navigation.setIndentation(19)", self.source)
