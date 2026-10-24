@@ -1,4 +1,5 @@
 """Pure Phase 1 player ownership filtering; never guess the human player."""
+from qt_founding_fathers import father_rows
 def human_player_id(document):
     candidates=[p.get('id') for p in document.players.values()
                 if p.get('ai')=='false' and p.get('playerType')=='colonial']
@@ -6,6 +7,11 @@ def human_player_id(document):
 
 
 def rows_for_scope(document, group, scope):
+    if group == 'Founding Fathers':
+        own = human_player_id(document)
+        pid = own if scope == 'mine' else scope[len('player:'):] if scope.startswith('player:') else None
+        player = document.players.get(pid) if pid else None
+        return father_rows(player) if player is not None else []
     records=document.records.get(group,())
     own=human_player_id(document)
     if scope.startswith('settlement-id:') and group=='Native settlements':
