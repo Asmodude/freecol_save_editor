@@ -429,13 +429,13 @@ class QtExplorer(QMainWindow):
         self.update_detail_tabs(element)
         self.inspector_label.setText(element.get('name', 'Founding Father'))
         self.details.setPlainText(
-            'Name: ' + element.get('name', '') + '\\n' +
-            'Category: Founding Fathers\\n' +
-            'Status: ' + element.get('status', '') + '\\n' +
+            'Name: ' + element.get('name', '') + '\n' +
+            'Category: Founding Fathers\n' +
+            'Status: ' + element.get('status', '') + '\n' +
             'FreeCol identifier: ' + element.get('id', ''))
         self.overview.setPlainText(record_overview('Founding Fathers', element, self.document))
         self.raw_xml.setPlainText(
-            'Virtual read-only record. Membership is encoded in the owning player XML.\\n'
+            'Virtual read-only record. Membership is encoded in the owning player XML.\n'
             'Select the player Overview to inspect the source XML.')
 
     def update_detail_tabs(self, element):
