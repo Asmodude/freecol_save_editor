@@ -40,6 +40,12 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn("self.grid.selectRow(display_row_index)", self.source)
         self.assertNotIn('self.document.save(', self.source)
 
+    def test_global_search_sort_preserves_record_identity(self):
+        self.assertIn('results.setSortingEnabled(True)', self.source)
+        self.assertIn('results.setSortingEnabled(False)', self.source)
+        self.assertIn('cell.setData(Qt.ItemDataRole.UserRole, row)', self.source)
+        self.assertIn('matches[source_index]', self.source)
+
     def test_separate_workspace_and_inspector(self):
         self.assertIn('self.overview = QPlainTextEdit()', self.source)
         self.assertIn('self.details = QPlainTextEdit()', self.source)
