@@ -159,6 +159,21 @@ class QtExplorer(QMainWindow):
         self.grid.setIconSize(QSize(60, 65))
         self.grid.itemSelectionChanged.connect(self.inspect)
         center_layout.addWidget(self.grid, 3)
+        self.diplomacy_tabs = QTabWidget()
+        self.diplomacy_grids = {}
+        for category in ('Rival Nations', 'Natives'):
+            table = QTableWidget()
+            table.setColumnCount(3)
+            table.setHorizontalHeaderLabels(('Nation / Leader', 'Stance', 'Tension'))
+            table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+            table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+            table.setAlternatingRowColors(True)
+            table.setSortingEnabled(True)
+            table.itemSelectionChanged.connect(lambda category=category: self.inspect_diplomacy(category))
+            self.diplomacy_grids[category] = table
+            self.diplomacy_tabs.addTab(table, category)
+        center_layout.addWidget(self.diplomacy_tabs, 3)
+        self.diplomacy_tabs.hide()
 
         self.tabs = QTabWidget()
         self.overview = QPlainTextEdit()
@@ -522,7 +537,54 @@ class QtExplorer(QMainWindow):
         if direct and self.visible_rows:
             self.grid.selectRow(0)
 
+    def populate_diplomacy(self, query):
+        records = rows_for_scope(self.document, 'Diplomacy', self.scope)
+        for category, table in self.diplomacy_grids.items():
+            table.blockSignals(True)
+            table.setSortingEnabled(False)
+            table.clearContents()
+            subset = [record for record in records if record.get('category') == category
+                      and (not query or query in ' '.join((
+                          record.get('nation',''),record.get('stance',''),
+                          record.get('tension',''))).casefold())]
+            table.setRowCount(len(subset))
+            for row, record in enumerate(subset):
+                for col, value in enumerate((record.get('nation'),record.get('stance'),
+                                              record.get('tension'))):
+                    cell = SortableItem(value, col == 2)
+                    cell.setData(Qt.ItemDataRole.UserRole, record)
+                    cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    table.setItem(row,col,cell)
+            table.setSortingEnabled(True)
+            table.resizeColumnsToContents()
+            table.blockSignals(False)
+        self.overview.setPlainText('Read-only relationships. Each nation appears once per tab. '
+                                   'Missing saved values are marked (absent).')
+
+    def inspect_diplomacy(self, category):
+        if self.group != 'Diplomacy' or self.document is None:
+            return
+        table = self.diplomacy_grids[category]
+        row = table.currentRow()
+        if row < 0 or not table.selectedItems():
+            return
+        item = table.item(row,0)
+        element = item.data(Qt.ItemDataRole.UserRole) if item else None
+        if element is None:
+            return
+        self.selected_element = element
+        self.inspector_label.setText(element.get('nation','Diplomacy'))
+        self.details.setPlainText(
+            f"Category: {category}\\nOther nation: {element.get('nation')}\\n"
+            f"Stance: {element.get('stance')}\\nTension: {element.get('tension')}")
+        owner = self.document.players.get(element.get('owner'))
+        self.raw_xml.setPlainText(formatted_record_xml(owner) if owner is not None
+                                  else 'No saved source player available.')
+
     def populate(self):
+        is_diplomacy = self.group == 'Diplomacy'
+        self.grid.setVisible(not is_diplomacy)
+        self.diplomacy_tabs.setVisible(is_diplomacy)
         self.grid.setSortingEnabled(False)
         self.grid.setRowCount(0)
         self.grid.clearContents()
@@ -552,6 +614,10 @@ class QtExplorer(QMainWindow):
             self.grid.setSortingEnabled(True)
             return
         query = self.search.text().strip().casefold()
+        if is_diplomacy:
+            self.populate_diplomacy(query)
+            self.grid.setSortingEnabled(True)
+            return
         if self.group == 'Founding Fathers':
             father_records = rows_for_scope(doc, self.group, self.scope)
             self.recruiting_father = next(
