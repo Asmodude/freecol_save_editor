@@ -7,7 +7,7 @@ without a verified emblem gets a decorative, non-historical symbol instead.
 import re
 
 from PySide6.QtCore import Qt, QRectF, QPointF
-from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPixmap, QImage
+from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPixmap, QImage, QPolygonF
 
 from freecol_art_source import discover, read_bytes
 
