@@ -2,7 +2,7 @@
 import unittest
 from xml.etree.ElementTree import fromstring
 from types import SimpleNamespace
-from qt_founding_fathers import father_rows
+from qt_founding_fathers import father_rows, father_source_node
 from qt_navigation import rows_for_scope
 
 
@@ -23,6 +23,17 @@ class FoundingFatherTests(unittest.TestCase):
         self.assertEqual(actual['Peter Minuit'],'Recruiting')
         self.assertEqual(actual['Francis Drake'],'Offered')
         self.assertEqual(before,__import__('xml.etree.ElementTree',fromlist=['tostring']).tostring(player))
+
+    def test_genuine_xml_source_for_recruited_and_recruiting(self):
+        player=fromstring("""<player id="player:1" ai="false"
+             currentFather="model.foundingFather.simonBolivar">
+             <foundingFathers x0="model.foundingFather.benjaminFranklin"/>
+             </player>""")
+        doc=SimpleNamespace(players={'player:1':player})
+        records={r.get('status'):r for r in father_rows(player)}
+        self.assertIs(father_source_node(doc,records['Recruiting']),player)
+        self.assertIs(father_source_node(doc,records['Recruited']),player.find('foundingFathers'))
+        self.assertIsNone(father_source_node(SimpleNamespace(players={}),records['Recruiting']))
 
     def test_scope_is_player_specific(self):
         a=fromstring('<player id="player:1" playerType="colonial" ai="false"><foundingFathers x0="model.foundingFather.francisDrake"/></player>')
