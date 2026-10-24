@@ -67,6 +67,7 @@ class QtExplorer(QMainWindow):
         self.detail_nodes = {}
         self.father_portraits = FatherPortraits()
         self.recruiting_father = None
+        self.offered_fathers = []
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -119,6 +120,17 @@ class QtExplorer(QMainWindow):
         banner_layout.addWidget(self.father_banner_text, 1)
         center_layout.addWidget(self.father_banner)
         self.father_banner.hide()
+        self.offered_banner = QLabel()
+        self.offered_banner.setWordWrap(True)
+        self.offered_banner.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        center_layout.addWidget(self.offered_banner)
+        self.offered_banner.hide()
+        self.congress_heading = QLabel('Continental Congress')
+        congress_font = QFont(self.congress_heading.font())
+        congress_font.setBold(True)
+        self.congress_heading.setFont(congress_font)
+        center_layout.addWidget(self.congress_heading)
+        self.congress_heading.hide()
         self.grid = QTableWidget()
         self.grid.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.grid.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -347,8 +359,12 @@ class QtExplorer(QMainWindow):
         self.raw_xml.clear()
         self.inspector_label.setText('Select an individual row to inspect its attributes.')
         self.overview.clear()
-        self.father_banner.setVisible(self.group == 'Founding Fathers' and self.document is not None)
+        father_view = self.group == 'Founding Fathers' and self.document is not None
+        self.father_banner.setVisible(father_view)
+        self.congress_heading.setVisible(father_view)
+        self.offered_banner.setVisible(False)
         self.recruiting_father = None
+        self.offered_fathers = []
         self.update_detail_tabs(None)
         self.grid.setColumnCount(len(HEADERS[self.group]))
         self.grid.setHorizontalHeaderLabels(HEADERS[self.group])
@@ -361,13 +377,13 @@ class QtExplorer(QMainWindow):
             father_records = rows_for_scope(doc, self.group, self.scope)
             self.recruiting_father = next(
                 (f for f in father_records if f.get('status') == 'Recruiting'), None)
-            offered = [f.get('name', '') for f in father_records if f.get('status') == 'Offered']
+            self.offered_fathers = [f for f in father_records if f.get('status') == 'Offered']
+            offered = [f.get('name', '') for f in self.offered_fathers]
             father = self.recruiting_father
             if father is not None:
                 self.father_banner_text.setText(
                     'CURRENTLY RECRUITING\n' + father.get('name', '') +
-                    '\nIn progress · Select to inspect' +
-                    ('\nOther offered: ' + ', '.join(offered) if offered else ''))
+                    '\nIn progress · Select to inspect')
                 self.father_banner_text.setEnabled(True)
                 self._set_father_portrait(self.father_portrait, father.get('id'), 85, 100)
             else:
@@ -375,6 +391,9 @@ class QtExplorer(QMainWindow):
                 self.father_banner_text.setEnabled(False)
                 self.father_portrait.clear()
                 self.father_portrait.setText('No portrait')
+            if offered:
+                self.offered_banner.setText('Also offered (not recruited): ' + ', '.join(offered))
+                self.offered_banner.setVisible(True)
         rows = []
         for element in rows_for_scope(doc, self.group, self.scope):
             if self.group == 'Founding Fathers' and element.get('status') != 'Recruited':
@@ -386,6 +405,8 @@ class QtExplorer(QMainWindow):
                 continue
             rows.append((element, values))
         self.visible_rows = [element for element, _ in rows]
+        if self.group == 'Founding Fathers':
+            self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
         self.grid.setRowCount(len(rows))
         for row, (_, values) in enumerate(rows):
             for col, value in enumerate(values):
