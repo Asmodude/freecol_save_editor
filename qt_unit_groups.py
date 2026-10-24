@@ -19,6 +19,8 @@ def unit_groups(document, owner):
            {'caravel','merchantman','galleon','privateer','frigate','manOWar'}}
     result={('colony',c.get('id')):[] for c in colonies}
     result[('ship','')]=[]
+    for ship_id in ships:
+        result[('vessel',ship_id)]=[]
     result[('other','')]=[]
     for unit in owned:
         uid=unit.get('id')
@@ -27,10 +29,12 @@ def unit_groups(document, owner):
         if colony_id:
             key=('colony',colony_id)
         elif location in ships:
-            key=('ship','')
+            key=('vessel',location)
         else:
             key=('other','')
         result[key].append(unit)
+        if key[0]=='vessel':
+            result[('ship','')].append(unit)
     return result
 
 
@@ -43,6 +47,6 @@ def scoped_units(document, scope):
     if len(parts)!=4 or parts[0]!='unit-group':
         return []
     _,owner,kind,target=parts
-    if kind not in ('colony','ship','other'):
+    if kind not in ('colony','ship','vessel','other'):
         return []
     return unit_groups(document,owner).get((kind,target),[])
