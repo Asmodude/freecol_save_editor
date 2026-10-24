@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QSizePolicy, QVBoxLayout, QWidget,
 )
 from colony_graphics import resolve_colony_graphic
+from qt_property_icons import property_icon
 
 
 def summary_parts(text):
@@ -125,15 +126,20 @@ class OverviewPanel(QWidget):
                 grid.setContentsMargins(8, 8, 8, 8)
                 grid.setHorizontalSpacing(12)
                 grid.setVerticalSpacing(7)
-                grid.setColumnStretch(1, 1)
+                grid.setColumnStretch(2, 1)
                 for row, (key, val) in enumerate(subset):
                     label = QLabel(key)
                     label.setStyleSheet('color: palette(mid);')
                     value = QLabel(val)
                     value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
                     value.setWordWrap(True)
-                    grid.addWidget(label, row, 0, Qt.AlignmentFlag.AlignTop)
-                    grid.addWidget(value, row, 1, Qt.AlignmentFlag.AlignTop)
+                    icon_label = QLabel()
+                    icon_label.setFixedSize(19, 19)
+                    icon_label.setPixmap(property_icon(key).pixmap(19, 19))
+                    icon_label.setToolTip(key)
+                    grid.addWidget(icon_label, row, 0, Qt.AlignmentFlag.AlignTop)
+                    grid.addWidget(label, row, 1, Qt.AlignmentFlag.AlignTop)
+                    grid.addWidget(value, row, 2, Qt.AlignmentFlag.AlignTop)
                 grids.addWidget(border, 1)
             self.body.addLayout(grids)
         for note in notes:
