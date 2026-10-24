@@ -465,7 +465,10 @@ class QtExplorer(QMainWindow):
         self.search.blockSignals(True)
         self.search.clear()
         self.search.blockSignals(False)
-        self.navigation.setCurrentItem(target)
+        if self.navigation.currentItem() is target:
+            self.populate()
+        else:
+            self.navigation.setCurrentItem(target)
         if group == 'Founding Fathers':
             if element.get('status') == 'Recruiting':
                 self.inspect_recruiting_father()
