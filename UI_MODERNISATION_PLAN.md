@@ -216,6 +216,21 @@ Every phase runs on its own branch. `main` changes only after the user accepts t
 
 **Exit:** the user can find everything they can find in the Tk version, faster.
 
+### Phase 1 final audit — 24 October 2026 (Build #21 accepted)
+
+**Confirmed by user on Windows:** PySide6 read-only window, navigation and inspector, numeric sorting/filtering, colony and native views, colony and national Goods (including cargo), Founding Fathers, unit grouping by colony/vessel/field, global sortable search including fathers, game properties, and long-value truncation with complete inspector values. The original Tk application remains the editing and mapping baseline. The newer larger save loads in approximately 300–315 ms; this must not be compared directly with the smaller save's ~270 ms baseline.
+
+**Automated protection:** pure helper tests plus `test_qt_phase1_exit_audit.py` check source compilation, read-only boundaries, navigation scopes, sorted-record identity, and deliberate development-only overrides. Automated CI is not proof of Windows GUI behavior.
+
+**Remaining exit checks (not silently assumed passed):**
+- Full representative end-to-end Windows smoke tour on a newer save, including rivals, native settlements, sorted search navigation, selected item Raw XML, all units and location groups, zero-stock Goods, cargo and game properties.
+- Confirm accurate high-DPI rendering and Windows dark appearance on the actual user system (11 pt size confirmed, theme behavior not formally verified).
+- Confirm that all relevant pre-existing Tk **read-only inspection** data are accessible in Qt; some navigation placeholders intentionally remain (Diplomacy, Research, Player Options, Map). Determine explicitly whether the first three must be implemented before closing Phase 1, rather than declaring the exit criterion met by assumption. The Qt map remains Phase 3.
+- Replace the development-only hard-coded default save directory prior to packaging; leave in place for now as an approved development convenience.
+- Obtain explicit Phase 1 sign-off before merging this feature branch to `main`.
+
+**Phase 1 verdict at this audit:** near completion, **not yet accepted as complete**. No Phase 2 edits are enabled.
+
 ### Phase 2: Editing in Qt
 **Purpose:** reach feature parity for all save edits.
 
