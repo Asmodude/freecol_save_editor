@@ -15,6 +15,9 @@ class DrilldownContractTests(unittest.TestCase):
         self.assertIn("self.tabs.setCurrentWidget(table)",self.source)
         self.assertIn("if len(matches) != 1",self.source)
         self.assertIn("self.jump_colony_button.setEnabled(False)",self.source)
+        self.assertIn("breakdown.selectRow(0)",self.source)
+        self.assertIn("self.inspect_detail('By colony')",self.source)
+        self.assertIn("table.selectedItems()",self.source)
 
 
 if __name__ == '__main__':
