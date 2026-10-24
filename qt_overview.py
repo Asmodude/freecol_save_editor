@@ -26,6 +26,27 @@ def record_overview(group, element, document):
         field('Buildings', len(sections['Buildings'][1]))
         field('Stored goods types', len(sections['Goods'][1]))
         field('Warehouse goods total', sum(int(v[1]) for v in sections['Goods'][1] if v[1].isdigit()))
+        # Briefing-style summary: top stockpiles and the largest workplaces.
+        # Values come exclusively from the authoritative colony XML.
+        stockpiles = []
+        for goods_name, quantity in sections['Goods'][1]:
+            try:
+                amount = int(quantity)
+            except (TypeError, ValueError):
+                continue
+            stockpiles.append((amount, goods_name))
+        stockpiles.sort(key=lambda item: (-item[0], item[1].casefold()))
+        if stockpiles:
+            lines.extend(['', 'Largest warehouse stockpiles'])
+            lines.extend(f'  {goods_name}: {amount:,}' for amount, goods_name in stockpiles[:5])
+            if len(stockpiles) > 5:
+                lines.append(f'  …and {len(stockpiles) - 5} more goods types')
+        occupied = [(building, int(count)) for building, _, _, count
+                    in sections['Buildings'][1] if count.isdigit() and int(count) > 0]
+        if occupied:
+            lines.extend(['', 'Occupied buildings'])
+            lines.extend(f'  {building}: {count} worker{"s" if count != 1 else ""}'
+                         for building, count in occupied)
         lines.extend(['', 'Select Buildings, Workers, Stationed units or Goods for item-level details.'])
     elif group == 'Native settlements':
         field('Nation', document.owner_name(element.get('owner')))
