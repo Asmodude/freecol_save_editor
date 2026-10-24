@@ -575,8 +575,8 @@ class QtExplorer(QMainWindow):
         self.selected_element = element
         self.inspector_label.setText(element.get('nation','Diplomacy'))
         self.details.setPlainText(
-            f"Category: {category}\\nOther nation: {element.get('nation')}\\n"
-            f"Stance: {element.get('stance')}\\nTension: {element.get('tension')}")
+            f"Category: {category}\nOther nation: {element.get('nation')}\n"
+            f"Stance: {element.get('stance')}\nTension: {element.get('tension')}")
         owner = self.document.players.get(element.get('owner'))
         self.raw_xml.setPlainText(formatted_record_xml(owner) if owner is not None
                                   else 'No saved source player available.')
