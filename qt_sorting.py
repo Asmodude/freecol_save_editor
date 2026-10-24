@@ -9,6 +9,7 @@ NUMERIC_COLUMNS = {
     'Units': {'Experience','Moves left','Max moves','Hit points'},
     'Native settlements': set(),
     'Founding Fathers': set(),
+    'National Goods': {'Total in colonies','Colonies with stock'},
 }
 NUMERIC_DETAIL_COLUMNS = {'Workers','Tier','Experience','Amount'}
 
