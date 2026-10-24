@@ -24,6 +24,7 @@ from qt_navigation import rows_for_scope, human_player_id
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
+from qt_overview_panel import OverviewPanel
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
 from qt_display import display_row
@@ -204,8 +205,7 @@ class QtExplorer(QMainWindow):
         self.diplomacy_tabs.hide()
 
         self.tabs = QTabWidget()
-        self.overview = QPlainTextEdit()
-        self.overview.setReadOnly(True)
+        self.overview = OverviewPanel()
         self.tabs.addTab(self.overview, 'Overview')
         self.colony_tables = {}
         for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'Alarm', 'By colony', 'In transit'):
@@ -1031,6 +1031,7 @@ class QtExplorer(QMainWindow):
         self.details.setPlainText('\n'.join(
             f'{key}: {value}' for key, value in summary if value is not None))
         self.overview.setPlainText(record_overview(self.group, element, doc))
+        self.overview.set_record(self.group, element)
         if self.group == 'Founding Fathers':
             self.raw_xml.setPlainText('Virtual read-only record. Membership is encoded in the owning player XML.\nSelect the player Overview to inspect the source XML.')
         else:
