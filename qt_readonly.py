@@ -180,6 +180,11 @@ class QtExplorer(QMainWindow):
         self.congress_heading.setFont(congress_font)
         center_layout.addWidget(self.congress_heading)
         self.congress_heading.hide()
+        self.workspace_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.workspace_table_area = QWidget()
+        table_area_layout = QVBoxLayout(self.workspace_table_area)
+        table_area_layout.setContentsMargins(0, 0, 0, 0)
+        table_area_layout.setSpacing(0)
         self.grid = QTableWidget()
         self.grid.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.grid.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -187,7 +192,7 @@ class QtExplorer(QMainWindow):
         self.grid.setSortingEnabled(True)
         self.grid.setIconSize(QSize(60, 65))
         self.grid.itemSelectionChanged.connect(self.inspect)
-        center_layout.addWidget(self.grid, 3)
+        table_area_layout.addWidget(self.grid, 1)
         self.diplomacy_tabs = QTabWidget()
         self.diplomacy_grids = {}
         for category in ('Rival Nations', 'Natives'):
@@ -201,7 +206,7 @@ class QtExplorer(QMainWindow):
             table.itemSelectionChanged.connect(lambda category=category: self.inspect_diplomacy(category))
             self.diplomacy_grids[category] = table
             self.diplomacy_tabs.addTab(table, category)
-        center_layout.addWidget(self.diplomacy_tabs, 3)
+        table_area_layout.addWidget(self.diplomacy_tabs, 1)
         self.diplomacy_tabs.hide()
 
         self.tabs = QTabWidget()
@@ -221,7 +226,14 @@ class QtExplorer(QMainWindow):
             self.colony_tables[name] = table
         self.tab_widgets = {'Overview': self.overview, **self.colony_tables}
         self.tabs.currentChanged.connect(self.refresh_breakdown_action)
-        center_layout.addWidget(self.tabs, 2)
+        self.workspace_splitter.addWidget(self.workspace_table_area)
+        self.workspace_splitter.addWidget(self.tabs)
+        self.workspace_splitter.setChildrenCollapsible(False)
+        self.workspace_splitter.setHandleWidth(7)
+        self.workspace_splitter.setStretchFactor(0, 3)
+        self.workspace_splitter.setStretchFactor(1, 2)
+        self.workspace_splitter.setSizes([480, 320])
+        center_layout.addWidget(self.workspace_splitter, 1)
         panes.addWidget(center)
 
         inspector = QWidget()
