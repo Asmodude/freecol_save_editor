@@ -33,6 +33,7 @@ from qt_founding_fathers import father_source_node
 from qt_national_goods import colony_goods_breakdown, transported_goods_breakdown
 from qt_unit_groups import unit_groups, unit_group_scope
 from qt_game_properties import game_property_rows, game_property_source
+from qt_property_display import compact_property_value
 from qt_global_search import global_results
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties')
@@ -588,8 +589,12 @@ class QtExplorer(QMainWindow):
         self.grid.setRowCount(len(rows))
         for row, (_, values) in enumerate(rows):
             for col, value in enumerate(values):
-                cell = SortableItem(value, HEADERS[self.group][col] in NUMERIC_COLUMNS.get(self.group, ()))
+                displayed = (compact_property_value(value)
+                             if self.group == 'Game properties' and col == 2 else value)
+                cell = SortableItem(displayed, HEADERS[self.group][col] in NUMERIC_COLUMNS.get(self.group, ()))
                 cell.setData(Qt.ItemDataRole.UserRole, row)
+                if self.group == 'Game properties' and col == 2 and displayed != value:
+                    cell.setToolTip('Long value shortened here. Select the row for its complete saved value.')
                 cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 if self.group == 'Founding Fathers' and col == 0:
                     data = self.father_portraits.get(rows[row][0].get('id'))
