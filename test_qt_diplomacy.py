@@ -13,6 +13,8 @@ class DiplomacyTests(unittest.TestCase):
         rows=diplomacy_rows(doc,'a')
         self.assertEqual([(r.get('nation'),r.get('kind'),r.get('value')) for r in rows],
                          [('France','stance','war'),('France','tension','34'),('Arawak','stance','(absent)'),('Arawak','tension','(absent)')])
+        self.assertEqual([r.get('category') for r in rows],
+                         ['Rival Nations','Rival Nations','Natives','Natives'])
         self.assertEqual(diplomacy_rows(doc,'missing'),[])
         self.assertEqual(a.find('stance').get('value'),'war')
 
