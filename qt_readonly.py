@@ -37,6 +37,7 @@ from qt_property_display import compact_property_value
 from qt_global_search import global_results
 from qt_diplomacy import settlement_alarm_rows
 from qt_navigation_icons import NavigationIcons
+from qt_workspace_header import workspace_identity
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties', 'Diplomacy')
 HEADERS = {
@@ -121,10 +122,35 @@ class QtExplorer(QMainWindow):
 
         center = QWidget()
         center_layout = QVBoxLayout(center)
+        self.workspace_header = QWidget()
+        header_layout = QHBoxLayout(self.workspace_header)
+        header_layout.setContentsMargins(7, 8, 7, 9)
+        header_layout.setSpacing(13)
+        self.workspace_emblem = QLabel()
+        self.workspace_emblem.setFixedSize(52, 52)
+        self.workspace_emblem.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(self.workspace_emblem)
+        header_text = QWidget()
+        header_text_layout = QVBoxLayout(header_text)
+        header_text_layout.setContentsMargins(0, 0, 0, 0)
+        header_text_layout.setSpacing(3)
+        self.workspace_title = QLabel('Savegame Explorer')
+        title_font = QFont(self.workspace_title.font())
+        title_font.setBold(True)
+        title_font.setPointSize(max(14, title_font.pointSize() + 3))
+        self.workspace_title.setFont(title_font)
+        self.workspace_subtitle = QLabel('Open a FreeCol save to begin')
+        self.workspace_subtitle.setStyleSheet('color: palette(mid);')
+        header_text_layout.addWidget(self.workspace_title)
+        header_text_layout.addWidget(self.workspace_subtitle)
+        header_layout.addWidget(header_text, 1)
         self.search = QLineEdit()
+        self.search.setFixedWidth(230)
         self.search.setPlaceholderText('Filter visible rows…')
+        self.search.setClearButtonEnabled(True)
         self.search.textChanged.connect(self.populate)
-        center_layout.addWidget(self.search)
+        header_layout.addWidget(self.search)
+        center_layout.addWidget(self.workspace_header)
         self.father_banner = QWidget()
         banner_layout = QHBoxLayout(self.father_banner)
         banner_layout.setContentsMargins(6, 6, 6, 6)
@@ -574,7 +600,19 @@ class QtExplorer(QMainWindow):
         self.raw_xml.setPlainText(formatted_record_xml(owner) if owner is not None
                                   else 'No saved source player available.')
 
+    def update_workspace_header(self):
+        title, subtitle, nation_id, native, placeholder = workspace_identity(
+            self.document, self.group, self.scope)
+        self.workspace_title.setText(title)
+        self.workspace_subtitle.setText(subtitle)
+        self.search.setPlaceholderText(placeholder)
+        emblem = self.navigation_icons.icon(
+            'nation' if nation_id else 'map' if self.group == 'Game properties' else 'section',
+            nation_id=nation_id, native=native, size=48)
+        self.workspace_emblem.setPixmap(emblem.pixmap(48, 48))
+
     def populate(self):
+        self.update_workspace_header()
         is_diplomacy = self.group == 'Diplomacy'
         self.grid.setVisible(not is_diplomacy)
         self.diplomacy_tabs.setVisible(is_diplomacy)
