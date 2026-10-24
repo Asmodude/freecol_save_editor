@@ -5,6 +5,7 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 try:
     from PySide6.QtWidgets import QApplication, QLabel
     from qt_overview_panel import OverviewPanel, summary_parts
+    from qt_property_icons import property_symbol, property_icon
 except ImportError:
     QApplication = None
 
@@ -21,6 +22,29 @@ class OverviewPanelTests(unittest.TestCase):
         self.assertEqual(title, 'Christiansborg')
         self.assertEqual(fields, [('Owner','Danish'),('Liberty bells','42'),('Buildings','3')])
         self.assertIn('Population and activity', notes)
+
+    def test_icons_cover_property_rows(self):
+        labels = ('Owner', 'Map location', 'Established', 'Liberty bells',
+                  'Sons of Liberty', 'Production bonus', 'Workplace workers',
+                  'Stationed units', 'Buildings', 'Stored goods types',
+                  'Warehouse goods total', 'Bells', 'Crosses', 'Lumber',
+                  'Ore', 'Muskets', 'Town Hall', 'Lumber Mill',
+                  'Rum Distillery', 'Unknown custom building')
+        for label in labels:
+            with self.subTest(label=label):
+                self.assertFalse(property_icon(label).isNull())
+                self.assertFalse(property_icon(label).pixmap(19, 19).isNull())
+        self.assertNotEqual(property_symbol('Muskets'), property_symbol('Bells'))
+        self.assertNotEqual(property_symbol('Owner'), property_symbol('Ore'))
+
+    def test_overview_widgets_include_property_icons(self):
+        panel = OverviewPanel()
+        panel.setPlainText('Christiansborg\\nOwner: Danish\\nLumber: 20')
+        icons = [w for w in panel.findChildren(QLabel)
+                 if w.toolTip() in ('Owner', 'Lumber')]
+        self.assertEqual(len(icons), 2)
+        self.assertTrue(all(not icon.pixmap().isNull() for icon in icons))
+        panel.deleteLater()
 
     def test_repeated_updates_and_read_only_text(self):
         panel = OverviewPanel()
