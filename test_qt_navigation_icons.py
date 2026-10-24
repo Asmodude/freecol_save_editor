@@ -29,7 +29,8 @@ class NavigationArtworkTests(unittest.TestCase):
     def test_portugal_is_a_flag_not_a_local_square(self):
         icons = NavigationIcons()
         icons._source = (None, None, '', 'No assets')
-        for alias in ('portuguese', 'portugal', 'model.nation.portuguese'):
+        for alias in ('portuguese', 'portugal', 'model.nation.portuguese',
+                      'model.nation.portugueseREF', 'model.nation.portugalREF'):
             with self.subTest(alias=alias):
                 self.assertEqual(flag_for_nation(alias), 'portugal')
                 pix = icons.icon('nation', alias).pixmap(20, 20)
@@ -37,6 +38,10 @@ class NavigationArtworkTests(unittest.TestCase):
                 # Both the green and red portions must be visibly present.
                 self.assertGreater(pix.toImage().pixelColor(2, 10).green(), 40)
                 self.assertGreater(pix.toImage().pixelColor(17, 10).red(), 150)
+
+    def test_no_partial_nation_matching(self):
+        self.assertIsNone(flag_for_nation('model.nation.portuguese_unknown'))
+        self.assertIsNone(flag_for_nation('model.nation.portugueseREF_other'))
 
     def test_every_navigation_kind_has_an_icon(self):
         for kind in ('overview', 'diplomacy', 'colonies', 'colony',
