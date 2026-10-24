@@ -32,7 +32,7 @@ from qt_father_portraits import FatherPortraits
 from qt_founding_fathers import father_source_node
 from qt_national_goods import colony_goods_breakdown, transported_goods_breakdown
 from qt_unit_groups import unit_groups, unit_group_scope
-from qt_game_properties import game_property_rows
+from qt_game_properties import game_property_rows, game_property_source
 from qt_global_search import global_results
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties')
@@ -864,7 +864,7 @@ class QtExplorer(QMainWindow):
             self.inspector_label.setText(f'{source}: {name}')
             self.details.setPlainText(f'Source: {source}\nProperty: {name}\nSaved value: {value}')
             self.overview.setPlainText('Read-only metadata from the saved game XML.\nNo option values are inferred.')
-            self.raw_xml.setPlainText(formatted_record_xml(Element('saved' + source, dict((self.document.root if source == 'Savegame' else self.document.game).attrib))))
+            self.raw_xml.setPlainText(formatted_record_xml(game_property_source(self.document, element)) if element.get('path') else formatted_record_xml(Element('saved' + source, dict(game_property_source(self.document, element).attrib))))
             return
         label = element.get('name') or element.get('username') or element.get('id') or 'Record'
         self.inspector_label.setText(label)
