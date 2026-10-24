@@ -588,7 +588,7 @@ class QtExplorer(QMainWindow):
         self.grid.setRowCount(len(rows))
         for row, (_, values) in enumerate(rows):
             for col, value in enumerate(values):
-                cell = SortableItem(value, HEADERS[self.group][col] in NUMERIC_COLUMNS[self.group])
+                cell = SortableItem(value, HEADERS[self.group][col] in NUMERIC_COLUMNS.get(self.group, ()))
                 cell.setData(Qt.ItemDataRole.UserRole, row)
                 cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 if self.group == 'Founding Fathers' and col == 0:
