@@ -14,6 +14,9 @@ def display_identifier(value):
 
 def display_row(group, values):
     values=list(values)
+    if group=='Units':
+        values[1]=display_identifier(values[1])
+        values[4]=display_identifier(values[4])
     if group=='Native settlements':
         # Columns: ID, Name, Owner, Location, Learnable skill, Wanted goods
         values[4]=display_identifier(values[4])
