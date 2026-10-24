@@ -14,6 +14,21 @@ class ColonyDetailsTests(unittest.TestCase):
         self.assertEqual(sections['Buildings'][1],[('Fort','Stockade','2/3','1')])
         self.assertEqual(sections['Workers'][1],[('unit:1','Free Colonist','Fort','','42')])
         self.assertEqual(sections['Goods'][1],[('Cotton','80')])
+    def test_goods_catalog_shows_absent_as_zero_and_preserves_xml_mapping(self):
+        from types import SimpleNamespace
+        colony=fromstring("""<colony><goodsContainer><storedGoods>
+            <goods type="model.goods.cotton" amount="80"/>
+        </storedGoods></goodsContainer></colony>""")
+        doc=SimpleNamespace(units=[],goods_types=[
+            'model.goods.cotton','model.goods.tools','model.goods.tradeGoods'])
+        rows=colony_sections(colony,doc)['Goods'][1]
+        self.assertEqual(rows,[('Cotton','80'),('Tools','0'),('Trade Goods','0')])
+        nodes=colony_detail_nodes(colony,doc)['Goods']
+        self.assertEqual(nodes[0].get('amount'),'80')
+        self.assertIsNone(nodes[1])
+        self.assertIsNone(nodes[2])
+        self.assertEqual(len(colony.findall('.//goods')),1)
+
     def test_stationed_units_distinct_from_workplace_workers(self):
         from types import SimpleNamespace
         colony=fromstring('<colony id="colony:1" tile="tile:1" owner="player:1"><building buildingType="model.building.fort"><unit id="unit:1" unitType="model.unit.freeColonist"/></building></colony>')
