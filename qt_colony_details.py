@@ -5,6 +5,22 @@ No GUI imports and no changes to savegame data.
 import presentation
 
 
+def goods_catalog(colony, document):
+    """Ruleset goods plus saved goods; preserve stable identifiers for future edits."""
+    stored = colony.find('./goodsContainer/storedGoods')
+    by_type = {}
+    if stored is not None:
+        for item in stored.findall('goods'):
+            goods_type = item.get('type')
+            if goods_type:
+                by_type[goods_type] = item
+    available = set(by_type)
+    if document is not None:
+        available.update(getattr(document, 'goods_types', ()) or ())
+    return [(kind, by_type.get(kind)) for kind in
+            sorted(available, key=lambda key: presentation.readable(key).casefold())]
+
+
 def colony_sections(colony, document):
     """Return explicit table headings and rows for the colony's detail tabs."""
     buildings=[]
@@ -42,12 +58,8 @@ def colony_sections(colony, document):
                               document.location_name(unit.get('location')),
                               presentation.readable(unit.get('role')),
                               unit.get('state','')))
-    goods=[]
-    store=colony.find('./goodsContainer/storedGoods')
-    if store is not None:
-        for item in store.findall('goods'):
-            goods.append((presentation.readable(item.get('type')),
-                          item.get('amount','0')))
+    goods=[(presentation.readable(kind), node.get('amount','0') if node is not None else '0')
+           for kind, node in goods_catalog(colony, document)]
     return {
         'Buildings': (('Building','Upgrade chain','Tier','Workers'),buildings),
         'Workers': (('ID','Unit type','Workplace','Produces','Experience'),workers),
@@ -79,7 +91,7 @@ def colony_detail_nodes(colony, document):
             if (uid and uid not in seen and unit.get('owner')==colony.get('owner')
                     and unit.get('location') in (colony.get('id'),colony.get('tile'))):
                 stationed.append(unit)
-    store=colony.find('./goodsContainer/storedGoods')
-    goods=list(store.findall('goods')) if store is not None else []
+    # None marks an absent XML node displayed as zero: Phase 2 must create it.
+    goods=[node for _, node in goods_catalog(colony, document)]
     return {'Buildings':buildings,'Workers':workers,
             'Stationed units':stationed,'Goods':goods}
