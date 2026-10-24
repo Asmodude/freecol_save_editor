@@ -272,6 +272,9 @@ class QtExplorer(QMainWindow):
         def entry(parent, label, group=None, scope=None, ready=True, kind='section', nation_id=None, native=False):
             item = QTreeWidgetItem([label])
             item.setIcon(0, self.navigation_icons.icon(kind, nation_id, native))
+            if nation_id:
+                # Diagnostic provenance for mismatched or unfamiliar faction art.
+                item.setToolTip(0, f'Saved nation ID: {nation_id}')
             if kind == 'nation':
                 font = QFont(item.font(0))
                 font.setBold(True)
