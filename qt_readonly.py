@@ -277,10 +277,11 @@ class QtExplorer(QMainWindow):
                     name = presentation.readable(carrier.get('unitType'))
                     entry(ships_node, f'{name} — {carrier.get("id")} ({len(passengers)})',
                           'Units', unit_group_scope(owner, 'vessel', carrier.get('id')))
-            count = len(groups.get(('other', ''), ()))
-            if count:
-                entry(parent, f'Other locations ({count})',
-                      'Units', unit_group_scope(owner, 'other'))
+            for label, kind in (('In the field', 'field'), ('Other locations', 'other')):
+                count = len(groups.get((kind, ''), ()))
+                if count:
+                    entry(parent, f'{label} ({count})', 'Units',
+                          unit_group_scope(owner, kind))
         
         doc = self.document
         own = human_player_id(doc) if doc else None
