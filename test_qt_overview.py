@@ -21,12 +21,18 @@ class OverviewTests(unittest.TestCase):
         self.assertIn('Stationed units: 0',text)
         self.assertIn('Buildings: 1',text)
         self.assertIn('Warehouse goods total: 25',text)
+        self.assertIn('Largest warehouse stockpiles',text)
+        self.assertIn('Food: 25',text)
+        self.assertIn('Occupied buildings',text)
+        self.assertIn('Fort: 1 worker',text)
         self.assertIn('Owner: Denmark',text)
 
     def test_empty_colony_avoids_invented_statistics(self):
         doc=SimpleNamespace(units=[],owner_name=lambda _: '',location_name=lambda _: '')
         text=record_overview('Colonies',fromstring('<colony name="Empty"/>'),doc)
         self.assertNotIn('Established:',text)
+        self.assertNotIn('Largest warehouse stockpiles',text)
+        self.assertNotIn('Occupied buildings',text)
         self.assertIn('Workplace workers: 0',text)
 
 
