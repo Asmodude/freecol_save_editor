@@ -13,6 +13,13 @@ class FatherPortraitTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             self.assertIsNone(FatherPortraits([root]).get('model.foundingFather.simonBolivar'))
 
+    def test_brewster_uses_shipped_short_filename(self):
+        with tempfile.TemporaryDirectory() as root:
+            folder=Path(root)/'data/default/resources/images/foundingFathers'
+            folder.mkdir(parents=True)
+            (folder/'brewster.jpg').write_bytes(b'brewster image')
+            self.assertEqual(FatherPortraits([root]).get('model.foundingFather.williamBrewster'), b'brewster image')
+
     def test_read_local_and_archive(self):
         with tempfile.TemporaryDirectory() as root:
             folder=Path(root)/'data/default/resources/images/foundingFathers'
