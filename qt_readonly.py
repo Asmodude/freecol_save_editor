@@ -4,6 +4,8 @@ The accepted Tkinter editor remains the only editor and map-rendering applicatio
 No savegame mutation is possible from this Qt window.
 """
 import sys
+import os
+from time import perf_counter
 from pathlib import Path
 
 from PySide6.QtCore import Qt
@@ -150,17 +152,20 @@ class QtExplorer(QMainWindow):
     def install_navigation(self):
         """Build the approved navigation structure; disable views not implemented yet."""
         self.navigation.blockSignals(True)
+        self.navigation.setUpdatesEnabled(False)
         self.navigation.clear()
+        # Resolve native theme icons only once per rebuild, not for every settlement.
+        icon_types = {
+            'nation': QStyle.StandardPixmap.SP_ComputerIcon,
+            'section': QStyle.StandardPixmap.SP_DirIcon,
+            'colony': QStyle.StandardPixmap.SP_FileIcon,
+            'planned': QStyle.StandardPixmap.SP_FileDialogDetailedView,
+        }
+        icons = {kind: self.style().standardIcon(icon) for kind, icon in icon_types.items()}
 
         def entry(parent, label, group=None, scope=None, ready=True, kind='section'):
             item = QTreeWidgetItem([label])
-            icons = {
-                'nation': QStyle.StandardPixmap.SP_ComputerIcon,
-                'section': QStyle.StandardPixmap.SP_DirIcon,
-                'colony': QStyle.StandardPixmap.SP_FileIcon,
-                'planned': QStyle.StandardPixmap.SP_FileDialogDetailedView,
-            }
-            item.setIcon(0, self.style().standardIcon(icons['planned' if not ready else kind]))
+            item.setIcon(0, icons['planned' if not ready else kind])
             if kind == 'nation':
                 font = QFont(item.font(0))
                 font.setBold(True)
@@ -238,6 +243,7 @@ class QtExplorer(QMainWindow):
         natives.setExpanded(True)
         self.navigation.blockSignals(False)
         self.navigation.setCurrentItem(overview)
+        self.navigation.setUpdatesEnabled(True)
 
     @staticmethod
     def _default_save_directory():
@@ -251,15 +257,22 @@ class QtExplorer(QMainWindow):
             'FreeCol saves (*.fsg);;ZIP archives (*.zip);;All files (*)')
         if not path:
             return
+        started = perf_counter()
         try:
             document = SaveDocument.load(path)
         except Exception as exc:
             QMessageBox.critical(self, 'Could not open save', str(exc))
             return
+        loaded_at = perf_counter()
         self.document = document
         self.install_navigation()
+        navigation_at = perf_counter()
         self.heading.setText(f'{Path(path).name} · Turn {document.turn} · READ ONLY')
-        self.populate()
+        # install_navigation() selects Overview and already triggers populate().
+        if os.environ.get('FREECOL_QT_PROFILE') == '1':
+            print(f'Qt load stages: parse/index={loaded_at-started:.3f}s; '
+                  f'navigation+overview={navigation_at-loaded_at:.3f}s; '
+                  f'total={navigation_at-started:.3f}s', flush=True)
         self.statusBar().showMessage(
             f'{len(document.players)} players · {len(document.colonies)} colonies · '
             f'{len(document.native_settlements)} native settlements · {len(document.units)} units'
