@@ -47,6 +47,12 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn('cell.setData(Qt.ItemDataRole.UserRole, row)', self.source)
         self.assertIn('matches[source_index]', self.source)
 
+    def test_workspace_rows_keep_identity_with_icons(self):
+        self.assertIn("if col == 0 and self.group != 'Founding Fathers':", self.source)
+        self.assertIn("cell.setIcon(self.navigation_icons.icon(", self.source)
+        self.assertIn("cell.setData(Qt.ItemDataRole.UserRole, row)", self.source)
+        self.assertIn("self.grid.setSortingEnabled(True)", self.source)
+
     def test_separate_workspace_and_inspector(self):
         self.assertIn('self.overview = QPlainTextEdit()', self.source)
         self.assertIn('self.details = QPlainTextEdit()', self.source)
