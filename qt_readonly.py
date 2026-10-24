@@ -28,6 +28,7 @@ from qt_raw_xml import formatted_record_xml
 from qt_display import display_row
 from qt_sorting import NUMERIC_COLUMNS, NUMERIC_DETAIL_COLUMNS, sort_key
 from qt_father_portraits import FatherPortraits
+from qt_founding_fathers import father_source_node
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers')
 HEADERS = {
@@ -125,6 +126,10 @@ class QtExplorer(QMainWindow):
         self.offered_banner.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         center_layout.addWidget(self.offered_banner)
         self.offered_banner.hide()
+        self.father_section_spacing = QWidget()
+        self.father_section_spacing.setFixedHeight(20)
+        center_layout.addWidget(self.father_section_spacing)
+        self.father_section_spacing.hide()
         self.congress_heading = QLabel('Continental Congress')
         congress_font = QFont(self.congress_heading.font())
         congress_font.setBold(True)
@@ -362,6 +367,7 @@ class QtExplorer(QMainWindow):
         father_view = self.group == 'Founding Fathers' and self.document is not None
         self.father_banner.setVisible(father_view)
         self.congress_heading.setVisible(father_view)
+        self.father_section_spacing.setVisible(father_view)
         self.offered_banner.setVisible(False)
         self.recruiting_father = None
         self.offered_fathers = []
@@ -457,9 +463,10 @@ class QtExplorer(QMainWindow):
             'Status: ' + element.get('status', '') + '\n' +
             'FreeCol identifier: ' + element.get('id', ''))
         self.overview.setPlainText(record_overview('Founding Fathers', element, self.document))
+        source = father_source_node(self.document, element)
         self.raw_xml.setPlainText(
-            'Virtual read-only record. Membership is encoded in the owning player XML.\n'
-            'Select the player Overview to inspect the source XML.')
+            formatted_record_xml(source) if source is not None else
+            'No matching source XML node found for this Founding Father.')
 
     def update_detail_tabs(self, element):
         self.detail_unit_id = None
