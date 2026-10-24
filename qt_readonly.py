@@ -30,6 +30,7 @@ from qt_sorting import NUMERIC_COLUMNS, NUMERIC_DETAIL_COLUMNS, sort_key
 from qt_father_portraits import FatherPortraits
 from qt_founding_fathers import father_source_node
 from qt_national_goods import colony_goods_breakdown
+from qt_unit_groups import unit_groups, unit_group_scope
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods')
 HEADERS = {
@@ -244,6 +245,22 @@ class QtExplorer(QMainWindow):
                     item.setToolTip(0, 'Not yet implemented in the Phase 1 Qt preview')
             return item
 
+        def grouped_unit_entries(parent, owner):
+            if not doc or not owner:
+                return
+            groups = unit_groups(doc, owner)
+            colonies = [c for c in doc.colonies if c.get('owner') == owner and c.get('id')]
+            for colony in sorted(colonies, key=lambda c:(c.get('name') or '').casefold()):
+                key = ('colony', colony.get('id'))
+                count = len(groups.get(key, ()))
+                if count:
+                    entry(parent, f"{colony.get('name') or colony.get('id')} ({count})",
+                          'Units', unit_group_scope(owner, 'colony', colony.get('id')), kind='colony')
+            for label, kind in (('Aboard ships', 'ship'), ('Other locations', 'other')):
+                count = len(groups.get((kind, ''), ()))
+                if count:
+                    entry(parent, f'{label} ({count})', 'Units', unit_group_scope(owner, kind))
+        
         doc = self.document
         own = human_player_id(doc) if doc else None
         human = doc.players.get(own) if doc and own else None
@@ -257,7 +274,8 @@ class QtExplorer(QMainWindow):
                                  key=lambda c: (c.get('name') or '').casefold()):
                 entry(my_colonies, colony.get('name') or colony.get('id'),
                       'Colonies', 'colony-id:' + colony.get('id'), kind='colony')
-        entry(my, 'Units', 'Units', 'mine')
+        my_units = entry(my, 'Units', 'Units', 'mine')
+        grouped_unit_entries(my_units, own)
         entry(my, 'Goods', 'National Goods', 'mine')
         entry(my, 'Research', ready=False)
         entry(my, 'Founding Fathers', 'Founding Fathers', 'mine')
@@ -283,7 +301,8 @@ class QtExplorer(QMainWindow):
                                          key=lambda c: (c.get('name') or '').casefold()):
                         entry(colony_group, colony.get('name') or colony.get('id'),
                               'Colonies', 'colony-id:' + colony.get('id'))
-                    entry(rival, 'Units', 'Units', 'player:' + pid)
+                    rival_units = entry(rival, 'Units', 'Units', 'player:' + pid)
+                    grouped_unit_entries(rival_units, pid)
                     entry(rival, 'Goods', 'National Goods', 'player:' + pid)
                     entry(rival, 'Research', ready=False)
                     entry(rival, 'Founding Fathers', 'Founding Fathers', 'player:' + pid)
@@ -298,7 +317,8 @@ class QtExplorer(QMainWindow):
                             entry(settlements, village.get('name') or village.get('id'),
                                   'Native settlements', 'settlement-id:' + village.get('id'),
                                   kind='colony')
-                    entry(native, 'Units', 'Units', 'player:' + pid)
+                    native_units = entry(native, 'Units', 'Units', 'player:' + pid)
+                    grouped_unit_entries(native_units, pid)
 
         entry(None, 'Map', ready=False)
         entry(None, 'Game Options', ready=False)
