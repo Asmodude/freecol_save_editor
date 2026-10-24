@@ -425,7 +425,15 @@ class QtExplorer(QMainWindow):
         source_item = table.item(row, 0)
         source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
         exact = exact_nodes[source_index] if isinstance(source_index, int) and source_index < len(exact_nodes) else None
-        self.raw_xml.setPlainText(formatted_record_xml(unit if unit is not None else exact if exact is not None else self.selected_element))
+        if section == 'Goods' and exact is None:
+            description += ('\n\nNo stored-goods XML entry exists for this type. '
+                            'Zero is displayed for completeness; Phase 2 will need '
+                            'to create a new entry when a positive amount is staged.')
+            self.details.setPlainText(description)
+            self.raw_xml.setPlainText('No stored-goods XML element exists for this zero-stock row.')
+        else:
+            self.raw_xml.setPlainText(formatted_record_xml(
+                unit if unit is not None else exact if exact is not None else self.selected_element))
 
     def open_detail_unit(self):
         unit_id = self.detail_unit_id
