@@ -48,7 +48,8 @@ class ColonyDetailsTests(unittest.TestCase):
         self.assertEqual(len(rows['Buildings'][1]),len(nodes['Buildings']))
         self.assertEqual(len(rows['Goods'][1]),len(nodes['Goods']))
         self.assertEqual(nodes['Buildings'][1].get('buildingType'),'model.building.chapel')
-        self.assertEqual(nodes['Goods'][1].get('type'),'model.goods.cotton')
+        self.assertEqual([node.get('type') for node in nodes['Goods']],
+                         ['model.goods.cotton','model.goods.food'])
 
     def test_empty_colony_still_has_schema(self):
         sections=colony_sections(fromstring('<colony/>'),None)
