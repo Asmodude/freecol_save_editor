@@ -29,6 +29,7 @@ from qt_display import display_row
 from qt_sorting import NUMERIC_COLUMNS, NUMERIC_DETAIL_COLUMNS, sort_key
 from qt_father_portraits import FatherPortraits
 from qt_founding_fathers import father_source_node
+from qt_national_goods import colony_goods_breakdown
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods')
 HEADERS = {
@@ -151,7 +152,7 @@ class QtExplorer(QMainWindow):
         self.overview.setReadOnly(True)
         self.tabs.addTab(self.overview, 'Overview')
         self.colony_tables = {}
-        for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units'):
+        for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'By colony'):
             table = QTableWidget()
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -480,12 +481,17 @@ class QtExplorer(QMainWindow):
         self.detail_nodes = colony_detail_nodes(colony, self.document) if colony is not None else {}
         if settlement is not None:
             sections['Affiliated units'] = settlement_units(settlement, self.document)
+        if self.group == 'National Goods' and element is not None:
+            sections['By colony'] = (('Colony', 'Amount'),
+                colony_goods_breakdown(self.document, element.get('owner'), element.get('id')))
         # Qt tabs are physically removed when irrelevant, not greyed out.
         allowed = {'Overview'}
         if colony is not None:
             allowed.update(('Buildings', 'Workers', 'Stationed units', 'Goods'))
         elif settlement is not None:
             allowed.add('Affiliated units')
+        elif self.group == 'National Goods' and element is not None:
+            allowed.add('By colony')
         active_name = self.tabs.tabText(self.tabs.currentIndex()) if self.tabs.currentIndex() >= 0 else 'Overview'
         for i in range(self.tabs.count()-1, -1, -1):
             self.tabs.removeTab(i)
