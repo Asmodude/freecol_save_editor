@@ -11,7 +11,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont, QBrush, QPixmap, QIcon
 from PySide6.QtWidgets import (
-    QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow,
+    QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QDialog,
     QMessageBox, QPushButton, QSplitter, QTabWidget, QTableWidget,
     QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
     QWidget, QPlainTextEdit, QGroupBox, QHeaderView, QSizePolicy, QStyle
@@ -31,6 +31,7 @@ from qt_father_portraits import FatherPortraits
 from qt_founding_fathers import father_source_node
 from qt_national_goods import colony_goods_breakdown, transported_goods_breakdown
 from qt_unit_groups import unit_groups, unit_group_scope
+from qt_global_search import global_results
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods')
 HEADERS = {
@@ -84,6 +85,9 @@ class QtExplorer(QMainWindow):
         toolbar.setContentsMargins(0, 0, 0, 0)
         self.open_button = QPushButton('Open Save…')
         self.open_button.clicked.connect(self.open_save)
+        self.global_button = QPushButton('Search all…')
+        self.global_button.clicked.connect(self.open_global_search)
+        self.global_button.setEnabled(False)
         self.map_button = QPushButton('Open Map Editor')
         self.map_button.setEnabled(False)
         self.map_button.setToolTip(
@@ -91,6 +95,7 @@ class QtExplorer(QMainWindow):
             'The Qt map will be integrated in Phase 3.')
         self.heading = QLabel('Open a FreeCol save to begin · Qt read-only preview')
         toolbar.addWidget(self.open_button)
+        toolbar.addWidget(self.global_button)
         toolbar.addWidget(self.map_button)
         toolbar.addWidget(self.heading, 1)
         layout.addWidget(toolbar_widget, 0)
@@ -365,6 +370,7 @@ class QtExplorer(QMainWindow):
             return
         loaded_at = perf_counter()
         self.document = document
+        self.global_button.setEnabled(True)
         self.install_navigation()
         navigation_at = perf_counter()
         self.heading.setText(f'{Path(path).name} · Turn {document.turn} · READ ONLY')
@@ -377,6 +383,94 @@ class QtExplorer(QMainWindow):
             f'{len(document.players)} players · {len(document.colonies)} colonies · '
             f'{len(document.native_settlements)} native settlements · {len(document.units)} units'
             ' · Qt read-only; Map Editor in Tkinter')
+
+    def open_global_search(self):
+        if self.document is None:
+            return
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Search all saved records')
+        dialog.resize(760, 490)
+        layout = QVBoxLayout(dialog)
+        field = QLineEdit()
+        field.setPlaceholderText('Search players, colonies, settlements and units…')
+        results = QTableWidget()
+        results.setColumnCount(4)
+        results.setHorizontalHeaderLabels(('Category','Name','Owner','ID'))
+        results.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        results.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        results.setAlternatingRowColors(True)
+        results.setSortingEnabled(False)
+        status = QLabel('Enter a name, profession or record ID.')
+        layout.addWidget(field)
+        layout.addWidget(results, 1)
+        layout.addWidget(status)
+        matches = []
+
+        def update():
+            nonlocal matches
+            matches = global_results(self.document, field.text())
+            results.setRowCount(len(matches))
+            for row, (group, element, name, owner) in enumerate(matches):
+                for col, value in enumerate((group, name, owner, element.get('id',''))):
+                    cell = QTableWidgetItem(str(value))
+                    cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    results.setItem(row, col, cell)
+            status.setText(f'{len(matches)} matches (first 250 shown). Double-click to open.'
+                           if field.text().strip() else 'Enter a name, profession or record ID.')
+
+        def open_match(row, _column):
+            if 0 <= row < len(matches):
+                group, element, _name, _owner = matches[row]
+                dialog.accept()
+                self.navigate_to_global_result(group, element)
+
+        field.textChanged.connect(update)
+        results.cellDoubleClicked.connect(open_match)
+        field.setFocus()
+        dialog.exec()
+
+    def navigate_to_global_result(self, group, element):
+        """Use an existing navigation scope; never fabricate a savegame record."""
+        record_id = element.get('id')
+        owner = element.get('owner')
+        own = human_player_id(self.document)
+        if group == 'Colonies':
+            scope = 'colony-id:' + record_id
+        elif group == 'Native settlements':
+            scope = 'settlement-id:' + record_id
+        elif group == 'Players':
+            scope = 'mine' if record_id == own else 'player:' + record_id
+        else:
+            scope = 'mine' if owner == own else 'player:' + owner
+        def find_item(parent):
+            if parent.data(0, Qt.ItemDataRole.UserRole) == (group, scope):
+                return parent
+            for i in range(parent.childCount()):
+                match = find_item(parent.child(i))
+                if match is not None:
+                    return match
+            return None
+        target = None
+        for i in range(self.navigation.topLevelItemCount()):
+            target = find_item(self.navigation.topLevelItem(i))
+            if target is not None:
+                break
+        if target is None:
+            return
+        self.search.blockSignals(True)
+        self.search.clear()
+        self.search.blockSignals(False)
+        self.navigation.setCurrentItem(target)
+        for row in range(self.grid.rowCount()):
+            cell = self.grid.item(row, 0)
+            if cell is None:
+                continue
+            index = cell.data(Qt.ItemDataRole.UserRole)
+            if isinstance(index, int) and index < len(self.visible_rows):
+                if self.visible_rows[index] is element:
+                    self.grid.selectRow(row)
+                    self.grid.scrollToItem(cell)
+                    return
 
     def navigate(self, current, previous):
         if current is None:
