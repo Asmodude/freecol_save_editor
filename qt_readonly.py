@@ -31,9 +31,10 @@ from qt_father_portraits import FatherPortraits
 from qt_founding_fathers import father_source_node
 from qt_national_goods import colony_goods_breakdown, transported_goods_breakdown
 from qt_unit_groups import unit_groups, unit_group_scope
+from qt_game_properties import game_property_rows
 from qt_global_search import global_results
 
-GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods')
+GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties')
 HEADERS = {
     'Players': ('ID','Username','Nation','Type','Colonies','Settlements','Gold','Tax','Score','AI','Dead'),
     'Colonies': ('ID','Name','Owner','Location','Established','Liberty','Sons of Liberty','Production bonus'),
@@ -41,6 +42,7 @@ HEADERS = {
     'Units': ('ID','Type','Owner','Location','Role','Experience toward','Experience','Moves left','Max moves','Hit points','State'),
     'Founding Fathers': ('Founding Father', 'Status'),
     'National Goods': ('Goods', 'Total in colonies', 'Colonies with stock'),
+    'Game properties': ('Source', 'Property', 'Saved value'),
 }
 
 
@@ -343,7 +345,7 @@ class QtExplorer(QMainWindow):
                     grouped_unit_entries(native_units, pid)
 
         entry(None, 'Map', ready=False)
-        entry(None, 'Game Options', ready=False)
+        entry(None, 'Game properties', 'Game properties', 'game')
         my.setExpanded(True)
         rivals.setExpanded(True)
         natives.setExpanded(True)
@@ -566,10 +568,12 @@ class QtExplorer(QMainWindow):
                 self.offered_banner.setText('Also offered (not recruited): ' + ', '.join(offered))
                 self.offered_banner.setVisible(True)
         rows = []
-        for element in rows_for_scope(doc, self.group, self.scope):
+        for element in (game_property_rows(doc) if self.group == 'Game properties' else rows_for_scope(doc, self.group, self.scope)):
             if self.group == 'Founding Fathers' and element.get('status') != 'Recruited':
                 continue
-            values = ((element.get('name'), element.get('status'))
+            values = ((element.get('source'), element.get('name'), element.get('value'))
+                      if self.group == 'Game properties' else
+                      (element.get('name'), element.get('status'))
                       if self.group == 'Founding Fathers' else
                       (element.get('name'), element.get('amount'), element.get('colonies'))
                       if self.group == 'National Goods' else
@@ -852,6 +856,15 @@ class QtExplorer(QMainWindow):
             return
         self.selected_element = element
         self.update_detail_tabs(element)
+        if self.group == 'Game properties':
+            source = element.get('source')
+            name = element.get('name')
+            value = element.get('value')
+            self.inspector_label.setText(f'{source}: {name}')
+            self.details.setPlainText(f'Source: {source}\nProperty: {name}\nSaved value: {value}')
+            self.overview.setPlainText('Read-only metadata from the saved game XML.\nNo option values are inferred.')
+            self.raw_xml.setPlainText(formatted_record_xml(self.document.root if source == 'Savegame' else self.document.game))
+            return
         label = element.get('name') or element.get('username') or element.get('id') or 'Record'
         self.inspector_label.setText(label)
         doc = self.document
