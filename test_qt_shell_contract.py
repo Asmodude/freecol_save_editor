@@ -54,7 +54,7 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn("self.grid.setSortingEnabled(True)", self.source)
 
     def test_separate_workspace_and_inspector(self):
-        self.assertIn('self.overview = QPlainTextEdit()', self.source)
+        self.assertIn('self.overview = OverviewPanel()', self.source)
         self.assertIn('self.details = QPlainTextEdit()', self.source)
         self.assertIn('self.grid.itemSelectionChanged.connect(self.inspect)', self.source)
 
