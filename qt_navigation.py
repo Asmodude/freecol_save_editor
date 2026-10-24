@@ -1,6 +1,7 @@
 """Pure Phase 1 player ownership filtering; never guess the human player."""
 from qt_founding_fathers import father_rows
 from qt_national_goods import national_goods
+from qt_unit_groups import scoped_units
 def human_player_id(document):
     candidates=[p.get('id') for p in document.players.values()
                 if p.get('ai')=='false' and p.get('playerType')=='colonial']
@@ -8,6 +9,8 @@ def human_player_id(document):
 
 
 def rows_for_scope(document, group, scope):
+    if group == 'Units' and scope.startswith('unit-group|'):
+        return scoped_units(document,scope)
     if group == 'National Goods':
         own = human_player_id(document)
         pid = own if scope == 'mine' else scope[len('player:'):] if scope.startswith('player:') else None
