@@ -47,6 +47,12 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn('cell.setData(Qt.ItemDataRole.UserRole, row)', self.source)
         self.assertIn('matches[source_index]', self.source)
 
+    def test_colony_row_minis_use_approved_art_resolver(self):
+        self.assertIn('resolve_colony_graphic(record)', self.source)
+        self.assertIn('if self.group == \'Colonies\':', self.source)
+        self.assertIn('self.grid.setRowHeight(row, 36)', self.source)
+        self.assertIn('Qt.TransformationMode.SmoothTransformation', self.source)
+
     def test_workspace_rows_keep_identity_with_icons(self):
         self.assertIn("if col == 0 and self.group != 'Founding Fathers':", self.source)
         self.assertIn("cell.setIcon(self.navigation_icons.icon(", self.source)
