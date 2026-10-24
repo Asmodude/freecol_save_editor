@@ -71,12 +71,17 @@ class OverviewPanel(QWidget):
         self._record = record
         self._render()
 
+    @staticmethod
+    def _dispose(layout):
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+            elif item.layout() is not None:
+                OverviewPanel._dispose(item.layout())
+
     def _empty_layout(self):
-        while self.body.count():
-            item = self.body.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
+        self._dispose(self.body)
 
     def _render(self):
         self._empty_layout()
