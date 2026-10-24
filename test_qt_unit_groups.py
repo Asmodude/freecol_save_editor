@@ -20,7 +20,10 @@ class UnitGroupTests(unittest.TestCase):
         self.assertEqual({u.get('id') for u in groups[('colony','colony:1')]},{'worker','u1'})
         self.assertEqual([u.get('id') for u in groups[('ship','')]],['passenger'])
         self.assertEqual({u.get('id') for u in groups[('other','')]},{'ship','out'})
-        self.assertEqual(sum(map(len,groups.values())),5)
+        self.assertEqual(sum(len(v) for (kind,_),v in groups.items() if kind != 'ship'),5)
+        self.assertEqual([u.get('id') for u in groups[('vessel','ship')]],['passenger'])
+        self.assertEqual(scoped_units(doc,unit_group_scope('p','vessel','ship')),
+                         groups[('vessel','ship')])
         self.assertEqual(scoped_units(doc,unit_group_scope('p','colony','colony:1')),groups[('colony','colony:1')])
         self.assertEqual(scoped_units(doc,unit_group_scope('enemy','colony','colony:1')),[])
         self.assertEqual(scoped_units(doc,'unit-group|p|unknown|'),[])
