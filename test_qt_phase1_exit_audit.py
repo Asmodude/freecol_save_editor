@@ -25,7 +25,7 @@ class Phase1ExitAudit(unittest.TestCase):
 
     def test_scoped_nation_views_and_global_search_exist(self):
         for token in ("'National Goods'", "'Founding Fathers'", "'Game properties'",
-                      "unit_group_scope(owner, 'vessel'", "unit_group_scope(owner, 'field'",
+                      "unit_group_scope(owner, 'vessel'", "('In the field', 'field')",
                       'self.global_button.clicked.connect(self.open_global_search)'):
             with self.subTest(token=token):
                 self.assertIn(token,self.qt)
