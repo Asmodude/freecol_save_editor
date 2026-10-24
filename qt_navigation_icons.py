@@ -7,7 +7,7 @@ without a verified emblem gets a decorative, non-historical symbol instead.
 import re
 
 from PySide6.QtCore import Qt, QRectF, QPointF
-from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPixmap, QPolygonF
+from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPixmap, QImage
 
 from freecol_art_source import discover, read_bytes
 
@@ -134,6 +134,27 @@ def flag_for_nation(nation_id):
     return None
 
 
+def _portuguese_flag_icon(size):
+    """Paint exact green/red fields directly into pixels, not a theme-dependent glyph.
+
+    Keep this independent of the QPainter state used by other decorative icons.
+    """
+    image = QImage(size, size, QImage.Format.Format_ARGB32)
+    green = QColor('#006600').rgba()
+    red = QColor('#ff0000').rgba()
+    boundary = round(size * .4)
+    for y in range(size):
+        for x in range(size):
+            image.setPixel(x, y, green if x < boundary else red)
+    painter = QPainter(image)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.setPen(QPen(QColor('#ffcc33'), max(1.0, size * .075)))
+    painter.drawEllipse(QRectF(size * .30, size * .32, size * .28, size * .36))
+    painter.end()
+    return QIcon(QPixmap.fromImage(image))
+
+
 class NavigationIcons:
     def __init__(self):
         self._cache = {}
@@ -157,6 +178,12 @@ class NavigationIcons:
         cache_key = (kind, key, native, size)
         if cache_key in self._cache:
             return self._cache[cache_key]
+        # Portugal has a dedicated pixel-level flag renderer. It must not resolve
+        # to local nation art or a generic icon on either the tree or header.
+        if kind == 'nation' and not native and flag_for_nation(nation_id) == 'portugal':
+            result = _portuguese_flag_icon(size)
+            self._cache[cache_key] = result
+            return result
         # Prefer the installation's actual artwork when it is unambiguously named.
         # Draw known national flags ourselves: an unrelated local nation sprite must
         # never override a recognised flag (notably Portugal's green/red).
