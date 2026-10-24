@@ -22,6 +22,17 @@ class GlobalSearchTests(unittest.TestCase):
         self.assertEqual(global_results(self.doc,'unit:3')[0][1],self.unit)
         self.assertEqual(global_results(self.doc,'  '),[])
 
+    def test_founding_father_search_in_specific_nation(self):
+        father=Element('foundingFathers',{'x0':'model.foundingFather.benjaminFranklin'})
+        self.player.append(father)
+        self.player.set('playerType','colonial')
+        self.doc.players={'player:1':self.player}
+        matches=global_results(self.doc,'Benjamin Franklin')
+        self.assertEqual(len(matches),1)
+        self.assertEqual(matches[0][0],'Founding Fathers')
+        self.assertEqual(matches[0][1].get('status'),'Recruited')
+        self.assertEqual(matches[0][1].get('owner'),'player:1')
+
     def test_results_are_identity_preserving(self):
         self.assertIs(global_results(self.doc,'Christiansborg')[0][1],self.colony)
         self.assertEqual(global_results(self.doc,'Morten',limit=1)[0][1],self.player)
