@@ -598,6 +598,24 @@ class QtExplorer(QMainWindow):
         if self.group == 'Founding Fathers':
             self.inspect_father_record(element)
             return
+        if self.group == 'National Goods':
+            self.selected_element = element
+            self.update_detail_tabs(element)
+            name = element.get('name', 'Goods')
+            amount = element.get('amount', '0')
+            count = element.get('colonies', '0')
+            self.inspector_label.setText(name)
+            self.details.setPlainText(
+                f'Goods: {name}\nTotal in colonies: {amount}\n'
+                f'Colonies with stock: {count}')
+            self.overview.setPlainText(
+                f'{name}\n\nNation-wide colony warehouse total: {amount}\n'
+                f'Colonies containing this good: {count}\n\n'
+                'Read-only aggregate; cargo aboard units and ships is excluded.')
+            self.raw_xml.setPlainText(
+                'Computed aggregate from owned colony goodsContainer/storedGoods/goods.\n'
+                'Select a colony Goods tab for authoritative source XML.')
+            return
         self.selected_element = element
         self.update_detail_tabs(element)
         label = element.get('name') or element.get('username') or element.get('id') or 'Record'
