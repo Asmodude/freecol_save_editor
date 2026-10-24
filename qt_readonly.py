@@ -256,10 +256,26 @@ class QtExplorer(QMainWindow):
                 if count:
                     entry(parent, f"{colony.get('name') or colony.get('id')} ({count})",
                           'Units', unit_group_scope(owner, 'colony', colony.get('id')), kind='colony')
-            for label, kind in (('Aboard ships', 'ship'), ('Other locations', 'other')):
-                count = len(groups.get((kind, ''), ()))
-                if count:
-                    entry(parent, f'{label} ({count})', 'Units', unit_group_scope(owner, kind))
+            aboard = groups.get(('ship', ''), ())
+            if aboard:
+                ships_node = entry(parent, f'Aboard ships ({len(aboard)})',
+                                   'Units', unit_group_scope(owner, 'ship'))
+                carriers = sorted(
+                    (unit for unit in doc.units
+                     if unit.get('owner') == owner
+                     and ('vessel', unit.get('id')) in groups
+                     and groups[('vessel', unit.get('id'))]),
+                    key=lambda unit: (presentation.readable(unit.get('unitType')).casefold(),
+                                      unit.get('id') or ''))
+                for carrier in carriers:
+                    passengers = groups[('vessel', carrier.get('id'))]
+                    name = presentation.readable(carrier.get('unitType'))
+                    entry(ships_node, f'{name} — {carrier.get("id")} ({len(passengers)})',
+                          'Units', unit_group_scope(owner, 'vessel', carrier.get('id')))
+            count = len(groups.get(('other', ''), ()))
+            if count:
+                entry(parent, f'Other locations ({count})',
+                      'Units', unit_group_scope(owner, 'other'))
         
         doc = self.document
         own = human_player_id(doc) if doc else None
