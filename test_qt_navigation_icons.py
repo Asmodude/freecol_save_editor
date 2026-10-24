@@ -33,11 +33,16 @@ class NavigationArtworkTests(unittest.TestCase):
                       'model.nation.portugueseREF', 'model.nation.portugalREF'):
             with self.subTest(alias=alias):
                 self.assertEqual(flag_for_nation(alias), 'portugal')
-                pix = icons.icon('nation', alias).pixmap(20, 20)
-                self.assertFalse(pix.isNull())
-                # Both the green and red portions must be visibly present.
-                self.assertGreater(pix.toImage().pixelColor(2, 10).green(), 40)
-                self.assertGreater(pix.toImage().pixelColor(17, 10).red(), 150)
+                for size in (20, 48):
+                    with self.subTest(size=size):
+                        pix = icons.icon('nation', alias, size=size).pixmap(size, size)
+                        self.assertFalse(pix.isNull())
+                        image = pix.toImage()
+                        left = image.pixelColor(2, size // 2)
+                        right = image.pixelColor(size - 3, size // 2)
+                        self.assertGreater(left.green(), left.red() * 1.5)
+                        self.assertGreater(right.red(), right.green() * 1.5)
+                        self.assertNotEqual(left.name(), right.name())
 
     def test_no_partial_nation_matching(self):
         self.assertIsNone(flag_for_nation('model.nation.portuguese_unknown'))
