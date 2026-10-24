@@ -29,7 +29,7 @@ from qt_display import display_row
 from qt_sorting import NUMERIC_COLUMNS, NUMERIC_DETAIL_COLUMNS, sort_key
 from qt_father_portraits import FatherPortraits
 from qt_founding_fathers import father_source_node
-from qt_national_goods import colony_goods_breakdown
+from qt_national_goods import colony_goods_breakdown, transported_goods_breakdown
 from qt_unit_groups import unit_groups, unit_group_scope
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods')
@@ -154,7 +154,7 @@ class QtExplorer(QMainWindow):
         self.overview.setReadOnly(True)
         self.tabs.addTab(self.overview, 'Overview')
         self.colony_tables = {}
-        for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'By colony'):
+        for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'By colony', 'In transit'):
             table = QTableWidget()
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -515,6 +515,8 @@ class QtExplorer(QMainWindow):
         if self.group == 'National Goods' and element is not None:
             sections['By colony'] = (('Colony', 'Amount'),
                 colony_goods_breakdown(self.document, element.get('owner'), element.get('id')))
+            sections['In transit'] = (('Unit ID', 'Unit type', 'Location', 'Amount'),
+                transported_goods_breakdown(self.document, element.get('owner'), element.get('id')))
         # Qt tabs are physically removed when irrelevant, not greyed out.
         allowed = {'Overview'}
         if colony is not None:
@@ -522,7 +524,7 @@ class QtExplorer(QMainWindow):
         elif settlement is not None:
             allowed.add('Affiliated units')
         elif self.group == 'National Goods' and element is not None:
-            allowed.add('By colony')
+            allowed.update(('By colony', 'In transit'))
         active_name = self.tabs.tabText(self.tabs.currentIndex()) if self.tabs.currentIndex() >= 0 else 'Overview'
         for i in range(self.tabs.count()-1, -1, -1):
             self.tabs.removeTab(i)
