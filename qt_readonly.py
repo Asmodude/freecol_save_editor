@@ -699,6 +699,22 @@ class QtExplorer(QMainWindow):
                              if self.group == 'Game properties' and col == 2 else value)
                 cell = SortableItem(displayed, HEADERS[self.group][col] in NUMERIC_COLUMNS.get(self.group, ()))
                 cell.setData(Qt.ItemDataRole.UserRole, row)
+                if col == 0 and self.group != 'Founding Fathers':
+                    row_kinds = {
+                        'Players': 'nation', 'Colonies': 'colony',
+                        'Native settlements': 'settlements', 'Units': 'units',
+                        'National Goods': 'goods', 'Game properties': 'options',
+                    }
+                    kind = row_kinds.get(self.group)
+                    if kind:
+                        record = rows[row][0]
+                        if self.group == 'Players':
+                            nation_id = record.get('nationId') or record.get('nation')
+                            native = record.get('playerType') in ('native', 'indian')
+                            cell.setIcon(self.navigation_icons.icon(
+                                kind, nation_id=nation_id, native=native, size=20))
+                        else:
+                            cell.setIcon(self.navigation_icons.icon(kind, size=20))
                 if self.group == 'Game properties' and col == 2 and displayed != value:
                     cell.setToolTip('Long value shortened here. Select the row for its complete saved value.')
                 cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
