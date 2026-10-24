@@ -24,7 +24,7 @@ def record_overview(group, element, document):
         field('Workplace workers', len(sections['Workers'][1]))
         field('Stationed units', len(sections['Stationed units'][1]))
         field('Buildings', len(sections['Buildings'][1]))
-        field('Stored goods types', len(sections['Goods'][1]))
+        field('Stored goods types', sum(1 for _, amount in sections['Goods'][1] if amount.isdigit() and int(amount) > 0))
         field('Warehouse goods total', sum(int(v[1]) for v in sections['Goods'][1] if v[1].isdigit()))
         # Briefing-style summary: top stockpiles and the largest workplaces.
         # Values come exclusively from the authoritative colony XML.
@@ -34,7 +34,8 @@ def record_overview(group, element, document):
                 amount = int(quantity)
             except (TypeError, ValueError):
                 continue
-            stockpiles.append((amount, goods_name))
+            if amount > 0:
+                stockpiles.append((amount, goods_name))
         stockpiles.sort(key=lambda item: (-item[0], item[1].casefold()))
         if stockpiles:
             lines.extend(['', 'Largest warehouse stockpiles'])
