@@ -18,6 +18,9 @@ class DrilldownContractTests(unittest.TestCase):
         self.assertIn("breakdown.selectRow(0)",self.source)
         self.assertIn("self.inspect_detail('By colony')",self.source)
         self.assertIn("table.selectedItems()",self.source)
+        self.assertIn('self.tabs.currentChanged.connect(self.refresh_breakdown_action)',self.source)
+        self.assertIn("table.cellClicked.connect(lambda row, column: self.inspect_detail('By colony'))",self.source)
+        self.assertIn("self.tabs.currentWidget() is not table",self.source)
 
 
 if __name__ == '__main__':
