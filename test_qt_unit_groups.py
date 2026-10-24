@@ -15,13 +15,16 @@ class UnitGroupTests(unittest.TestCase):
             '<unit id="passenger" owner="p" location="ship"/>',
             '<unit id="out" owner="p" location="tile:999"/>',
             '<unit id="rival" owner="enemy" location="colony:1"/>')]
-        doc=SimpleNamespace(units=units,colonies=[colony])
+        doc=SimpleNamespace(units=units,colonies=[colony],tiles={'tile:999':object()})
         groups=unit_groups(doc,'p')
         self.assertEqual({u.get('id') for u in groups[('colony','colony:1')]},{'worker','u1'})
         self.assertEqual([u.get('id') for u in groups[('ship','')]],['passenger'])
-        self.assertEqual({u.get('id') for u in groups[('other','')]},{'ship','out'})
+        self.assertEqual([u.get('id') for u in groups[('field','')]],['out'])
+        self.assertEqual([u.get('id') for u in groups[('other','')]],['ship'])
         self.assertEqual(sum(len(v) for (kind,_),v in groups.items() if kind != 'ship'),5)
         self.assertEqual([u.get('id') for u in groups[('vessel','ship')]],['passenger'])
+        self.assertEqual(scoped_units(doc,unit_group_scope('p','field')),
+                         groups[('field','')])
         self.assertEqual(scoped_units(doc,unit_group_scope('p','vessel','ship')),
                          groups[('vessel','ship')])
         self.assertEqual(scoped_units(doc,unit_group_scope('p','colony','colony:1')),groups[('colony','colony:1')])
