@@ -2,11 +2,22 @@
 import unittest
 from xml.etree.ElementTree import fromstring, tostring
 from types import SimpleNamespace
-from qt_national_goods import national_goods, colony_goods_breakdown
+from qt_national_goods import national_goods, colony_goods_breakdown, transported_goods_breakdown
 from qt_navigation import rows_for_scope
 
 
 class NationalGoodsTests(unittest.TestCase):
+    def test_cargo_kept_separate_from_warehouses(self):
+        players={'p':fromstring('<player id="p"/>')}
+        ship=fromstring('<unit id="unit:ship" owner="p" unitType="model.unit.galleon" location="tile:20"><goodsContainer><storedGoods><goods type="model.goods.tools" amount="125"/></storedGoods></goodsContainer></unit>')
+        rival=fromstring('<unit id="unit:other" owner="r"><goodsContainer><storedGoods><goods type="model.goods.tools" amount="900"/></storedGoods></goodsContainer></unit>')
+        doc=SimpleNamespace(players=players,units=[ship,rival],colonies=[],
+                            location_name=lambda x:'Tile (2,3)')
+        self.assertEqual(transported_goods_breakdown(doc,'p','model.goods.tools'),
+                         [('unit:ship','Galleon','Tile (2,3)','125')])
+        self.assertEqual(transported_goods_breakdown(doc,'p','model.goods.food'),[])
+        self.assertEqual(national_goods(doc,'p'),[])
+
     def test_breakdown_includes_zero_colonies_but_excludes_rivals(self):
         players={'player:1':fromstring('<player id="player:1"/>')}
         a=fromstring('<colony owner="player:1" name="Alpha"><goodsContainer><storedGoods><goods type="model.goods.tools" amount="12"/></storedGoods></goodsContainer></colony>')
