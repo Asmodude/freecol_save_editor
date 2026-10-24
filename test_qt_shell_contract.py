@@ -53,6 +53,12 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn("cell.setData(Qt.ItemDataRole.UserRole, row)", self.source)
         self.assertIn("self.grid.setSortingEnabled(True)", self.source)
 
+    def test_vertical_workspace_splitter(self):
+        self.assertIn('self.workspace_splitter = QSplitter(Qt.Orientation.Vertical)', self.source)
+        self.assertIn('self.workspace_splitter.addWidget(self.workspace_table_area)', self.source)
+        self.assertIn('self.workspace_splitter.addWidget(self.tabs)', self.source)
+        self.assertIn('self.workspace_splitter.setChildrenCollapsible(False)', self.source)
+
     def test_separate_workspace_and_inspector(self):
         self.assertIn('self.overview = OverviewPanel()', self.source)
         self.assertIn('self.details = QPlainTextEdit()', self.source)
