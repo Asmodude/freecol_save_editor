@@ -24,7 +24,7 @@ def global_results(document, query, limit=250):
             found.append((group,item,name,document.owner_name(owner) if owner else ''))
             if len(found)>=limit:
                 return found
-    for player in document.players.values():
+    for player in getattr(document, 'players', {}).values():
         if player.get('playerType') != 'colonial':
             continue
         for father in father_rows(player):
