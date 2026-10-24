@@ -35,8 +35,9 @@ from qt_unit_groups import unit_groups, unit_group_scope
 from qt_game_properties import game_property_rows, game_property_source
 from qt_property_display import compact_property_value
 from qt_global_search import global_results
+from qt_diplomacy import settlement_alarm_rows
 
-GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties')
+GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties', 'Diplomacy')
 HEADERS = {
     'Players': ('ID','Username','Nation','Type','Colonies','Settlements','Gold','Tax','Score','AI','Dead'),
     'Colonies': ('ID','Name','Owner','Location','Established','Liberty','Sons of Liberty','Production bonus'),
@@ -45,6 +46,7 @@ HEADERS = {
     'Founding Fathers': ('Founding Father', 'Status'),
     'National Goods': ('Goods', 'Total in colonies', 'Colonies with stock'),
     'Game properties': ('Source', 'Property', 'Saved value'),
+    'Diplomacy': ('Other nation', 'Relationship', 'Saved value'),
 }
 
 
@@ -163,7 +165,7 @@ class QtExplorer(QMainWindow):
         self.overview.setReadOnly(True)
         self.tabs.addTab(self.overview, 'Overview')
         self.colony_tables = {}
-        for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'By colony', 'In transit'):
+        for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'Alarm', 'By colony', 'In transit'):
             table = QTableWidget()
             table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -293,7 +295,7 @@ class QtExplorer(QMainWindow):
         nation = presentation.readable(human.get('nationId')) if human is not None else 'My Nation'
         my = entry(None, nation + ' (Player)', kind='nation')
         overview = entry(my, 'Overview', 'Players', 'mine')
-        entry(my, 'Diplomacy', ready=False)
+        entry(my, 'Diplomacy', 'Diplomacy', 'mine')
         my_colonies = entry(my, 'Colonies', 'Colonies', 'mine')
         if doc and own:
             for colony in sorted((c for c in doc.colonies if c.get('owner') == own),
@@ -321,7 +323,7 @@ class QtExplorer(QMainWindow):
                     label = presentation.readable(nation_id) or pid
                     rival = entry(rivals, label, kind='nation')
                     entry(rival, 'Overview', 'Players', 'player:' + pid)
-                    entry(rival, 'Diplomacy', ready=False)
+                    entry(rival, 'Diplomacy', 'Diplomacy', 'player:' + pid)
                     colony_group = entry(rival, 'Colonies', 'Colonies', 'player:' + pid)
                     for colony in sorted((c for c in doc.colonies if c.get('owner') == pid),
                                          key=lambda c: (c.get('name') or '').casefold()):
@@ -336,6 +338,8 @@ class QtExplorer(QMainWindow):
                 elif player.get('playerType') in ('indian', 'native'):
                     label = presentation.readable(nation_id) or pid
                     native = entry(natives, label, kind='nation')
+                    entry(native, 'Overview', 'Players', 'player:' + pid)
+                    entry(native, 'Diplomacy', 'Diplomacy', 'player:' + pid)
                     settlements = entry(native, 'Settlements', 'Native settlements', 'native-owner:' + pid)
                     for village in sorted((v for v in doc.native_settlements if v.get('owner') == pid),
                                           key=lambda v: (v.get('name') or '').casefold()):
@@ -573,7 +577,9 @@ class QtExplorer(QMainWindow):
         for element in (game_property_rows(doc) if self.group == 'Game properties' else rows_for_scope(doc, self.group, self.scope)):
             if self.group == 'Founding Fathers' and element.get('status') != 'Recruited':
                 continue
-            values = ((element.get('source'), element.get('name'), element.get('value'))
+            values = ((element.get('nation'), element.get('kind'), element.get('value'))
+                      if self.group == 'Diplomacy' else
+                      (element.get('source'), element.get('name'), element.get('value'))
                       if self.group == 'Game properties' else
                       (element.get('name'), element.get('status'))
                       if self.group == 'Founding Fathers' else
@@ -654,6 +660,7 @@ class QtExplorer(QMainWindow):
         self.detail_nodes = colony_detail_nodes(colony, self.document) if colony is not None else {}
         if settlement is not None:
             sections['Affiliated units'] = settlement_units(settlement, self.document)
+            sections['Alarm'] = (('Colonial nation', 'Alarm'), settlement_alarm_rows(self.document, settlement))
         if self.group == 'National Goods' and element is not None:
             sections['By colony'] = (('Colony', 'Amount'),
                 colony_goods_breakdown(self.document, element.get('owner'), element.get('id')))
@@ -664,7 +671,7 @@ class QtExplorer(QMainWindow):
         if colony is not None:
             allowed.update(('Buildings', 'Workers', 'Stationed units', 'Goods'))
         elif settlement is not None:
-            allowed.add('Affiliated units')
+            allowed.update(('Affiliated units', 'Alarm'))
         elif self.group == 'National Goods' and element is not None:
             allowed.update(('By colony', 'In transit'))
         active_name = self.tabs.tabText(self.tabs.currentIndex()) if self.tabs.currentIndex() >= 0 else 'Overview'
@@ -862,6 +869,13 @@ class QtExplorer(QMainWindow):
             return
         self.selected_element = element
         self.update_detail_tabs(element)
+        if self.group == 'Diplomacy':
+            self.inspector_label.setText(element.get('nation'))
+            self.details.setPlainText(f"Other nation: {element.get('nation')}\nRelationship: {element.get('kind')}\nSaved value: {element.get('value')}")
+            owner = self.document.players.get(element.get('owner'))
+            self.raw_xml.setPlainText(formatted_record_xml(owner) if owner is not None else 'No source player')
+            self.overview.setPlainText('Read-only diplomatic relationship from the owning player XML.')
+            return
         if self.group == 'Game properties':
             source = element.get('source')
             name = element.get('name')
