@@ -7,6 +7,7 @@ import sys
 import os
 from time import perf_counter
 from pathlib import Path
+from xml.etree.ElementTree import Element
 
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont, QBrush, QPixmap, QIcon
@@ -863,7 +864,7 @@ class QtExplorer(QMainWindow):
             self.inspector_label.setText(f'{source}: {name}')
             self.details.setPlainText(f'Source: {source}\nProperty: {name}\nSaved value: {value}')
             self.overview.setPlainText('Read-only metadata from the saved game XML.\nNo option values are inferred.')
-            self.raw_xml.setPlainText(formatted_record_xml(self.document.root if source == 'Savegame' else self.document.game))
+            self.raw_xml.setPlainText(formatted_record_xml(Element('saved' + source, dict((self.document.root if source == 'Savegame' else self.document.game).attrib))))
             return
         label = element.get('name') or element.get('username') or element.get('id') or 'Record'
         self.inspector_label.setText(label)
