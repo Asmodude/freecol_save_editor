@@ -222,6 +222,8 @@ Every phase runs on its own branch. `main` changes only after the user accepts t
 
 **Automated protection:** pure helper tests plus `test_qt_phase1_exit_audit.py` check source compilation, read-only boundaries, navigation scopes, sorted-record identity, and deliberate development-only overrides. Automated CI is not proof of Windows GUI behavior.
 
+**Mockup fidelity — outstanding Phase 1 acceptance requirement (24 October 2026):** Replace the current generic Qt standard placeholder icons in the Savegame Explorer with the approved mockup's intended section, colony, unit, goods and other relevant icons, and use the correct nation flags for European and native faction entries where appropriate. Confirm icon sizes, alignment, hierarchy, selected-state legibility, and light/dark theme compatibility against the approved mockup on Windows. Prefer FreeCol artwork sourced from the locally installed game (never bundle copyrighted artwork), with predictable, tasteful fallbacks for genuinely unavailable assets. This is **not** optional packaging polish: Phase 1 is not visually accepted until the user verifies the navigation artwork/flags against the approved mockup.
+
 **Remaining exit checks (not silently assumed passed):**
 - Full representative end-to-end Windows smoke tour on a newer save, including rivals, native settlements, sorted search navigation, selected item Raw XML, all units and location groups, zero-stock Goods, cargo and game properties.
 - Confirm accurate high-DPI rendering and Windows dark appearance on the actual user system (11 pt size confirmed, theme behavior not formally verified).
