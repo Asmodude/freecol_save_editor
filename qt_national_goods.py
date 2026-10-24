@@ -33,3 +33,23 @@ def national_goods(document, player_id):
         'amount':str(totals[kind]), 'colonies':str(colonies[kind]),
         'owner':player_id})
         for kind in sorted(catalog,key=lambda k:presentation.readable(k).casefold())]
+
+
+def colony_goods_breakdown(document, player_id, goods_id):
+    """Stable, read-only per-colony quantities including zero-stock colonies."""
+    if not player_id or player_id not in document.players or not goods_id:
+        return []
+    rows=[]
+    for colony in document.colonies:
+        if colony.get('owner')!=player_id:
+            continue
+        total=0
+        for good in colony.findall('./goodsContainer/storedGoods/goods'):
+            if good.get('type')==goods_id:
+                try:
+                    total+=int(good.get('amount','0'))
+                except ValueError:
+                    continue
+        rows.append((colony.get('name') or colony.get('id') or 'Unnamed colony',
+                     str(total)))
+    return sorted(rows,key=lambda row:row[0].casefold())
