@@ -226,6 +226,8 @@ Every phase runs on its own branch. `main` changes only after the user accepts t
 - 🟡 Destructive actions are visually separated from routine edits and always confirmed.
 - 🟢 Keyboard workflow: Tab between fields, Enter to stage, Esc to cancel.
 
+**Additional Phase 2 requirement — saved random seed (requested 24 October 2026):** Identify the exact persisted random-seed field and its type/range in the target FreeCol save format before implementing editing. Display the existing seed in the Qt game-level information view, including the raw stored value. Provide an explicitly editable field in Phase 2 with validation, staged changes, per-item undo, and Save As through the established EditSession/produce pipeline; never modify the original save. Preserve unrelated RNG state and other savegame attributes. Test unchanged-value roundtrip, a changed seed, invalid inputs, and FreeCol load → advance turn → save → reload. Do not assume that editing a seed will reproduce a particular sequence of events without verifying FreeCol's RNG semantics.
+
 **Exit:** the Qt version can do everything the Tk version can, and the user is willing to use it instead.
 
 ### Phase 3: Map in Qt
