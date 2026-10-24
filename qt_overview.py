@@ -56,6 +56,10 @@ def record_overview(group, element, document):
         for i in range(3):
             field(f'Wanted goods {i+1}', presentation.readable(element.get(f'wantedGoods{i}')))
         lines.extend(['', 'Select Affiliated units for units with this settlement as home or explicit affiliation.'])
+    elif group == 'Founding Fathers':
+        field('Status', element.get('status'))
+        field('FreeCol identifier', element.get('id'))
+        lines.extend(['', 'This is a read-only view of the owning player’s father membership.'])
     elif group == 'Players':
         field('Nation', presentation.readable(element.get('nationId')))
         field('Type', element.get('playerType'))
