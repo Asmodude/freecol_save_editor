@@ -531,7 +531,8 @@ class QtExplorer(QMainWindow):
 
     def inspect_detail(self, section):
         table = self.colony_tables[section]
-        row = table.currentRow()
+        chosen = table.selectedItems()
+        row = chosen[0].row() if chosen else table.currentRow()
         if (self.selected_element is None or self.tabs.indexOf(table) < 0
                 or row < 0 or row >= table.rowCount()):
             return
@@ -659,6 +660,12 @@ class QtExplorer(QMainWindow):
         if self.group == 'National Goods':
             self.selected_element = element
             self.update_detail_tabs(element)
+            # The breakdown table is rebuilt with signals blocked. Select a
+            # real colony afterwards so the inspector and action are live.
+            breakdown = self.colony_tables['By colony']
+            if breakdown.rowCount():
+                breakdown.selectRow(0)
+                self.inspect_detail('By colony')
             name = element.get('name', 'Goods')
             amount = element.get('amount', '0')
             count = element.get('colonies', '0')
