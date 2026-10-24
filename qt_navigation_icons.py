@@ -148,9 +148,26 @@ def _portuguese_flag_icon(size):
             image.setPixel(x, y, green if x < boundary else red)
     painter = QPainter(image)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    # Armillary sphere and simplified Portuguese shield with five blue escutcheons.
+    # Draw at a higher logical resolution when constructing the original pixmap
+    # (the caller supplies 20px for the navigation and 48px for the header).
     painter.setBrush(Qt.BrushStyle.NoBrush)
-    painter.setPen(QPen(QColor('#ffcc33'), max(1.0, size * .075)))
-    painter.drawEllipse(QRectF(size * .30, size * .32, size * .28, size * .36))
+    painter.setPen(QPen(QColor('#e8b731'), max(1.0, size * .042)))
+    painter.drawEllipse(QRectF(size * .29, size * .23, size * .43, size * .53))
+    painter.drawEllipse(QRectF(size * .34, size * .24, size * .32, size * .51))
+    painter.drawLine(QPointF(size * .30, size * .5), QPointF(size * .71, size * .5))
+    painter.setPen(QPen(QColor('#bd1e2d'), max(.6, size * .015)))
+    painter.setBrush(QColor('#ffffff'))
+    shield = QPolygonF([
+        QPointF(size*.405,size*.335), QPointF(size*.605,size*.335),
+        QPointF(size*.605,size*.575), QPointF(size*.505,size*.685),
+        QPointF(size*.405,size*.575)])
+    painter.drawPolygon(shield)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor('#174a96'))
+    for x,y in ((.475,.39),(.435,.48),(.515,.48),(.475,.56),(.555,.48)):
+        painter.drawRoundedRect(QRectF(size*x,size*y,size*.043,size*.067),
+                                size*.008,size*.008)
     painter.end()
     return QIcon(QPixmap.fromImage(image))
 
