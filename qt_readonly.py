@@ -68,6 +68,7 @@ class QtExplorer(QMainWindow):
         self.selected_element = None
         self.detail_unit_id = None
         self.detail_nodes = {}
+        self.breakdown_target = None
         self.father_portraits = FatherPortraits()
         self.recruiting_father = None
         self.offered_fathers = []
@@ -179,6 +180,10 @@ class QtExplorer(QMainWindow):
         self.raw_xml.setReadOnly(True)
         self.inspector_tabs.addTab(self.raw_xml, 'Raw XML')
         inspector_layout.addWidget(self.inspector_tabs, 1)
+        self.jump_colony_button = QPushButton('Open colony Goods →')
+        self.jump_colony_button.setEnabled(False)
+        self.jump_colony_button.clicked.connect(self.open_breakdown_colony)
+        inspector_layout.addWidget(self.jump_colony_button)
         self.jump_unit_button = QPushButton('Open full unit record →')
         self.jump_unit_button.setEnabled(False)
         self.jump_unit_button.clicked.connect(self.open_detail_unit)
@@ -362,6 +367,8 @@ class QtExplorer(QMainWindow):
         self.selected_element = None
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
+        self.jump_colony_button.setEnabled(False)
+        self.breakdown_target = None
         self.details.clear()
         self.raw_xml.clear()
         self.inspector_label.setText('Select an individual row to inspect its attributes.')
@@ -545,6 +552,12 @@ class QtExplorer(QMainWindow):
         source_item = table.item(row, 0)
         source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
         exact = exact_nodes[source_index] if isinstance(source_index, int) and source_index < len(exact_nodes) else None
+        if section == 'By colony':
+            self.breakdown_target = (self.selected_element.get('id'), values[0])
+            self.jump_colony_button.setEnabled(True)
+            self.details.setPlainText(description + '\n\nUse Open colony Goods to inspect this warehouse.')
+            self.raw_xml.setPlainText('Read-only summary; visit the colony for source XML.')
+            return
         if section == 'Goods' and exact is None:
             description += ('\n\nNo stored-goods XML entry exists for this type. '
                             'Zero is displayed for completeness; Phase 2 will need '
