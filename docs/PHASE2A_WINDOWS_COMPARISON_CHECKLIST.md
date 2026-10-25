@@ -1,42 +1,44 @@
-# Phase 2A — Windows comparison checklist
+# Phase 2A — final Windows sanity re-check (single workspace table)
 
-This is a **preview**, not an acceptance declaration. The protected `main`
-branch and the accepted Tkinter editor remain unchanged.
+The experimental comparison mode has been **removed**. This is the
+pre-merge acceptance check for the permanent, single model-based `QTableView`.
+The accepted Tkinter editor and map editor remain unchanged.
 
-## Launch both variants from the feature branch
+## Run the final build
+From PowerShell in the feature-branch repository directory:
+```powershell
+py qt_readonly.py
+```
+**Do not** use `--compare-model-view`; that flag no longer exists.
 
-From a PowerShell prompt at the repository root, with PySide6 installed:
+Open your normal FreeCol `.fsg` and verify:
 
-- Accepted read-only Qt interface: `py qt_readonly.py`
-- Experimental QTableView interface: `py qt_readonly.py --compare-model-view`
+1. **Players, Units, Colonies, Native settlements, Founding Fathers,
+   National Goods, Game properties:** table headers, sprites, tooltips,
+   spacing, row heights and columns look appropriate.
+2. **Sort** text and numeric columns in both directions. Clicking a sorted
+   row must inspect the correct record, not a record at the original row.
+3. **Filter/search:** selecting a global-search result opens the correct
+   record. Changing a filter or navigation scope must not leave stale
+   Inspector contents.
+4. **Colonies:** selecting Christiansborg in the left navigation directly
+   opens its Inspector and overview; broad lists are not auto-selected.
+5. **Units:** the main list displays role-aware artwork, including Dragoon
+   sprites where installed. Workers and Stationed units have appropriately
+   tall rows; contextual Open Unit works.
+6. **National Goods:** choose a good, select a colony in By colony, click
+   Open colony Goods; confirm that colony's Goods tab and selected good.
+7. **Diplomacy:** Rival Nations and Natives remain separate. The lower
+   detail-tab and Diplomacy tables deliberately remain QTableWidget pending
+   editing work in Phase 2C.
+8. The Tkinter editor and its Map Editor still launch normally. Qt remains
+   read-only, and opening/browsing a save does not modify it.
 
-The switch is **opt-in per launch**. Remove the argument to restore the
-accepted view. It does not enable save editing or modify any FSG file.
+## Merge gate
+- Final HEAD CI `headless` check green.
+- Explicit user approval of this single-view Windows re-check.
+- Merge PR #4 using a merge commit (never direct-push to protected `main`).
+- Tag the **merge commit** `v0.6.2.6.4-phase2a`, then delete the feature
+  branch.
 
-## Compare using the same existing .fsg save
-
-1. Open the save in both versions. Check **Players**, **Units** and
-   **Colonies**: names, headers, numerical values, icons, tooltips, row
-   heights, and column widths.
-2. Sort numeric columns (e.g. Gold and Established); confirm numeric order
-   and that selecting a row opens the **correct** Inspector record.
-3. In both versions use global search to open a colony/unit, and test the
-   contextual **Open Unit** action from the detailed Inspector.
-4. Switch rapidly between owned and rival player scopes, and between
-   categories, after selecting and sorting a row. The Inspector must never
-   show a stale record.
-5. Check **Native settlements**, **Founding Fathers**, **National Goods**,
-   **Game properties**, and the separate **Diplomacy** tables for Rival
-   Nations and Natives. Report any missing features or layout differences.
-6. Verify the accepted Tkinter editor and map editor still launch and edit
-   exactly as before.
-
-## Exit criteria
-
-- Required CI green on the **current** feature-branch HEAD.
-- No known loss of accepted features or visual regressions.
-- Windows smoke test of the experimental view with a real save.
-- Explicit user acceptance before merging Phase 2A or making the new table
-  the default.
-
-Please include the category, steps and a screenshot for any discrepancy.
+Do not declare Phase 2A fully merged or tag it before those gates.
