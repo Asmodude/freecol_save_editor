@@ -13,6 +13,7 @@ class Phase1ExitAudit(unittest.TestCase):
     def setUpClass(cls):
         cls.qt=(ROOT/'qt_readonly.py').read_text(encoding='utf-8')
         cls.tree=ast.parse(cls.qt)
+        cls.navigation=(ROOT/'qt_navigation_builder.py').read_text(encoding='utf-8')
 
     def test_read_only_shell_does_not_serialize_or_change_xml(self):
         forbidden=('.set(', '.append(', '.remove(', '.write(', 'produce(', '.save_as(')
@@ -25,10 +26,10 @@ class Phase1ExitAudit(unittest.TestCase):
 
     def test_scoped_nation_views_and_global_search_exist(self):
         for token in ("'National Goods'", "'Founding Fathers'", "'Game properties'",
-                      "unit_group_scope(owner, 'vessel'", "('In the field', 'field')",
-                      'self.global_button.clicked.connect(self.open_global_search)'):
+                      "unit_group_scope(owner, 'vessel'", "('In the field', 'field')"):
             with self.subTest(token=token):
-                self.assertIn(token,self.qt)
+                self.assertIn(token,self.qt + self.navigation)
+        self.assertIn('self.global_button.clicked.connect(self.open_global_search)',self.qt)
 
     def test_sorted_navigation_uses_original_row_identity(self):
         self.assertIn('cell.setData(Qt.ItemDataRole.UserRole, row)',self.qt)
