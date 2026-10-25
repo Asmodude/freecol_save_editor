@@ -1,6 +1,6 @@
 # FreeCol Save Editor — Development Roadmap
 
-_Last revised: 2026-10-22. Planning document; targets are not deadlines._
+_Last revised: 2026-10-25. Planning document; targets are not deadlines._
 
 ## Development principles
 - **Non-regression:** every user-accepted capability is a continuing requirement. Changes require regression testing; deliberate changes to accepted behaviour require agreement.
@@ -13,7 +13,9 @@ _Last revised: 2026-10-22. Planning document; targets are not deadlines._
 - **Latest accepted integration baseline:** `v0.6.2.6.4` — 9×9 map, native-mask river prototype, established directional roads, and 12 accepted colony sprites (user-verified on Windows).
 - **Phase 0 (core extraction):** accepted and merged 2026-10-23, tag `v0.6.2.6.4-phase0`. UI-free core: `save_document.py`, `edit_session.py`, `presentation.py`, `map_render.py`, `freecol_art_source.py`; 65 headless tests in CI on `main`. No user-visible changes.
 - **Current development series:** 0.6. Terrain editing is not yet enabled.
-- **Immediate next milestone:** **Phase 1 — read-only PySide6 shell** on top of the Phase 0 core (see `UI_MODERNISATION_PLAN.md` §5). First step: confirm PySide6 installs and runs on Python 3.14. The Tk UI keeps working alongside it. Native RoadPainter-style roads remain deferred to Phase 3.
+- **Phase 1 (read-only PySide6 shell): ACCEPTED by user on 2026-10-25**, on `feature/phase1-qt-readonly-shell`. The Qt explorer remains strictly read-only; the accepted Tk editor and Map Editor remain separate. Windows UI and save-file hash checks were completed; GitHub Actions regression run #265 was green on commit `8ab9e2d` (subsequent contextual-button changes have not been independently confirmed green in this record).
+- **Integration status:** Phase 1 acceptance is recorded on the feature branch only. Merge into `main`, tagging and branch deletion require separate authorisation. The existing 0.6.x application version roadmap is unchanged; Phase 1 is an internal UI milestone, not version 0.7.
+- **Next engineering work after integration:** begin the Qt model/view and component decomposition described in `docs/PHASE1_ASSESSMENT.md` before introducing Qt editing. Terrain work remains on the established 0.6.x roadmap; native RoadPainter-style roads remain deferred to Phase 3.
 
 ## Application startup and navigation — planned usability refinement (Phase 1 candidate)
 - **Default post-load selection:** After an `.fsg` file is successfully loaded, open the **Players** view and automatically select the human-controlled player.
