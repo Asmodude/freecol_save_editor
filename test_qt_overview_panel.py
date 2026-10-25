@@ -37,6 +37,29 @@ class OverviewPanelTests(unittest.TestCase):
             self.assertIn(expected, labels)
         panel.deleteLater()
 
+    def test_responsive_sections_reflow_without_losing_values(self):
+        panel = OverviewPanel()
+        panel.setPlainText(
+            'Christiansborg\\nOwner: Danish\\n'
+            'Population and activity\\nWorkplace workers: 6\\n'
+            'Largest warehouse stockpiles\\nBells: 649\\n'
+            'Occupied buildings\\nTown Hall: 1 worker')
+        panel.scroll.viewport().resize(1300, 500)
+        panel._layout_sections()
+        self.assertEqual(len(panel._section_cards), 4)
+        self.assertEqual(panel._section_columns, 3)
+        self.assertEqual(panel._sections_grid.itemAtPosition(1, 0).widget(),
+                         panel._section_cards[3])
+        panel.scroll.viewport().resize(530, 500)
+        panel._layout_sections()
+        self.assertEqual(panel._section_columns, 1)
+        self.assertEqual(panel._sections_grid.itemAtPosition(3, 0).widget(),
+                         panel._section_cards[3])
+        labels = [widget.text() for widget in panel.findChildren(QLabel)]
+        self.assertIn('Bells', labels)
+        self.assertIn('Town Hall', labels)
+        panel.deleteLater()
+
     def test_icons_cover_property_rows(self):
         labels = ('Owner', 'Map location', 'Established', 'Liberty bells',
                   'Sons of Liberty', 'Production bonus', 'Workplace workers',
