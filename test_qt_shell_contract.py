@@ -65,6 +65,12 @@ class QtShellContractTests(unittest.TestCase):
         self.assertNotIn("entry(rival, 'Research'", self.source)
         self.assertIn("entry(None, 'Map', ready=False, kind='map')", self.source)
 
+    def test_colony_goods_action_only_visible_in_breakdown_context(self):
+        self.assertIn("self.jump_colony_button.setVisible(relevant)", self.source)
+        self.assertIn("self.tabs.currentWidget() is table", self.source)
+        self.assertIn("self.group == 'National Goods'", self.source)
+        self.assertIn("self.refresh_breakdown_action(self.tabs.currentIndex())", self.source)
+
     def test_vertical_workspace_splitter(self):
         self.assertIn('self.workspace_splitter = QSplitter(Qt.Orientation.Vertical)', self.source)
         self.assertIn('self.workspace_splitter.addWidget(self.workspace_table_area)', self.source)
