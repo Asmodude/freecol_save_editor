@@ -6,6 +6,18 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Phase 2A — modular Qt model/view refactor — USER ACCEPTED (2026-10-25), merged to `main` via PR #4
+- Extracted Qt navigation, global search, diplomacy, Founding Fathers, contextual detail tabs, and workspace header into focused modules.
+- Introduced the source-identity-preserving `RecordTableModel`, category-aware sort/filter proxy, and a single permanent `QTableView` workspace; removed the old workspace `QTableWidget`, duplicate population, comparison switch, and `--compare-model-view` launcher flag.
+- Verified read-only Inspector navigation, sorting/filtering, global search, contextual Unit and colony Goods drill-down, original XML identity, and presentation metadata with save-backed/offscreen tests.
+- **Accepted user-visible improvements during 2A:** Dragoon and other role-aware unit artwork (including detail tables); automatic Inspector/Overview for explicitly selected individual colonies and native settlements; taller Workers and Stationed units rows matching the main Units list.
+- Diplomacy tables and lower detail tables intentionally remain `QTableWidget` pending their editability work in 2C.
+- User accepted the comparison-mode Windows behaviour on 2026-10-25, and then **passed the final single-table default-launch Windows re-check** (`docs/PHASE2A_WINDOWS_COMPARISON_CHECKLIST.md`) on 2026-10-25.
+- Independent review (Claude, `docs/PHASE2A_SANITY_CHECK.md`): 248 tests OK locally; PR #4 CI green; live off-screen walk of the single `QTableView` (33 navigation entries, 502 sorted-row selections) with 0 record-identity mismatches, 0 exceptions, no editable tables, and loaded XML and source `.fsg` byte-identical.
+- Merged PR #4 into `main` with a merge commit. The user tags the merge commit `v0.6.2.6.4-phase2a` and deletes the feature branch.
+
+
+
 ### Phase 1 Qt read-only interface — USER ACCEPTED (2026-10-25), merged to `main`
 - **Merge, 2026-10-25:** merged `feature/phase1-qt-readonly-shell` into `main` with a merge commit. Tag `v0.6.2.6.4-phase1` and feature-branch deletion are performed manually by the user (this review session cannot push tags or delete branches).
 - **Pre-merge fix:** the source-text assertion `self.tabs.currentWidget() is not table` in `test_qt_goods_drilldown_contract.py` broke on a behaviour-preserving rewrite in `2f3fb93`, turning CI red on the last eight commits. It was replaced by off-screen Qt behavioural tests of the National Goods → By colony drill-down: the button is hidden elsewhere; it is visible but disabled when the tab opens; it is enabled only after an explicit row selection; and clicking opens that colony's Goods tab with the good selected. Mutation-checked: the tests fail if visibility is forced on. Local suite: 189 tests OK, 1 expected skip; CI green on the merged head.

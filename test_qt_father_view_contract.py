@@ -7,6 +7,7 @@ class FatherViewContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.source=Path(__file__).with_name('qt_readonly.py').read_text(encoding='utf-8')
+        cls.father_view=Path(__file__).with_name('qt_founding_fathers_view.py').read_text(encoding='utf-8')
 
     def test_recruited_only_and_separate_banner(self):
         self.assertIn("element.get('status') != 'Recruited'",self.source)
@@ -21,12 +22,12 @@ class FatherViewContractTests(unittest.TestCase):
     def test_spacing_and_source_inspector(self):
         self.assertIn('self.father_section_spacing.setFixedHeight(20)',self.source)
         self.assertIn('self.father_section_spacing.setVisible(father_view)',self.source)
-        self.assertIn('father_source_node(self.document, element)',self.source)
+        self.assertIn('father_source_node(self.document, element)',self.father_view)
 
     def test_names_not_raw_ids_in_upper_table(self):
         self.assertIn("'Founding Fathers': ('Founding Father', 'Status')",self.source)
         self.assertIn("element.get('name'), element.get('status')",self.source)
-        self.assertIn("self.father_portraits.get(rows[row][0].get('id'))",self.source)
+        self.assertIn("self.father_portraits.get(record.get('id'))",self.source)
 
 
 if __name__=='__main__':

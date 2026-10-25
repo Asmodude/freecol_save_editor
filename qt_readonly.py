@@ -9,7 +9,7 @@ from time import perf_counter
 from pathlib import Path
 from xml.etree.ElementTree import Element
 
-from PySide6.QtCore import Qt, QSize, QSettings
+from PySide6.QtCore import Qt, QSize, QSettings, QSortFilterProxyModel
 from PySide6.QtGui import QFont, QBrush, QPixmap, QIcon
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QDialog,
@@ -21,6 +21,16 @@ from save_document import SaveDocument
 from edit_session import EditSession
 import presentation
 from qt_navigation import rows_for_scope, human_player_id
+from qt_navigation_lookup import find_navigation_item
+from qt_navigation_builder import NavigationBuilderMixin
+from qt_global_search_ui import GlobalSearchMixin
+from qt_diplomacy_view import DiplomacyViewMixin
+from qt_founding_fathers_view import FoundingFathersViewMixin
+from qt_workspace_header_view import WorkspaceHeaderMixin
+from qt_detail_tabs_view import DetailTabsMixin
+from qt_record_table_model import RecordTableModel
+from qt_record_sort_proxy import RecordSortFilterProxy
+from qt_record_table_view import build_record_table_view, apply_record_view_sizing, selected_source_record, select_record_in_view
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
@@ -63,19 +73,7 @@ HEADERS = {
 
 
 
-class SortableItem(QTableWidgetItem):
-    """Keep row identity attached to items during Qt sorting."""
-    def __init__(self, value, numeric=False):
-        super().__init__('' if value is None else str(value))
-        self.numeric = numeric
-        if numeric:
-            self.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-
-    def __lt__(self, other):
-        return sort_key(self.text(), self.numeric) < sort_key(other.text(), self.numeric)
-
-
-class QtExplorer(QMainWindow):
+class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin, DiplomacyViewMixin, GlobalSearchMixin, NavigationBuilderMixin, QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('FreeCol Save Editor — Qt preview (READ ONLY)')
@@ -85,6 +83,13 @@ class QtExplorer(QMainWindow):
         self.group = 'Players'
         self.scope = 'mine'
         self.visible_rows = []
+        # Staged migration: mirror displayed records in a real Qt model while
+        # keeping the accepted QTableWidget UI unchanged until parity is proven.
+        self.record_model = RecordTableModel()
+        self.record_proxy = RecordSortFilterProxy(self)
+        self.record_proxy.setSourceModel(self.record_model)
+        self.record_proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.record_proxy.setFilterKeyColumn(-1)
         self.selected_element = None
         self.detail_unit_id = None
         self.detail_nodes = {}
@@ -208,14 +213,10 @@ class QtExplorer(QMainWindow):
         table_area_layout = QVBoxLayout(self.workspace_table_area)
         table_area_layout.setContentsMargins(0, 0, 0, 0)
         table_area_layout.setSpacing(0)
-        self.grid = QTableWidget()
-        self.grid.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.grid.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.grid.setAlternatingRowColors(True)
-        self.grid.setSortingEnabled(True)
-        self.grid.setIconSize(QSize(60, 65))
-        self.grid.itemSelectionChanged.connect(self.inspect)
-        table_area_layout.addWidget(self.grid, 1)
+        self.model_view = build_record_table_view(self.record_proxy, self.workspace_table_area)
+        self.model_view.selectionModel().currentChanged.connect(
+            lambda current, previous: self.inspect())
+        table_area_layout.addWidget(self.model_view, 1)
         self.diplomacy_tabs = QTabWidget()
         self.diplomacy_grids = {}
         for category in ('Rival Nations', 'Natives'):
@@ -305,136 +306,6 @@ class QtExplorer(QMainWindow):
         label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         return label
 
-    def install_navigation(self):
-        """Build the approved navigation structure; disable views not implemented yet."""
-        self.navigation.blockSignals(True)
-        self.navigation.setUpdatesEnabled(False)
-        self.navigation.clear()
-        def entry(parent, label, group=None, scope=None, ready=True, kind='section', nation_id=None, native=False):
-            item = QTreeWidgetItem([label])
-            item.setIcon(0, flag_icon(nation_id, 17) if kind == 'nation' and nation_id and not native and not flag_icon(nation_id, 17).isNull() else self.navigation_icons.icon(kind, nation_id, native))
-            if nation_id:
-                # Diagnostic provenance for mismatched or unfamiliar faction art.
-                item.setToolTip(0, f'Saved nation ID: {nation_id}')
-            if kind == 'nation':
-                font = QFont(item.font(0))
-                font.setBold(True)
-                item.setFont(0, font)
-            if parent is None:
-                self.navigation.addTopLevelItem(item)
-            else:
-                parent.addChild(item)
-            if group and ready:
-                item.setData(0, Qt.ItemDataRole.UserRole, (group, scope))
-            else:
-                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
-                if not ready:
-                    item.setText(0, label + '  (planned)')
-                    item.setForeground(0, QBrush(self.palette().color(self.foregroundRole()).lighter(135)))
-                    item.setToolTip(0, 'Not yet implemented in the Phase 1 Qt preview')
-            return item
-
-        def grouped_unit_entries(parent, owner):
-            if not doc or not owner:
-                return
-            groups = unit_groups(doc, owner)
-            colonies = [c for c in doc.colonies if c.get('owner') == owner and c.get('id')]
-            for colony in sorted(colonies, key=lambda c:(c.get('name') or '').casefold()):
-                key = ('colony', colony.get('id'))
-                count = len(groups.get(key, ()))
-                if count:
-                    entry(parent, f"{colony.get('name') or colony.get('id')} ({count})",
-                          'Units', unit_group_scope(owner, 'colony', colony.get('id')), kind='colony')
-            aboard = groups.get(('ship', ''), ())
-            if aboard:
-                ships_node = entry(parent, f'Aboard ships ({len(aboard)})',
-                                   'Units', unit_group_scope(owner, 'ship'))
-                carriers = sorted(
-                    (unit for unit in doc.units
-                     if unit.get('owner') == owner
-                     and ('vessel', unit.get('id')) in groups
-                     and groups[('vessel', unit.get('id'))]),
-                    key=lambda unit: (presentation.readable(unit.get('unitType')).casefold(),
-                                      unit.get('id') or ''))
-                for carrier in carriers:
-                    passengers = groups[('vessel', carrier.get('id'))]
-                    name = presentation.readable(carrier.get('unitType'))
-                    entry(ships_node, f'{name} — {carrier.get("id")} ({len(passengers)})',
-                          'Units', unit_group_scope(owner, 'vessel', carrier.get('id')))
-            for label, kind in (('In the field', 'field'), ('Other locations', 'other')):
-                count = len(groups.get((kind, ''), ()))
-                if count:
-                    entry(parent, f'{label} ({count})', 'Units',
-                          unit_group_scope(owner, kind))
-        
-        doc = self.document
-        own = human_player_id(doc) if doc else None
-        human = doc.players.get(own) if doc and own else None
-        nation = presentation.readable(human.get('nationId')) if human is not None else 'My Nation'
-        my = entry(None, nation + ' (Player)', kind='nation', nation_id=human.get('nationId') if human is not None else None)
-        overview = entry(my, 'Overview', 'Players', 'mine', kind='overview')
-        entry(my, 'Diplomacy', 'Diplomacy', 'mine', kind='diplomacy')
-        my_colonies = entry(my, 'Colonies', 'Colonies', 'mine', kind='colonies')
-        if doc and own:
-            for colony in sorted((c for c in doc.colonies if c.get('owner') == own),
-                                 key=lambda c: (c.get('name') or '').casefold()):
-                entry(my_colonies, colony.get('name') or colony.get('id'),
-                      'Colonies', 'colony-id:' + colony.get('id'), kind='colony')
-        my_units = entry(my, 'Units', 'Units', 'mine', kind='units')
-        grouped_unit_entries(my_units, own)
-        entry(my, 'Goods', 'National Goods', 'mine', kind='goods')
-        entry(my, 'Founding Fathers', 'Founding Fathers', 'mine', kind='fathers')
-        entry(my, 'Player Options', ready=False, kind='options')
-
-        rivals = entry(None, 'Rival Nations', kind='nation')
-        entry(rivals, 'All European rivals', 'Players', 'rivals')
-        natives = entry(None, 'Native Nations', kind='nation', native=True)
-        entry(natives, 'All native settlements', 'Native settlements', 'native')
-        if doc:
-            for player in doc.players.values():
-                pid = player.get('id')
-                if pid == own:
-                    continue
-                nation_id = player.get('nationId') or player.get('nation')
-                if player.get('playerType') == 'colonial':
-                    label = presentation.readable(nation_id) or pid
-                    rival = entry(rivals, label, kind='nation', nation_id=nation_id)
-                    entry(rival, 'Overview', 'Players', 'player:' + pid, kind='overview')
-                    entry(rival, 'Diplomacy', 'Diplomacy', 'player:' + pid, kind='diplomacy')
-                    colony_group = entry(rival, 'Colonies', 'Colonies', 'player:' + pid)
-                    for colony in sorted((c for c in doc.colonies if c.get('owner') == pid),
-                                         key=lambda c: (c.get('name') or '').casefold()):
-                        entry(colony_group, colony.get('name') or colony.get('id'),
-                              'Colonies', 'colony-id:' + colony.get('id'))
-                    rival_units = entry(rival, 'Units', 'Units', 'player:' + pid)
-                    grouped_unit_entries(rival_units, pid)
-                    entry(rival, 'Goods', 'National Goods', 'player:' + pid)
-                    entry(rival, 'Founding Fathers', 'Founding Fathers', 'player:' + pid)
-                    entry(rival, 'Player Options', ready=False)
-                elif player.get('playerType') in ('indian', 'native'):
-                    label = presentation.readable(nation_id) or pid
-                    native = entry(natives, label, kind='nation', nation_id=nation_id, native=True)
-                    entry(native, 'Overview', 'Players', 'player:' + pid, kind='overview')
-                    entry(native, 'Diplomacy', 'Diplomacy', 'player:' + pid, kind='diplomacy')
-                    settlements = entry(native, 'Settlements', 'Native settlements', 'native-owner:' + pid)
-                    for village in sorted((v for v in doc.native_settlements if v.get('owner') == pid),
-                                          key=lambda v: (v.get('name') or '').casefold()):
-                        if village.get('id'):
-                            entry(settlements, village.get('name') or village.get('id'),
-                                  'Native settlements', 'settlement-id:' + village.get('id'),
-                                  kind='colony')
-                    native_units = entry(native, 'Units', 'Units', 'player:' + pid)
-                    grouped_unit_entries(native_units, pid)
-
-        entry(None, 'Map', ready=False, kind='map')
-        entry(None, 'Game properties', 'Game properties', 'game', kind='options')
-        my.setExpanded(True)
-        rivals.setExpanded(True)
-        natives.setExpanded(True)
-        self.navigation.blockSignals(False)
-        self.navigation.setCurrentItem(overview)
-        self.navigation.setUpdatesEnabled(True)
-
     def _default_save_directory(self):
         return save_directory(previous=self.art_settings.value('last_save_directory', '', type=str))
 
@@ -470,115 +341,6 @@ class QtExplorer(QMainWindow):
             f'{len(document.native_settlements)} native settlements · {len(document.units)} units'
             ' · Qt read-only; Map Editor in Tkinter')
 
-    def open_global_search(self):
-        if self.document is None:
-            return
-        dialog = QDialog(self)
-        dialog.setWindowTitle('Search all saved records')
-        dialog.resize(760, 490)
-        layout = QVBoxLayout(dialog)
-        field = QLineEdit()
-        field.setPlaceholderText('Search players, colonies, settlements and units…')
-        results = QTableWidget()
-        results.setColumnCount(4)
-        results.setHorizontalHeaderLabels(('Category','Name','Owner','ID'))
-        results.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        results.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        results.setAlternatingRowColors(True)
-        results.setSortingEnabled(True)
-        status = QLabel('Enter a name, profession or record ID.')
-        layout.addWidget(field)
-        layout.addWidget(results, 1)
-        layout.addWidget(status)
-        matches = []
-
-        def update():
-            nonlocal matches
-            matches = global_results(self.document, field.text())
-            results.setSortingEnabled(False)
-            results.setRowCount(len(matches))
-            for row, (group, element, name, owner) in enumerate(matches):
-                for col, value in enumerate((group, name, owner, element.get('id',''))):
-                    cell = SortableItem(value)
-                    cell.setData(Qt.ItemDataRole.UserRole, row)
-                    cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                    results.setItem(row, col, cell)
-            results.setSortingEnabled(True)
-            status.setText(f'{len(matches)} matches (first 250 shown). Double-click to open.'
-                           if field.text().strip() else 'Enter a name, profession or record ID.')
-
-        def open_match(row, _column):
-            cell = results.item(row, 0)
-            source_index = cell.data(Qt.ItemDataRole.UserRole) if cell is not None else None
-            if isinstance(source_index, int) and 0 <= source_index < len(matches):
-                group, element, _name, _owner = matches[source_index]
-                dialog.accept()
-                self.navigate_to_global_result(group, element)
-
-        field.textChanged.connect(update)
-        results.cellDoubleClicked.connect(open_match)
-        field.setFocus()
-        dialog.exec()
-
-    def navigate_to_global_result(self, group, element):
-        """Use an existing navigation scope; never fabricate a savegame record."""
-        record_id = element.get('id')
-        owner = element.get('owner')
-        own = human_player_id(self.document)
-        if group == 'Colonies':
-            scope = 'colony-id:' + record_id
-        elif group == 'Native settlements':
-            scope = 'settlement-id:' + record_id
-        elif group == 'Players':
-            scope = 'mine' if record_id == own else 'player:' + record_id
-        else:
-            scope = 'mine' if owner == own else 'player:' + owner
-        def find_item(parent):
-            if parent.data(0, Qt.ItemDataRole.UserRole) == (group, scope):
-                return parent
-            for i in range(parent.childCount()):
-                match = find_item(parent.child(i))
-                if match is not None:
-                    return match
-            return None
-        target = None
-        for i in range(self.navigation.topLevelItemCount()):
-            target = find_item(self.navigation.topLevelItem(i))
-            if target is not None:
-                break
-        if target is None:
-            return
-        self.search.blockSignals(True)
-        self.search.clear()
-        self.search.blockSignals(False)
-        if self.navigation.currentItem() is target:
-            self.populate()
-        else:
-            self.navigation.setCurrentItem(target)
-        if group == 'Founding Fathers':
-            if element.get('status') == 'Recruiting':
-                self.inspect_recruiting_father()
-                return
-            for row in range(self.grid.rowCount()):
-                cell=self.grid.item(row,0)
-                if cell is not None and cell.text() == element.get('name'):
-                    self.grid.selectRow(row)
-                    self.grid.scrollToItem(cell)
-                    return
-            # Offered fathers are not Congress members; inspect the virtual record.
-            self.inspect_father_record(element)
-            return
-        for row in range(self.grid.rowCount()):
-            cell = self.grid.item(row, 0)
-            if cell is None:
-                continue
-            index = cell.data(Qt.ItemDataRole.UserRole)
-            if isinstance(index, int) and index < len(self.visible_rows):
-                if self.visible_rows[index] is element:
-                    self.grid.selectRow(row)
-                    self.grid.scrollToItem(cell)
-                    return
-
     def navigate(self, current, previous):
         if current is None:
             return
@@ -597,51 +359,7 @@ class QtExplorer(QMainWindow):
             self.search.blockSignals(False)
         self.populate()
         if direct and self.visible_rows:
-            self.grid.selectRow(0)
-
-    def populate_diplomacy(self, query):
-        records = rows_for_scope(self.document, 'Diplomacy', self.scope)
-        for category, table in self.diplomacy_grids.items():
-            table.blockSignals(True)
-            table.setSortingEnabled(False)
-            table.clearContents()
-            subset = [record for record in records if record.get('category') == category
-                      and (not query or query in ' '.join((
-                          record.get('nation',''),record.get('stance',''),
-                          record.get('tension',''))).casefold())]
-            table.setRowCount(len(subset))
-            for row, record in enumerate(subset):
-                for col, value in enumerate((record.get('nation'),record.get('stance'),
-                                              record.get('tension'))):
-                    cell = SortableItem(value, col == 2)
-                    cell.setData(Qt.ItemDataRole.UserRole, record)
-                    cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                    table.setItem(row,col,cell)
-            table.setSortingEnabled(True)
-            table.resizeColumnsToContents()
-            table.blockSignals(False)
-        self.overview.setPlainText('Read-only relationships. Each nation appears once per tab. '
-                                   'Missing saved values are marked (absent).')
-
-    def inspect_diplomacy(self, category):
-        if self.group != 'Diplomacy' or self.document is None:
-            return
-        table = self.diplomacy_grids[category]
-        row = table.currentRow()
-        if row < 0 or not table.selectedItems():
-            return
-        item = table.item(row,0)
-        element = item.data(Qt.ItemDataRole.UserRole) if item else None
-        if element is None:
-            return
-        self.selected_element = element
-        self.inspector_label.setText(element.get('nation','Diplomacy'))
-        self.details.setPlainText(
-            f"Category: {category}\nOther nation: {element.get('nation')}\n"
-            f"Stance: {element.get('stance')}\nTension: {element.get('tension')}")
-        owner = self.document.players.get(element.get('owner'))
-        self.raw_xml.setPlainText(formatted_record_xml(owner) if owner is not None
-                                  else 'No saved source player available.')
+            select_record_in_view(self.model_view, self.record_model, self.visible_rows[0])
 
     def choose_freecol_installation(self):
         folder = QFileDialog.getExistingDirectory(
@@ -684,27 +402,16 @@ class QtExplorer(QMainWindow):
             self.overview._render()
             self.details._render()
 
-    def update_workspace_header(self):
-        title, subtitle, nation_id, native, placeholder = workspace_identity(
-            self.document, self.group, self.scope)
-        self.workspace_title.setText(title)
-        self.workspace_subtitle.setText(subtitle)
-        self.search.setPlaceholderText(placeholder)
-        emblem = self.navigation_icons.icon(
-            'nation' if nation_id else 'map' if self.group == 'Game properties' else 'section',
-            nation_id=nation_id, native=native, size=48)
-        flag = flag_pixmap(nation_id, 39) if nation_id and not native else QPixmap()
-        self.workspace_emblem.setPixmap(flag if not flag.isNull() else emblem.pixmap(48, 48))
-
     def populate(self):
         self.update_workspace_header()
+        # Apply category sizing even when no save is loaded and populate exits early.
+        apply_record_view_sizing(self.model_view, self.group)
+        self.record_proxy.set_record_group(self.group)
         is_diplomacy = self.group == 'Diplomacy'
-        self.grid.setVisible(not is_diplomacy)
+        self.model_view.setVisible(not is_diplomacy)
         self.diplomacy_tabs.setVisible(is_diplomacy)
-        self.grid.setSortingEnabled(False)
-        self.grid.setRowCount(0)
-        self.grid.clearContents()
         self.visible_rows = []
+        self.record_model.replace_rows((), HEADERS[self.group])
         self.selected_element = None
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
@@ -726,16 +433,12 @@ class QtExplorer(QMainWindow):
         self.recruiting_father = None
         self.offered_fathers = []
         self.update_detail_tabs(None)
-        self.grid.setColumnCount(len(HEADERS[self.group]))
-        self.grid.setHorizontalHeaderLabels(HEADERS[self.group])
         doc = self.document
         if doc is None:
-            self.grid.setSortingEnabled(True)
             return
         query = self.search.text().strip().casefold()
         if is_diplomacy:
             self.populate_diplomacy(query)
-            self.grid.setSortingEnabled(True)
             return
         if self.group == 'Founding Fathers':
             father_records = rows_for_scope(doc, self.group, self.scope)
@@ -774,19 +477,16 @@ class QtExplorer(QMainWindow):
             if query and query not in ' '.join(str(value) for value in values).casefold():
                 continue
             rows.append((element, values))
+        self.record_model.replace_rows(rows, HEADERS[self.group])
         self.visible_rows = [element for element, _ in rows]
         if self.group == 'Founding Fathers':
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
-        self.grid.setRowCount(len(rows))
-        self.grid.setIconSize(QSize(32, 30) if self.group == 'Colonies' else QSize(60, 65) if self.group == 'Founding Fathers' else QSize(60, 20) if self.group == 'Native settlements' else QSize(42, 42) if self.group == 'Units' else QSize(20, 20))
-        for row, (_, values) in enumerate(rows):
+        model_decorations = {}
+        model_tooltips = {}
+        for row, (record, values) in enumerate(rows):
             for col, value in enumerate(values):
-                displayed = (compact_property_value(value)
-                             if self.group == 'Game properties' and col == 2 else value)
-                if self.group == 'Colonies' and HEADERS[self.group][col] == 'Established':
-                    displayed = established_turn(displayed)
-                cell = SortableItem(displayed, HEADERS[self.group][col] in NUMERIC_COLUMNS.get(self.group, ()))
-                cell.setData(Qt.ItemDataRole.UserRole, row)
+                icon = QIcon()
+                tooltip = None
                 if col == 0 and self.group != 'Founding Fathers':
                     row_kinds = {
                         'Players': 'nation', 'Colonies': 'colony',
@@ -795,35 +495,32 @@ class QtExplorer(QMainWindow):
                     }
                     kind = row_kinds.get(self.group)
                     if kind:
-                        record = rows[row][0]
                         if self.group == 'Players':
                             nation_id = record.get('nationId') or record.get('nation')
                             native = record.get('playerType') in ('native', 'indian')
                             flag = flag_icon(nation_id, 15) if not native else QIcon()
-                            cell.setIcon(flag if not flag.isNull() else self.navigation_icons.icon(
-                                kind, nation_id=nation_id, native=native, size=20))
+                            icon = flag if not flag.isNull() else self.navigation_icons.icon(
+                                kind, nation_id=nation_id, native=native, size=20)
                         elif self.group == 'Units':
-                            icon = self.unit_icons.icon(record.get('unitType'))
-                            cell.setIcon(icon if not icon.isNull() else self.navigation_icons.icon('units', size=20))
+                            icon = self.unit_icons.icon(record.get('unitType'), role=record.get('role'))
+                            if icon.isNull():
+                                icon = self.navigation_icons.icon('units', size=20)
                         elif self.group == 'National Goods':
                             icon = self.goods_icons.icon(record.get('id') or record.get('name'))
-                            cell.setIcon(icon if not icon.isNull() else self.navigation_icons.icon(kind, size=20))
+                            if icon.isNull():
+                                icon = self.navigation_icons.icon(kind, size=20)
                         elif self.group == 'Colonies':
                             art = resolve_colony_graphic(record)
                             image = QPixmap(str(art.image_path)) if art.image_path else QPixmap()
-                            if not image.isNull():
-                                cell.setIcon(QIcon(image.scaled(
-                                    32, 30, Qt.AspectRatioMode.KeepAspectRatio,
-                                    Qt.TransformationMode.SmoothTransformation)))
-                            else:
-                                cell.setIcon(self.navigation_icons.icon('colony', size=22))
+                            icon = (QIcon(image.scaled(
+                                32, 30, Qt.AspectRatioMode.KeepAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation))
+                                if not image.isNull() else self.navigation_icons.icon('colony', size=22))
                         else:
-                            cell.setIcon(self.navigation_icons.icon(kind, size=20))
+                            icon = self.navigation_icons.icon(kind, size=20)
                 if self.group == 'Native settlements' and col == 5:
-                    # The accepted display combines up to three wanted goods in
-                    # one cell; decorate only unequivocally recognised goods.
-                    names = [piece.strip() for piece in str(value or '').split(',')]
                     from qt_goods_icons import goods_key
+                    names = [part.strip() for part in str(value or '').split(',')]
                     recognised = [name for name in names if goods_key(name)]
                     if recognised:
                         strip = QPixmap(20 * len(recognised), 20)
@@ -831,27 +528,27 @@ class QtExplorer(QMainWindow):
                         from PySide6.QtGui import QPainter
                         painter = QPainter(strip)
                         for position, good in enumerate(recognised):
-                            pix = self.goods_icons.icon(good, 20).pixmap(20, 20)
-                            painter.drawPixmap(position * 20, 0, pix)
+                            painter.drawPixmap(position * 20, 0,
+                                               self.goods_icons.icon(good, 20).pixmap(20, 20))
                         painter.end()
-                        cell.setIcon(QIcon(strip))
-                if self.group == 'Game properties' and col == 2 and displayed != value:
-                    cell.setToolTip('Long value shortened here. Select the row for its complete saved value.')
-                cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                        icon = QIcon(strip)
+                if self.group == 'Game properties' and col == 2:
+                    if compact_property_value(value) != str(value or ''):
+                        tooltip = ('Long value shortened here. Select the row '
+                                   'for its complete saved value.')
                 if self.group == 'Founding Fathers' and col == 0:
-                    data = self.father_portraits.get(rows[row][0].get('id'))
+                    data = self.father_portraits.get(record.get('id'))
                     if data:
                         pixmap = QPixmap()
                         if pixmap.loadFromData(data):
-                            cell.setIcon(QIcon(pixmap))
-                    self.grid.setRowHeight(row, 75)
-                self.grid.setItem(row, col, cell)
-        if self.group in ('Colonies', 'Units'):
-            height = 44 if self.group == 'Units' else 36
-            for row in range(self.grid.rowCount()):
-                self.grid.setRowHeight(row, height)
-        self.grid.setSortingEnabled(True)
-        self.grid.resizeColumnsToContents()
+                            icon = QIcon(pixmap)
+                if not icon.isNull():
+                    model_decorations[(row, col)] = icon
+                if tooltip:
+                    model_tooltips[(row, col)] = tooltip
+        self.record_model.set_presentation(model_decorations, model_tooltips)
+        apply_record_view_sizing(self.model_view, self.group)
+        self.model_view.resizeColumnsToContents()
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
         note = ('Human player could not be uniquely identified; no player was guessed.\n' 
                 if self.scope=='mine' and human_player_id(doc) is None else '')
@@ -860,162 +557,15 @@ class QtExplorer(QMainWindow):
             f'{context} · {self.group}: {len(rows)} displayed\n' + note +
             'Choose a row above to see its full read-only record here.\n'
             'The inspector on the right shows only the currently selected object.')
-
-    def _set_father_portrait(self, label, father_id, width, height):
-        data = self.father_portraits.get(father_id)
-        pixmap = QPixmap()
-        if data and pixmap.loadFromData(data):
-            label.setPixmap(pixmap.scaled(width, height,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation))
-        else:
-            label.clear()
-            label.setText('Portrait unavailable')
-
-    def inspect_recruiting_father(self):
-        if self.recruiting_father is not None:
-            self.grid.clearSelection()
-            self.inspect_father_record(self.recruiting_father)
-
-    def inspect_father_record(self, element):
-        self.selected_element = element
-        self.update_detail_tabs(element)
-        self.inspector_label.setText(element.get('name', 'Founding Father'))
-        self.details.setPlainText(
-            'Name: ' + element.get('name', '') + '\n' +
-            'Category: Founding Fathers\n' +
-            'Status: ' + element.get('status', '') + '\n' +
-            'FreeCol identifier: ' + element.get('id', ''))
-        self.overview.setPlainText(record_overview('Founding Fathers', element, self.document))
-        source = father_source_node(self.document, element)
-        self.raw_xml.setPlainText(
-            formatted_record_xml(source) if source is not None else
-            'No matching source XML node found for this Founding Father.')
-
-    def update_detail_tabs(self, element):
-        self.detail_unit_id = None
-        self.jump_unit_button.setEnabled(False)
-        self.jump_unit_button.hide()
-        colony = element if self.group == 'Colonies' else None
-        settlement = element if self.group == 'Native settlements' else None
-        sections = colony_sections(colony, self.document) if colony is not None else {}
-        self.detail_nodes = colony_detail_nodes(colony, self.document) if colony is not None else {}
-        if settlement is not None:
-            sections['Affiliated units'] = settlement_units(settlement, self.document)
-            sections['Alarm'] = (('Colonial nation', 'Alarm'), settlement_alarm_rows(self.document, settlement))
-        if self.group == 'National Goods' and element is not None:
-            sections['By colony'] = (('Colony', 'Amount'),
-                colony_goods_breakdown(self.document, element.get('owner'), element.get('id')))
-            sections['In transit'] = (('Unit ID', 'Unit type', 'Location', 'Amount'),
-                transported_goods_breakdown(self.document, element.get('owner'), element.get('id')))
-        # Qt tabs are physically removed when irrelevant, not greyed out.
-        allowed = {'Overview'}
-        if colony is not None:
-            allowed.update(('Buildings', 'Workers', 'Stationed units', 'Goods'))
-        elif settlement is not None:
-            allowed.update(('Affiliated units', 'Alarm'))
-        elif self.group == 'National Goods' and element is not None:
-            allowed.update(('By colony', 'In transit'))
-        active_name = self.tabs.tabText(self.tabs.currentIndex()) if self.tabs.currentIndex() >= 0 else 'Overview'
-        for i in range(self.tabs.count()-1, -1, -1):
-            self.tabs.removeTab(i)
-        for name, widget in self.tab_widgets.items():
-            if name in allowed:
-                self.tabs.addTab(widget, name)
-        if active_name in allowed:
-            self.tabs.setCurrentWidget(self.tab_widgets[active_name])
-        else:
-            self.tabs.setCurrentWidget(self.overview)
-        for name, table in self.colony_tables.items():
-            table.blockSignals(True)
-            table.setSortingEnabled(False)
-            table.clearSelection()
-            headings, records = sections.get(name, ((), ()))
-            table.setRowCount(0)
-            table.clearContents()
-            table.setColumnCount(len(headings))
-            table.setHorizontalHeaderLabels(headings)
-            table.setRowCount(len(records))
-            for row, values in enumerate(records):
-                for col, value in enumerate(values):
-                    item = SortableItem(value, headings[col] in NUMERIC_DETAIL_COLUMNS)
-                    item.setData(Qt.ItemDataRole.UserRole, row)
-                    item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                    if col == 1 and name in ('Workers', 'Stationed units', 'Affiliated units', 'In transit'):
-                        icon = self.unit_icons.icon(value)
-                        if not icon.isNull():
-                            item.setIcon(icon)
-                    if col == 0 and name == 'Goods':
-                        icon = self.goods_icons.icon(value)
-                        if not icon.isNull():
-                            item.setIcon(icon)
-                    table.setItem(row, col, item)
-            table.setSortingEnabled(True)
-            table.resizeColumnsToContents()
-            table.blockSignals(False)
-
-    def refresh_breakdown_action(self, _index):
-        """Show drill-down only in National Goods → By colony."""
-        table = self.colony_tables['By colony']
-        relevant = (self.group == 'National Goods'
-                    and self.tabs.currentWidget() is table
-                    and self.selected_element is not None)
-        self.jump_colony_button.setVisible(relevant)
-        if not relevant:
-            self.jump_colony_button.setEnabled(False)
-            return
-        # Opening this tab is not a selection. Require an explicit colony click.
-        # Clicking or keyboard-selecting a row must establish its drill-down
-        # target; merely switching to this tab does not choose a colony.
-        if table.selectedItems():
-            self.inspect_detail('By colony')
-        else:
-            self.breakdown_target = None
-            self.jump_colony_button.setEnabled(False)
-
-    def inspect_detail(self, section):
-        table = self.colony_tables[section]
-        chosen = table.selectedItems()
-        row = chosen[0].row() if chosen else (-1 if section == 'By colony' else table.currentRow())
-        if (self.selected_element is None or self.tabs.indexOf(table) < 0
-                or row < 0 or row >= table.rowCount()):
-            if section == 'By colony':
-                self.breakdown_target = None
-                self.jump_colony_button.setEnabled(False)
-            return
-        headings = [table.horizontalHeaderItem(col).text() for col in range(table.columnCount())]
-        values = [(table.item(row, col).text() if table.item(row, col) else '')
-                  for col in range(table.columnCount())]
-        label, description = detail_inspection(section, headings, values)
-        self.inspector_label.setText(label)
-        unit_id = values[0] if section in ('Workers', 'Stationed units', 'Affiliated units') else None
-        unit = self.document.unit_by_id(unit_id) if unit_id else None
-        self.detail_unit_id = unit_id if unit is not None else None
-        self.jump_unit_button.setVisible(unit is not None)
-        self.jump_unit_button.setEnabled(unit is not None)
-        if unit is not None:
-            description += '\n\nFull unit attributes\n' + '\n'.join(
-                f'{key}: {value}' for key, value in unit.attrib.items())
-        self.details.setPlainText(description)
-        exact_nodes = self.detail_nodes.get(section, ())
-        source_item = table.item(row, 0)
-        source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
-        exact = exact_nodes[source_index] if isinstance(source_index, int) and source_index < len(exact_nodes) else None
-        if section == 'By colony':
-            self.breakdown_target = (self.selected_element.get('id'), values[0])
-            self.jump_colony_button.setEnabled(bool(self.breakdown_target[0] and self.breakdown_target[1]))
-            self.details.setPlainText(description + '\n\nUse Open colony Goods to inspect this warehouse.')
-            self.raw_xml.setPlainText('Read-only summary; visit the colony for source XML.')
-            return
-        if section == 'Goods' and exact is None:
-            description += ('\n\nNo stored-goods XML entry exists for this type. '
-                            'Zero is displayed for completeness; Phase 2 will need '
-                            'to create a new entry when a positive amount is staged.')
-            self.details.setPlainText(description)
-            self.raw_xml.setPlainText('No stored-goods XML element exists for this zero-stock row.')
-        else:
-            self.raw_xml.setPlainText(formatted_record_xml(
-                unit if unit is not None else exact if exact is not None else self.selected_element))
+        # A specific navigation-tree entry already identifies the record.
+        # Auto-inspect only identity-scoped singleton views, never arbitrary
+        # one-row search results or multi-record lists.
+        identity_scope = (
+            (self.group == 'Colonies' and self.scope.startswith('colony-id:'))
+            or (self.group == 'Native settlements' and self.scope.startswith('settlement-id:'))
+        )
+        if identity_scope and len(rows) == 1:
+            select_record_in_view(self.model_view, self.record_model, rows[0][0])
 
     def open_breakdown_colony(self):
         target = self.breakdown_target
@@ -1030,20 +580,7 @@ class QtExplorer(QMainWindow):
         if len(matches) != 1 or not matches[0].get('id'):
             return
         scope = 'colony-id:' + matches[0].get('id')
-        def find_item(parent):
-            for index in range(parent.childCount()):
-                item = parent.child(index)
-                if item.data(0, Qt.ItemDataRole.UserRole) == ('Colonies', scope):
-                    return item
-                found = find_item(item)
-                if found is not None:
-                    return found
-            return None
-        destination = None
-        for index in range(self.navigation.topLevelItemCount()):
-            destination = find_item(self.navigation.topLevelItem(index))
-            if destination is not None:
-                break
+        destination = find_navigation_item(self.navigation, 'Colonies', scope)
         if destination is None:
             return
         self.navigation.setCurrentItem(destination)
@@ -1065,43 +602,20 @@ class QtExplorer(QMainWindow):
             return
         owner = unit.get('owner')
         scope = 'mine' if owner == human_player_id(self.document) else 'player:' + owner if owner else 'all'
-        def matching_item(parent):
-            for i in range(parent.childCount()):
-                child = parent.child(i)
-                if child.data(0, Qt.ItemDataRole.UserRole) == ('Units', scope):
-                    return child
-                found = matching_item(child)
-                if found is not None:
-                    return found
-            return None
-        target = None
-        for i in range(self.navigation.topLevelItemCount()):
-            target = matching_item(self.navigation.topLevelItem(i))
-            if target is not None:
-                break
+        target = find_navigation_item(self.navigation, 'Units', scope)
         if target is None:
             return
         self.search.clear()
         self.navigation.setCurrentItem(target)
-        for index, record in enumerate(self.visible_rows):
-            if record.get('id') == unit_id:
-                for display_row_index in range(self.grid.rowCount()):
-                    cell = self.grid.item(display_row_index, 0)
-                    if cell and cell.data(Qt.ItemDataRole.UserRole) == index:
-                        self.grid.selectRow(display_row_index)
-                        self.grid.scrollToItem(cell)
-                        break
-                break
+        if select_record_in_view(self.model_view, self.record_model, unit):
+            self.model_view.scrollTo(self.model_view.currentIndex())
 
     def inspect(self):
-        row = self.grid.currentRow()
-        if self.document is None or row < 0 or row >= len(self.visible_rows):
+        if self.document is None:
             return
-        source_item = self.grid.item(row, 0)
-        source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
-        if not isinstance(source_index, int) or source_index >= len(self.visible_rows):
+        element = selected_source_record(self.model_view, self.record_model)
+        if element is None or not any(record is element for record in self.visible_rows):
             return
-        element = self.visible_rows[source_index]
         if self.group == 'Founding Fathers':
             self.inspect_father_record(element)
             return
