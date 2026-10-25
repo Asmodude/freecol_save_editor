@@ -3,7 +3,7 @@
 No copyrighted assets are bundled. Exact unit-type filenames only; unknown
 types receive an unmistakably neutral fallback instead of fabricated sprites.
 """
-from PySide6.QtCore import Qt, QRectF
+from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from freecol_art_source import discover, read_bytes
 
@@ -44,10 +44,10 @@ class UnitIcons:
         painter.setPen(QPen(QColor('#503f35'), max(1, size * .07)))
         painter.drawEllipse(QRectF(size*.34, size*.10, size*.32, size*.27))
         painter.drawPolygon(QPolygonF([
-            __import__('PySide6').QtCore.QPointF(size*.29, size*.42),
-            __import__('PySide6').QtCore.QPointF(size*.70, size*.42),
-            __import__('PySide6').QtCore.QPointF(size*.79, size*.86),
-            __import__('PySide6').QtCore.QPointF(size*.20, size*.86)]))
+            QPointF(size*.29, size*.42),
+            QPointF(size*.70, size*.42),
+            QPointF(size*.79, size*.86),
+            QPointF(size*.20, size*.86)]))
         painter.end()
         result = QIcon(pix)
         self.cache[cache_key] = result
