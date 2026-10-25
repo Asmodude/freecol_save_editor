@@ -12,6 +12,7 @@ from colony_graphics import resolve_colony_graphic
 from qt_property_icons import property_icon
 from qt_goods_icons import GoodsIcons, goods_key
 from qt_flag_icons import flag_pixmap
+from qt_unit_icons import UnitIcons
 from qt_overview_sections import overview_sections
 
 
@@ -53,6 +54,7 @@ class OverviewPanel(QWidget):
         self.body.setSpacing(10)
         self.scroll.setWidget(self.content)
         self.goods_icons = GoodsIcons()
+        self.unit_icons = UnitIcons()
         self._section_cards = []
         self._section_columns = 0
         self._sections_grid = None
@@ -194,7 +196,11 @@ class OverviewPanel(QWidget):
                         nation = (owner.get('nationId') or owner.get('nation')) if owner is not None else None
                         owner_flag = flag_pixmap(nation, 15) if nation else QPixmap()
                         good = self.goods_icons.icon(key, 23) if goods_key(key) else None
-                        icon_label.setPixmap(owner_flag if not owner_flag.isNull() else
+                        unit_image = (self.unit_icons.icon(self._record.get('unitType'), 19)
+                                      if key == 'Type' and self._group == 'Units'
+                                      and self._record is not None else None)
+                        icon_label.setPixmap(unit_image.pixmap(19, 19) if unit_image is not None and not unit_image.isNull() else
+                                             owner_flag if not owner_flag.isNull() else
                                              good.pixmap(19, 19) if good is not None and not good.isNull()
                                              else property_icon(key).pixmap(19, 19))
                         icon_label.setToolTip(key)
