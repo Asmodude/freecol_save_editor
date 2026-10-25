@@ -20,7 +20,7 @@ class Phase1ExitAudit(unittest.TestCase):
         forbidden=('.set(', '.append(', '.remove(', '.write(', 'produce(', '.save_as(')
         # Avoid naive string matching for Qt widget setters; test actual save entry points.
         self.assertNotIn('produce(',self.qt)
-        self.assertNotIn('.save_as(',self.qt)
+        self.assertIn('self.session.save_as(', self.qt)  # Phase 2B guarded export
         self.assertNotIn('self.document.root.set(',self.qt)
         self.assertNotIn('self.document.game.set(',self.qt)
         self.assertIn('NoEditTriggers',self.qt)
