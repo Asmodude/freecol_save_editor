@@ -18,13 +18,13 @@ class RecordModelBridgeTests(unittest.TestCase):
         window = QtExplorer()
         try:
             self.assertEqual(window.record_model.rowCount(), 0)
-            self.assertEqual(window.grid.rowCount(), 0)
-            self.assertEqual(window.record_model.columnCount(), window.grid.columnCount())
+            self.assertEqual(window.record_proxy.rowCount(), 0)
+            self.assertEqual(window.record_model.columnCount(), window.record_proxy.columnCount())
             self.assertEqual(window.record_model.headerData(0, Qt.Orientation.Horizontal), "ID")
             window.group = "Units"
             window.populate()
-            self.assertEqual(window.record_model.columnCount(), window.grid.columnCount())
-            self.assertEqual(window.record_model.rowCount(), window.grid.rowCount())
+            self.assertEqual(window.record_model.columnCount(), window.record_proxy.columnCount())
+            self.assertEqual(window.record_model.rowCount(), window.record_proxy.rowCount())
             self.assertIsNone(window.record_model.record_at(0))
         finally:
             window.close()
