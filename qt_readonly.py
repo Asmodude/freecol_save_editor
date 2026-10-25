@@ -279,6 +279,7 @@ class QtExplorer(QMainWindow):
         inspector_layout.addWidget(self.jump_colony_button)
         self.jump_unit_button = QPushButton('Open full unit record →')
         self.jump_unit_button.setEnabled(False)
+        self.jump_unit_button.hide()
         self.jump_unit_button.clicked.connect(self.open_detail_unit)
         inspector_layout.addWidget(self.jump_unit_button)
         self.inspector_hint = QLabel('Read only · no values can be changed here')
@@ -702,6 +703,7 @@ class QtExplorer(QMainWindow):
         self.selected_element = None
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
+        self.jump_unit_button.hide()
         self.jump_colony_button.setEnabled(False)
         self.jump_colony_button.hide()
         self.breakdown_target = None
@@ -887,6 +889,7 @@ class QtExplorer(QMainWindow):
     def update_detail_tabs(self, element):
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
+        self.jump_unit_button.hide()
         colony = element if self.group == 'Colonies' else None
         settlement = element if self.group == 'Native settlements' else None
         sections = colony_sections(colony, self.document) if colony is not None else {}
@@ -982,6 +985,7 @@ class QtExplorer(QMainWindow):
         unit_id = values[0] if section in ('Workers', 'Stationed units', 'Affiliated units') else None
         unit = self.document.unit_by_id(unit_id) if unit_id else None
         self.detail_unit_id = unit_id if unit is not None else None
+        self.jump_unit_button.setVisible(unit is not None)
         self.jump_unit_button.setEnabled(unit is not None)
         if unit is not None:
             description += '\n\nFull unit attributes\n' + '\n'.join(
