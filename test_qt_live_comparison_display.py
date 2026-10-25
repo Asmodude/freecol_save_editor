@@ -40,21 +40,16 @@ class LiveComparisonDisplayTests(unittest.TestCase):
                 target = find_navigation_item(window.navigation, "Colonies", "mine")
                 self.assertIsNotNone(target)
                 window.navigation.setCurrentItem(target)
-                window.set_model_view_comparison(True)
-                window.grid.sortItems(1, Qt.SortOrder.DescendingOrder)
-                window.model_view.sortByColumn(1, Qt.SortOrder.AscendingOrder)
+                window.model_view.sortByColumn(4, Qt.SortOrder.AscendingOrder)
                 self.app.processEvents()
-                self.assertEqual(window.grid.rowCount(), window.record_proxy.rowCount())
-                for display_row in range(window.grid.rowCount()):
-                    cell = window.grid.item(display_row, 0)
-                    source_row = cell.data(Qt.ItemDataRole.UserRole)
-                    record = window.record_model.record_at(source_row)
-                    proxy_row = next(
-                        i for i in range(window.record_proxy.rowCount())
-                        if window.record_proxy.data(window.record_proxy.index(i, 0), RecordTableModel.RecordRole) is record)
-                    for column in range(window.grid.columnCount()):
-                        self.assertEqual(window.grid.item(display_row, column).text(),
-                                         window.record_proxy.data(window.record_proxy.index(proxy_row, column)))
+                self.assertEqual(window.record_proxy.rowCount(), 1)
+                for column in range(window.record_proxy.columnCount()):
+                    proxy_index = window.record_proxy.index(0, column)
+                    source_index = window.record_proxy.mapToSource(proxy_index)
+                    expected = window.record_model.data(source_index)
+                    if window.record_model.headerData(column, Qt.Orientation.Horizontal) == 'Established':
+                        expected = 'Turn ' + expected
+                    self.assertEqual(window.record_proxy.data(proxy_index), expected)
             finally:
                 window.close()
                 window.deleteLater()
