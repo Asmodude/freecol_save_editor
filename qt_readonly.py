@@ -29,6 +29,7 @@ from qt_founding_fathers_view import FoundingFathersViewMixin
 from qt_workspace_header_view import WorkspaceHeaderMixin
 from qt_detail_tabs_view import DetailTabsMixin
 from qt_record_table_model import RecordTableModel
+from qt_record_sort_proxy import RecordSortFilterProxy
 from qt_record_table_view import build_record_table_view, apply_record_view_sizing, selected_source_record
 from qt_sortable_item import SortableItem
 from qt_colony_details import colony_sections, colony_detail_nodes
@@ -86,7 +87,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         # Staged migration: mirror displayed records in a real Qt model while
         # keeping the accepted QTableWidget UI unchanged until parity is proven.
         self.record_model = RecordTableModel()
-        self.record_proxy = QSortFilterProxyModel(self)
+        self.record_proxy = RecordSortFilterProxy(self)
         self.record_proxy.setSourceModel(self.record_model)
         self.record_proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.record_proxy.setFilterKeyColumn(-1)
@@ -424,6 +425,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.update_workspace_header()
         # Apply category sizing even when no save is loaded and populate exits early.
         apply_record_view_sizing(self.model_view, self.group)
+        self.record_proxy.set_record_group(self.group)
         is_diplomacy = self.group == 'Diplomacy'
         self.grid.setVisible(not is_diplomacy and not self._compare_model_view)
         self.model_view.setVisible(not is_diplomacy and self._compare_model_view)
