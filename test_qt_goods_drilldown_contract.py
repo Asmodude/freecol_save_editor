@@ -89,8 +89,8 @@ class DrilldownBehaviourTests(unittest.TestCase):
     def test_drilldown_requires_explicit_row_and_opens_colony_goods(self):
         w = self.window
         self._select_nav('National Goods')
-        food_row = next(r for r in range(w.grid.rowCount()) if w.grid.item(r, 0).text() == 'Food')
-        w.grid.selectRow(food_row)
+        food_row = next(r for r in range(w.record_proxy.rowCount()) if w.record_proxy.data(w.record_proxy.index(r, 0)) == 'Food')
+        w.model_view.setCurrentIndex(w.record_proxy.index(food_row, 0))
         self.app.processEvents()
         by_colony = w.colony_tables['By colony']
         w.tabs.setCurrentWidget(by_colony)
