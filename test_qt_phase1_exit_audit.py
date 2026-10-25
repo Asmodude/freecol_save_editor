@@ -38,7 +38,8 @@ class Phase1ExitAudit(unittest.TestCase):
     def test_development_only_override_removed(self):
         self.assertNotIn('C:\\\\Users\\\\morte', self.qt)
         self.assertNotIn('DEVELOPMENT ONLY: remove this local override', self.qt)
-        self.assertIn('return Path.home()', self.qt)
+        self.assertIn("from qt_save_directory import save_directory", self.qt)
+        self.assertIn("return save_directory(previous=self.art_settings.value(", self.qt)
 
     def test_phase1_entrypoint_compiles(self):
         compile(self.qt,'qt_readonly.py','exec')
