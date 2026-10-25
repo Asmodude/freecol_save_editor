@@ -27,7 +27,7 @@ class FatherViewContractTests(unittest.TestCase):
     def test_names_not_raw_ids_in_upper_table(self):
         self.assertIn("'Founding Fathers': ('Founding Father', 'Status')",self.source)
         self.assertIn("element.get('name'), element.get('status')",self.source)
-        self.assertIn("self.father_portraits.get(rows[row][0].get('id'))",self.source)
+        self.assertIn("self.father_portraits.get(record.get('id'))",self.source)
 
 
 if __name__=='__main__':
