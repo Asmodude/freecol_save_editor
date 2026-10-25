@@ -40,10 +40,10 @@ class OverviewPanelTests(unittest.TestCase):
     def test_responsive_sections_reflow_without_losing_values(self):
         panel = OverviewPanel()
         panel.setPlainText(
-            'Christiansborg\\nOwner: Danish\\n'
-            'Population and activity\\nWorkplace workers: 6\\n'
-            'Largest warehouse stockpiles\\nBells: 649\\n'
-            'Occupied buildings\\nTown Hall: 1 worker')
+            'Christiansborg\nOwner: Danish\n'
+            'Population and activity\nWorkplace workers: 6\n'
+            'Largest warehouse stockpiles\nBells: 649\n'
+            'Occupied buildings\nTown Hall: 1 worker')
         panel.scroll.viewport().resize(1300, 500)
         panel._layout_sections()
         self.assertEqual(len(panel._section_cards), 4)
@@ -76,7 +76,7 @@ class OverviewPanelTests(unittest.TestCase):
 
     def test_overview_widgets_include_property_icons(self):
         panel = OverviewPanel()
-        panel.setPlainText('Christiansborg\\nOwner: Danish\\nLumber: 20')
+        panel.setPlainText('Christiansborg\nOwner: Danish\nLumber: 20')
         icons = [w for w in panel.findChildren(QLabel)
                  if w.toolTip() in ('Owner', 'Lumber')]
         self.assertEqual(len(icons), 2)
