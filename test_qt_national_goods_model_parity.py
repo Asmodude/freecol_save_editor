@@ -38,20 +38,19 @@ class NationalGoodsModelParityTests(unittest.TestCase):
                 self.assertIsNotNone(target)
                 window.navigation.setCurrentItem(target)
                 self.app.processEvents()
-                self.assertGreater(window.grid.rowCount(), 0)
-                self.assertEqual(window.grid.rowCount(), window.record_model.rowCount())
-                window.grid.sortItems(0, Qt.SortOrder.DescendingOrder)
-                for displayed_row in range(window.grid.rowCount()):
-                    first = window.grid.item(displayed_row, 0)
-                    source_row = first.data(Qt.ItemDataRole.UserRole)
+                self.assertGreater(window.record_proxy.rowCount(), 0)
+                self.assertEqual(window.record_proxy.rowCount(), window.record_model.rowCount())
+                window.model_view.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+                for displayed_row in range(window.record_proxy.rowCount()):
+                    source_row = window.record_proxy.mapToSource(window.record_proxy.index(displayed_row, 0)).row()
                     self.assertIs(window.record_model.record_at(source_row),
                                   window.visible_rows[source_row])
                     for column in range(3):
-                        self.assertEqual(window.grid.item(displayed_row, column).text(),
+                        self.assertEqual(window.record_proxy.data(window.record_proxy.index(displayed_row, column)),
                                          window.record_model.data(window.record_model.index(source_row, column)))
-                window.grid.selectRow(0)
+                window.model_view.setCurrentIndex(window.record_proxy.index(0, 0))
                 self.app.processEvents()
-                source_row = window.grid.item(0, 0).data(Qt.ItemDataRole.UserRole)
+                source_row = window.record_proxy.mapToSource(window.record_proxy.index(0, 0)).row()
                 self.assertIs(window.selected_element, window.record_model.record_at(source_row))
             finally:
                 window.close()
