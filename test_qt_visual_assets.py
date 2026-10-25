@@ -47,6 +47,20 @@ class VisualAssetTests(unittest.TestCase):
                                     for x in range(24) for y in range(24)))
         self.assertEqual(goods_key('model.goods.muskets'),'muskets')
         self.assertEqual(goods_key('Unknown item'),'')
+        self.assertEqual(goods_key('model.goods.furs'),'furs')
+        self.assertEqual(goods_key('Trade Goods'),'tradegoods')
+        self.assertEqual(goods_key('model.goods.tradeGoods'),'tradegoods')
+
+    def test_furs_and_trade_goods_have_distinct_painted_icons(self):
+        icons=GoodsIcons(source=(None,None,'','unavailable'))
+        for name in ('Furs','Trade Goods'):
+            with self.subTest(name=name):
+                image=icons.icon(name,32).pixmap(32,32).toImage()
+                self.assertTrue(any(image.pixelColor(x,y).alpha()>0
+                                    for x in range(32) for y in range(32)))
+        fur=icons.icon('Furs',32).pixmap(32,32).toImage()
+        trade=icons.icon('Trade Goods',32).pixmap(32,32).toImage()
+        self.assertNotEqual(fur.pixelColor(16,16).name(),trade.pixelColor(16,16).name())
 
 if __name__=='__main__':
     unittest.main()
