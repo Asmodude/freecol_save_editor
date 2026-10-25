@@ -2,7 +2,7 @@
 
 Extracted unchanged from the accepted Qt Explorer during Phase 2A.
 """
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_diplomacy import settlement_alarm_rows
@@ -64,7 +64,9 @@ class DetailTabsMixin:
                     item.setData(Qt.ItemDataRole.UserRole, row)
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     if col == 1 and name in ('Workers', 'Stationed units', 'Affiliated units', 'In transit'):
-                        icon = self.unit_icons.icon(value)
+                        unit = self.document.unit_by_id(values[0]) if name in ('Workers', 'Stationed units') else None
+                        role = unit.get('role') if unit is not None else None
+                        icon = self.unit_icons.icon(value, role=role)
                         if not icon.isNull():
                             item.setIcon(icon)
                     if col == 0 and name == 'Goods':
@@ -72,6 +74,11 @@ class DetailTabsMixin:
                         if not icon.isNull():
                             item.setIcon(icon)
                     table.setItem(row, col, item)
+            if name in ('Workers', 'Stationed units'):
+                # Match the main Units list: taller rows preserve full unit artwork.
+                table.setIconSize(QSize(42, 42))
+                for row in range(table.rowCount()):
+                    table.setRowHeight(row, 44)
             table.setSortingEnabled(True)
             table.resizeColumnsToContents()
             table.blockSignals(False)
