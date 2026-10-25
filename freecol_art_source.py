@@ -12,6 +12,9 @@ def installation_roots():
         Path(r'C:\Program Files (x86)\FreeCol'),
         Path(r'C:\Programmer\FreeCol'),
         Path.home() / 'FreeCol',
+        Path.home() / 'OneDrive' / 'Dokumenter' / 'freecol',
+        Path.home() / 'OneDrive' / 'Documents' / 'freecol',
+        Path.home() / 'Documents' / 'FreeCol',
         Path.cwd(),
     ]
 
