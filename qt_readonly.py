@@ -45,6 +45,7 @@ from qt_navigation_icons import NavigationIcons
 from qt_flag_icons import flag_icon, flag_pixmap
 from qt_goods_icons import GoodsIcons
 from qt_workspace_header import workspace_identity
+from qt_save_directory import save_directory
 from freecol_art_source import set_installation_root, validate_installation, configured_root
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties', 'Diplomacy')
@@ -103,6 +104,8 @@ class QtExplorer(QMainWindow):
         settings_menu.addSeparator()
         settings_menu.addAction('Open Save…', self.open_save)
         settings_menu.addAction('Exit', self.close)
+        help_menu = self.menuBar().addMenu('Help')
+        help_menu.addAction('About FreeCol Save Editor…', self.show_about)
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -424,10 +427,16 @@ class QtExplorer(QMainWindow):
         self.navigation.setCurrentItem(overview)
         self.navigation.setUpdatesEnabled(True)
 
-    @staticmethod
-    def _default_save_directory():
-        # Portable default: never point users to a developer-specific directory.
-        return Path.home()
+    def _default_save_directory(self):
+        return save_directory(previous=self.art_settings.value('last_save_directory', '', type=str))
+
+    def show_about(self):
+        QMessageBox.about(self, 'About FreeCol Save Editor',
+            'FreeCol Save Editor — Phase 1 Qt Preview\\n'
+            'Read-only savegame explorer. This interface never saves or changes game files.\\n\\n'
+            'FreeCol game artwork is loaded locally from the user’s installation; '
+            'no FreeCol artwork is bundled with this editor.\\n'
+            'The Map Editor and save editing remain in the existing Tkinter application.')
 
     def open_save(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -442,6 +451,7 @@ class QtExplorer(QMainWindow):
             QMessageBox.critical(self, 'Could not open save', str(exc))
             return
         loaded_at = perf_counter()
+        self.art_settings.setValue('last_save_directory', str(Path(path).parent))
         self.document = document
         self.global_button.setEnabled(True)
         self.install_navigation()
