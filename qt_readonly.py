@@ -775,6 +775,8 @@ def main():
     font.setPointSize(11)
     app.setFont(font)
     window = QtExplorer()
+    if '--compare-model-view' in sys.argv[1:]:
+        window.set_model_view_comparison(True)
     window.show()
     return app.exec()
 
