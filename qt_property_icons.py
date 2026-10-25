@@ -3,8 +3,8 @@
 No game facts are inferred. All displayed properties retain the saved values.
 Icons are original simple Qt drawings, not bundled FreeCol artwork.
 """
-from PySide6.QtCore import Qt, QRectF
-from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtCore import Qt, QRectF, QPointF
+from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPixmap, QPainterPath
 
 # Keys match the labels produced by qt_overview.record_overview. Every row,
 # including dynamically named goods and occupied buildings, gets an icon.
@@ -66,6 +66,21 @@ def property_icon(label, size=19):
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     colour = QColor(hue)
+    if label in ('Location', 'Map location'):
+        # Familiar map-pin silhouette, independent of installed icon fonts.
+        painter.setPen(QPen(QColor('#0e5674'), max(1, size*.06)))
+        painter.setBrush(QColor('#ed4448'))
+        path = QPainterPath()
+        path.moveTo(size*.5, size*.95)
+        path.cubicTo(size*.33,size*.68,size*.15,size*.50,size*.20,size*.35)
+        path.cubicTo(size*.22,size*.06,size*.78,size*.06,size*.80,size*.35)
+        path.cubicTo(size*.85,size*.50,size*.67,size*.68,size*.5,size*.95)
+        painter.drawPath(path)
+        painter.setBrush(QColor('#ffffff'))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(QRectF(size*.38,size*.28,size*.24,size*.24))
+        painter.end()
+        return QIcon(pixmap)
     painter.setPen(QPen(colour.darker(115), max(.8, size * .055)))
     painter.setBrush(colour.lighter(143))
     painter.drawRoundedRect(QRectF(1, 1, size-2, size-2), size*.27, size*.27)
