@@ -274,6 +274,7 @@ class QtExplorer(QMainWindow):
         inspector_layout.addWidget(self.inspector_tabs, 1)
         self.jump_colony_button = QPushButton('Open colony Goods →')
         self.jump_colony_button.setEnabled(False)
+        self.jump_colony_button.hide()
         self.jump_colony_button.clicked.connect(self.open_breakdown_colony)
         inspector_layout.addWidget(self.jump_colony_button)
         self.jump_unit_button = QPushButton('Open full unit record →')
@@ -702,6 +703,7 @@ class QtExplorer(QMainWindow):
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
         self.jump_colony_button.setEnabled(False)
+        self.jump_colony_button.hide()
         self.breakdown_target = None
         self.breakdown_target = None
         self.details.clear()
@@ -845,6 +847,7 @@ class QtExplorer(QMainWindow):
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
         note = ('Human player could not be uniquely identified; no player was guessed.\n' 
                 if self.scope=='mine' and human_player_id(doc) is None else '')
+        self.refresh_breakdown_action(self.tabs.currentIndex())
         self.overview.setPlainText(
             f'{context} · {self.group}: {len(rows)} displayed\n' + note +
             'Choose a row above to see its full read-only record here.\n'
@@ -943,11 +946,14 @@ class QtExplorer(QMainWindow):
             table.blockSignals(False)
 
     def refresh_breakdown_action(self, _index):
-        """Synchronize the drill-down when the By colony tab becomes visible."""
+        """Show drill-down only in National Goods → By colony."""
         table = self.colony_tables['By colony']
-        if (self.group != 'National Goods'
-                or self.tabs.currentWidget() is not table
-                or self.selected_element is None):
+        relevant = (self.group == 'National Goods'
+                    and self.tabs.currentWidget() is table
+                    and self.selected_element is not None)
+        self.jump_colony_button.setVisible(relevant)
+        if not relevant:
+            self.jump_colony_button.setEnabled(False)
             return
         # Opening this tab is not a selection. Require an explicit colony click.
         # Clicking or keyboard-selecting a row must establish its drill-down
