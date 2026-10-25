@@ -7,18 +7,19 @@ class DrilldownContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.source=Path(__file__).with_name('qt_readonly.py').read_text(encoding='utf-8')
+        cls.details=Path(__file__).with_name('qt_detail_tabs_view.py').read_text(encoding='utf-8')
 
     def test_drilldown_is_explicit_and_read_only(self):
         self.assertIn("self.jump_colony_button.clicked.connect(self.open_breakdown_colony)",self.source)
-        self.assertIn("if section == 'By colony':",self.source)
+        self.assertIn("if section == 'By colony':",self.details)
         self.assertIn("self.navigation.setCurrentItem(destination)",self.source)
         self.assertIn("self.tabs.setCurrentWidget(table)",self.source)
         self.assertIn("if len(matches) != 1",self.source)
         self.assertIn("self.jump_colony_button.setEnabled(False)",self.source)
         self.assertNotIn("breakdown.selectRow(0)",self.source)
         self.assertIn("self.breakdown_target = None",self.source)
-        self.assertIn("table.selectedItems()",self.source)
-        self.assertIn("(-1 if section == 'By colony' else table.currentRow())",self.source)
+        self.assertIn("table.selectedItems()",self.details)
+        self.assertIn("(-1 if section == 'By colony' else table.currentRow())",self.details)
         self.assertIn('self.tabs.currentChanged.connect(self.refresh_breakdown_action)',self.source)
         self.assertIn("table.cellClicked.connect(lambda row, column: self.inspect_detail('By colony'))",self.source)
 
