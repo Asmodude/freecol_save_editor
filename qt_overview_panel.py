@@ -12,6 +12,7 @@ from colony_graphics import resolve_colony_graphic
 from qt_property_icons import property_icon
 from qt_goods_icons import GoodsIcons, goods_key
 from qt_flag_icons import flag_pixmap
+from qt_overview_sections import overview_sections
 
 
 def summary_parts(text):
@@ -117,47 +118,58 @@ class OverviewPanel(QWidget):
         header.addLayout(title_box, 1)
         self.body.addLayout(header)
 
-        # Two bordered property tables, each containing two columns (label/value).
-        if fields:
-            midpoint = (len(fields) + 1) // 2
-            grids = QHBoxLayout()
-            grids.setSpacing(12)
-            for subset in (fields[:midpoint], fields[midpoint:]):
-                if not subset:
-                    continue
-                border = QFrame()
-                border.setFrameShape(QFrame.Shape.StyledPanel)
-                grid = QGridLayout(border)
-                grid.setContentsMargins(8, 8, 8, 8)
-                grid.setHorizontalSpacing(12)
-                grid.setVerticalSpacing(7)
-                grid.setColumnStretch(2, 1)
-                for row, (key, val) in enumerate(subset):
-                    label = QLabel(key)
-                    label.setStyleSheet('color: palette(mid);')
-                    value = QLabel(val)
-                    value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-                    value.setWordWrap(True)
-                    icon_label = QLabel()
-                    icon_label.setFixedSize(26, 19)
-                    owner = (self._document.players.get(self._record.get('owner'))
-                             if key == 'Owner' and self._document is not None
-                             and self._record is not None else None)
-                    nation = (owner.get('nationId') or owner.get('nation')) if owner is not None else None
-                    owner_flag = flag_pixmap(nation, 15) if nation else QPixmap()
-                    good = self.goods_icons.icon(key, 23) if goods_key(key) else None
-                    icon_label.setPixmap(owner_flag if not owner_flag.isNull() else
-                                         good.pixmap(19, 19) if good is not None and not good.isNull()
-                                         else property_icon(key).pixmap(19, 19))
-                    icon_label.setToolTip(key)
-                    grid.addWidget(icon_label, row, 0, Qt.AlignmentFlag.AlignTop)
-                    grid.addWidget(label, row, 1, Qt.AlignmentFlag.AlignTop)
-                    grid.addWidget(value, row, 2, Qt.AlignmentFlag.AlignTop)
-                grids.addWidget(border, 1)
-            self.body.addLayout(grids)
-        for note in notes:
-            note_label = QLabel(note)
-            note_label.setWordWrap(True)
-            note_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            self.body.addWidget(note_label)
+        # Render headings with their own data, never as orphaned footnotes.
+        _, sections = overview_sections(self._text)
+        for section_title, fields, notes in sections:
+            if section_title != 'Colony properties' or len(sections) > 1:
+                heading_label = QLabel(section_title)
+                heading_font = QFont(heading_label.font())
+                heading_font.setBold(True)
+                heading_label.setFont(heading_font)
+                self.body.addWidget(heading_label)
+            if fields:
+                # Only large standalone sections need two cards; otherwise a
+                # single card prevents short warehouse/building lists splitting.
+                partitions = [fields]
+                if section_title == 'Colony properties' and len(fields) > 7:
+                    half = (len(fields) + 1) // 2
+                    partitions = [fields[:half], fields[half:]]
+                grids = QHBoxLayout()
+                grids.setSpacing(12)
+                for subset in partitions:
+                    border = QFrame()
+                    border.setFrameShape(QFrame.Shape.StyledPanel)
+                    grid = QGridLayout(border)
+                    grid.setContentsMargins(8, 8, 8, 8)
+                    grid.setHorizontalSpacing(12)
+                    grid.setVerticalSpacing(7)
+                    grid.setColumnStretch(2, 1)
+                    for row, (key, val) in enumerate(subset):
+                        label = QLabel(key)
+                        label.setStyleSheet('color: palette(mid);')
+                        value = QLabel(val)
+                        value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                        value.setWordWrap(True)
+                        icon_label = QLabel()
+                        icon_label.setFixedSize(26, 19)
+                        owner = (self._document.players.get(self._record.get('owner'))
+                                 if key == 'Owner' and self._document is not None
+                                 and self._record is not None else None)
+                        nation = (owner.get('nationId') or owner.get('nation')) if owner is not None else None
+                        owner_flag = flag_pixmap(nation, 15) if nation else QPixmap()
+                        good = self.goods_icons.icon(key, 23) if goods_key(key) else None
+                        icon_label.setPixmap(owner_flag if not owner_flag.isNull() else
+                                             good.pixmap(19, 19) if good is not None and not good.isNull()
+                                             else property_icon(key).pixmap(19, 19))
+                        icon_label.setToolTip(key)
+                        grid.addWidget(icon_label, row, 0, Qt.AlignmentFlag.AlignTop)
+                        grid.addWidget(label, row, 1, Qt.AlignmentFlag.AlignTop)
+                        grid.addWidget(value, row, 2, Qt.AlignmentFlag.AlignTop)
+                    grids.addWidget(border, 1)
+                self.body.addLayout(grids)
+            for note in notes:
+                note_label = QLabel(note)
+                note_label.setWordWrap(True)
+                note_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                self.body.addWidget(note_label)
         self.body.addStretch(1)
