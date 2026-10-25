@@ -48,3 +48,36 @@ def select_record_in_view(view, record_model, record):
             return True
     view.clearSelection()
     return False
+
+
+def apply_record_view_sizing(view, group):
+    """Match Phase 1 icon dimensions and row heights in the new view."""
+    from PySide6.QtCore import QSize
+    sizes = {
+        "Colonies": QSize(32, 30),
+        "Founding Fathers": QSize(60, 65),
+        "Native settlements": QSize(60, 20),
+        "Units": QSize(42, 42),
+    }
+    view.setIconSize(sizes.get(group, QSize(20, 20)))
+    height = 75 if group == "Founding Fathers" else 44 if group == "Units" else 36 if group == "Colonies" else None
+    if height is not None:
+        for row in range(view.model().rowCount()):
+            view.setRowHeight(row, height)
+    else:
+        view.resizeRowsToContents()
+
+
+def select_record_in_legacy_table(table, record_model, record):
+    """Synchronise an old table by source object identity, not visual row."""
+    if record is None:
+        table.clearSelection()
+        return False
+    for visual_row in range(table.rowCount()):
+        item = table.item(visual_row, 0)
+        source_row = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+        if isinstance(source_row, int) and record_model.record_at(source_row) is record:
+            table.selectRow(visual_row)
+            return True
+    table.clearSelection()
+    return False
