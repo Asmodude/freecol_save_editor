@@ -225,6 +225,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         # window lifecycle but stays hidden until interactive parity is proven.
         self.model_view = build_record_table_view(self.record_proxy, self.workspace_table_area)
         self.model_view.hide()
+        # Explicit opt-in for comparison only; the accepted table is default.
+        self._compare_model_view = False
+        table_area_layout.addWidget(self.model_view, 1)
         self.diplomacy_tabs = QTabWidget()
         self.diplomacy_grids = {}
         for category in ('Rival Nations', 'Natives'):
@@ -410,12 +413,18 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             self.overview._render()
             self.details._render()
 
+    def set_model_view_comparison(self, enabled):
+        """Developer/test-only comparison switch; no user-facing control yet."""
+        self._compare_model_view = bool(enabled)
+        self.populate()
+
     def populate(self):
         self.update_workspace_header()
         # Apply category sizing even when no save is loaded and populate exits early.
         apply_record_view_sizing(self.model_view, self.group)
         is_diplomacy = self.group == 'Diplomacy'
-        self.grid.setVisible(not is_diplomacy)
+        self.grid.setVisible(not is_diplomacy and not self._compare_model_view)
+        self.model_view.setVisible(not is_diplomacy and self._compare_model_view)
         self.diplomacy_tabs.setVisible(is_diplomacy)
         self.grid.setSortingEnabled(False)
         self.grid.setRowCount(0)
