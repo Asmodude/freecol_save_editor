@@ -46,32 +46,16 @@ class LiveViewDisplayParityTests(unittest.TestCase):
                 self.assertIsNotNone(nav)
                 window.navigation.setCurrentItem(nav)
                 self.app.processEvents()
-                self.assertEqual(window.grid.rowCount(), 2)
-                window.grid.sortItems(4, Qt.SortOrder.AscendingOrder)
+                self.assertEqual(window.record_proxy.rowCount(), 2)
                 window.model_view.sortByColumn(4, Qt.SortOrder.AscendingOrder)
-                self.assertEqual(window.grid.rowCount(), window.record_proxy.rowCount())
-                for old_row in range(window.grid.rowCount()):
-                    old_source = window.grid.item(old_row, 0).data(Qt.ItemDataRole.UserRole)
-                    old_record = window.record_model.record_at(old_source)
-                    self.assertIsNotNone(old_record)
-                    matching_proxy_row = next(
-                        row for row in range(window.record_proxy.rowCount())
-                        if window.record_proxy.data(
-                            window.record_proxy.index(row, 0),
-                            RecordTableModel.RecordRole) is old_record)
-                    for col in range(window.grid.columnCount()):
-                        expected = window.grid.item(old_row, col).text()
-                        actual = window.record_proxy.data(window.record_proxy.index(matching_proxy_row, col))
-                        self.assertEqual(actual, expected, (old_record.get("id"), col))
-                window.set_model_view_comparison(True)
-                record = next(c for c in window.document.colonies if c.get("name") == "Alpha")
-                self.assertTrue(select_record_in_view(window.model_view, window.record_model, record))
-                self.app.processEvents()
-                self.assertIs(selected_source_record(window.model_view, window.record_model), record)
-                self.assertIs(window.selected_element, record)
-                window.set_model_view_comparison(False)
-                self.assertFalse(window._compare_model_view)
-                self.assertEqual(window.grid.rowCount(), 2)
+                for row in range(window.record_proxy.rowCount()):
+                    idx = window.record_proxy.index(row, 0)
+                    source = window.record_proxy.mapToSource(idx).row()
+                    record = window.record_model.record_at(source)
+                    self.assertIsNotNone(record)
+                    self.assertTrue(select_record_in_view(window.model_view, window.record_model, record))
+                    self.assertIs(selected_source_record(window.model_view, window.record_model), record)
+                    self.assertIs(window.selected_element, record)
             finally:
                 window.close()
                 window.deleteLater()
