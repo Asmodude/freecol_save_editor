@@ -542,7 +542,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             cell.setIcon(flag if not flag.isNull() else self.navigation_icons.icon(
                                 kind, nation_id=nation_id, native=native, size=20))
                         elif self.group == 'Units':
-                            icon = self.unit_icons.icon(record.get('unitType'))
+                            icon = self.unit_icons.icon(record.get('unitType'), role=record.get('role'))
                             cell.setIcon(icon if not icon.isNull() else self.navigation_icons.icon('units', size=20))
                         elif self.group == 'National Goods':
                             icon = self.goods_icons.icon(record.get('id') or record.get('name'))
