@@ -46,6 +46,7 @@ from qt_flag_icons import flag_icon, flag_pixmap
 from qt_goods_icons import GoodsIcons
 from qt_workspace_header import workspace_identity
 from qt_save_directory import save_directory
+from qt_about_dialog import AboutDialog
 from freecol_art_source import set_installation_root, validate_installation, configured_root
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties', 'Diplomacy')
@@ -431,12 +432,7 @@ class QtExplorer(QMainWindow):
         return save_directory(previous=self.art_settings.value('last_save_directory', '', type=str))
 
     def show_about(self):
-        QMessageBox.about(self, 'About FreeCol Save Editor',
-            'FreeCol Save Editor — Phase 1 Qt Preview\\n'
-            'Read-only savegame explorer. This interface never saves or changes game files.\\n\\n'
-            'FreeCol game artwork is loaded locally from the user’s installation; '
-            'no FreeCol artwork is bundled with this editor.\\n'
-            'The Map Editor and save editing remain in the existing Tkinter application.')
+        AboutDialog(self).exec()
 
     def open_save(self):
         path, _ = QFileDialog.getOpenFileName(
