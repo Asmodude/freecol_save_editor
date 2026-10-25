@@ -29,6 +29,7 @@ from qt_founding_fathers_view import FoundingFathersViewMixin
 from qt_workspace_header_view import WorkspaceHeaderMixin
 from qt_detail_tabs_view import DetailTabsMixin
 from qt_record_table_model import RecordTableModel
+from qt_record_table_view import build_record_table_view, apply_record_view_sizing
 from qt_sortable_item import SortableItem
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
@@ -220,6 +221,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.grid.setIconSize(QSize(60, 65))
         self.grid.itemSelectionChanged.connect(self.inspect)
         table_area_layout.addWidget(self.grid, 1)
+        # Integration shadow: the model/view widget participates in the real
+        # window lifecycle but stays hidden until interactive parity is proven.
+        self.model_view = build_record_table_view(self.record_proxy, self.workspace_table_area)
+        self.model_view.hide()
         self.diplomacy_tabs = QTabWidget()
         self.diplomacy_grids = {}
         for category in ('Rival Nations', 'Natives'):
@@ -572,6 +577,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                     model_tooltips[(row, col)] = cell.toolTip()
                 self.grid.setItem(row, col, cell)
         self.record_model.set_presentation(model_decorations, model_tooltips)
+        apply_record_view_sizing(self.model_view, self.group)
         if self.group in ('Colonies', 'Units'):
             height = 44 if self.group == 'Units' else 36
             for row in range(self.grid.rowCount()):
