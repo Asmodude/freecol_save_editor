@@ -282,6 +282,11 @@ class QtExplorer(QMainWindow):
         self.jump_unit_button.hide()
         self.jump_unit_button.clicked.connect(self.open_detail_unit)
         inspector_layout.addWidget(self.jump_unit_button)
+        self.unit_xml_button = QPushButton('View selected unit XML →')
+        self.unit_xml_button.hide()
+        self.unit_xml_button.clicked.connect(
+            lambda: self.inspector_tabs.setCurrentWidget(self.raw_xml))
+        inspector_layout.addWidget(self.unit_xml_button)
         self.inspector_hint = QLabel('Read only · no values can be changed here')
         inspector_layout.addWidget(self.inspector_hint)
         panes.addWidget(inspector)
@@ -704,6 +709,7 @@ class QtExplorer(QMainWindow):
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
         self.jump_unit_button.hide()
+        self.unit_xml_button.hide()
         self.jump_colony_button.setEnabled(False)
         self.jump_colony_button.hide()
         self.breakdown_target = None
@@ -1123,6 +1129,7 @@ class QtExplorer(QMainWindow):
             return
         self.selected_element = element
         self.update_detail_tabs(element)
+        self.unit_xml_button.setVisible(self.group == 'Units')
         if self.group == 'Diplomacy':
             self.inspector_label.setText(element.get('nation'))
             self.details.setPlainText(f"Category: {element.get('category')}\nOther nation: {element.get('nation')}\nRelationship: {element.get('kind')}\nSaved value: {element.get('value')}")
