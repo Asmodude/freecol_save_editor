@@ -39,6 +39,8 @@ from qt_property_display import compact_property_value
 from qt_global_search import global_results
 from qt_diplomacy import settlement_alarm_rows
 from qt_navigation_icons import NavigationIcons
+from qt_flag_icons import flag_icon, flag_pixmap
+from qt_goods_icons import GoodsIcons
 from qt_workspace_header import workspace_identity
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties', 'Diplomacy')
@@ -83,6 +85,7 @@ class QtExplorer(QMainWindow):
         self.breakdown_target = None
         self.father_portraits = FatherPortraits()
         self.navigation_icons = NavigationIcons()
+        self.goods_icons = GoodsIcons()
         self.recruiting_father = None
         self.offered_fathers = []
 
@@ -284,7 +287,7 @@ class QtExplorer(QMainWindow):
         self.navigation.clear()
         def entry(parent, label, group=None, scope=None, ready=True, kind='section', nation_id=None, native=False):
             item = QTreeWidgetItem([label])
-            item.setIcon(0, self.navigation_icons.icon(kind, nation_id, native))
+            item.setIcon(0, flag_icon(nation_id, 17) if kind == 'nation' and nation_id and not native and not flag_icon(nation_id, 17).isNull() else self.navigation_icons.icon(kind, nation_id, native))
             if nation_id:
                 # Diagnostic provenance for mismatched or unfamiliar faction art.
                 item.setToolTip(0, f'Saved nation ID: {nation_id}')
@@ -625,7 +628,8 @@ class QtExplorer(QMainWindow):
         emblem = self.navigation_icons.icon(
             'nation' if nation_id else 'map' if self.group == 'Game properties' else 'section',
             nation_id=nation_id, native=native, size=48)
-        self.workspace_emblem.setPixmap(emblem.pixmap(48, 48))
+        flag = flag_pixmap(nation_id, 39) if nation_id and not native else QPixmap()
+        self.workspace_emblem.setPixmap(flag if not flag.isNull() else emblem.pixmap(48, 48))
 
     def populate(self):
         self.update_workspace_header()
@@ -725,8 +729,12 @@ class QtExplorer(QMainWindow):
                         if self.group == 'Players':
                             nation_id = record.get('nationId') or record.get('nation')
                             native = record.get('playerType') in ('native', 'indian')
-                            cell.setIcon(self.navigation_icons.icon(
+                            flag = flag_icon(nation_id, 15) if not native else QIcon()
+                            cell.setIcon(flag if not flag.isNull() else self.navigation_icons.icon(
                                 kind, nation_id=nation_id, native=native, size=20))
+                        elif self.group == 'National Goods':
+                            icon = self.goods_icons.icon(record.get('id') or record.get('name'))
+                            cell.setIcon(icon if not icon.isNull() else self.navigation_icons.icon(kind, size=20))
                         elif self.group == 'Colonies':
                             art = resolve_colony_graphic(record)
                             image = QPixmap(str(art.image_path)) if art.image_path else QPixmap()
@@ -841,6 +849,10 @@ class QtExplorer(QMainWindow):
                     item = SortableItem(value, headings[col] in NUMERIC_DETAIL_COLUMNS)
                     item.setData(Qt.ItemDataRole.UserRole, row)
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    if col == 0 and name in ('Goods', 'By colony') and name == 'Goods':
+                        icon = self.goods_icons.icon(value)
+                        if not icon.isNull():
+                            item.setIcon(icon)
                     table.setItem(row, col, item)
             table.setSortingEnabled(True)
             table.resizeColumnsToContents()
