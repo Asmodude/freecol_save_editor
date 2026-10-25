@@ -9,7 +9,10 @@ from freecol_art_source import discover, read_bytes
 
 
 def unit_key(value):
-    value = str(value or '').rsplit('.', 1)[-1]
+    value = str(value or '').rsplit('.', 1)[-1].strip()
+    if ' ' in value:
+        words = value.split()
+        value = words[0].lower() + ''.join(w[:1].upper() + w[1:] for w in words[1:])
     return value if value and value.replace('_', '').isalnum() else ''
 
 
