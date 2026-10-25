@@ -392,6 +392,12 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
 
     def update_save_button(self):
         self.save_button.setText(f'Save As ({self.session.count})')
+        if self.session.has_unexported_changes:
+            self.save_button.setToolTip('Current staged changes differ from last successful export')
+        elif self.session.exported_path is not None:
+            self.save_button.setToolTip(f'Changes exported to {self.session.exported_path}; edits remain staged')
+        else:
+            self.save_button.setToolTip('Export staged changes to a new savegame')
         self.save_button.setEnabled(self.document is not None and self.session.count > 0)
 
     def confirm_discard(self):
@@ -399,7 +405,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return True
         response = QMessageBox.question(
             self, 'Unexported changes',
-            f'{self.session.count} staged changes have not been exported. Discard them?',
+            f'The current edits differ from the last successful export. '
+            f'Discard this session state ({self.session.count} currently staged changes)?',
             QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel)
         return response == QMessageBox.StandardButton.Discard
