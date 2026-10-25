@@ -344,7 +344,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         key = (element.get('id'), 'gold')
         self.gold_editor_key = key  # snapshot identity at editor creation
         self.gold_edit.setText(str(self.session.staged_value(key, int(element.get('gold')))))
-        self.gold_edit_widget.show()
+        # Gold is now edited inline in the lower middle Overview, not Inspector.
+        self.gold_edit_widget.hide()
 
     def stage_overview_edit(self, record_id, field, raw_value):
         if field != 'gold' or self.document is None:
