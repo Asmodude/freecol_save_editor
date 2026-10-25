@@ -1,6 +1,6 @@
 # Phase 2B — Safe Qt Editing Workflow: Implementation and Acceptance Plan
 
-**Status:** PROPOSED implementation breakdown — submitted for independent review; not yet accepted as a separate execution plan.  
+**Status:** ACCEPTED by user — 25 October 2026, following Claude's independent PASS WITH CAVEATS review; implementation checkpoints remain unaccepted until tested and signed off.  
 **Date:** 25 October 2026  
 **Repository:** `Asmodude/freecol_save_editor`  
 **Branch:** `feature/phase2b-safe-qt-editing`  
@@ -14,7 +14,7 @@ Transform the accepted PySide6 explorer, Lady Philippa Y. Side VI, from a read-o
 
 **Minimum 2B acceptance checkpoint from the authoritative plan:** At least one simple, independently validated edit can be staged, undone and exported safely, with the original file's bytes unchanged. Real FreeCol load → advance turn → save → reload testing is required.
 
-**Recommended first field (proposal, not preapproved source requirement):** player gold. It uses the established numeric validation and output path, avoiding movement/equipment, relationship and deletion complexity. No arbitrary raw XML editing.
+**Accepted first field and placement:** player gold in the Inspector (not an in-table editor during B1). It uses the established numeric validation and output path, avoiding movement/equipment, relationship and deletion complexity. No arbitrary raw XML editing.
 
 The already accepted Tkinter editor, Sir Thorwald Kilgannon Inter, remains available and is frozen for new functionality (bug fixes only). Preserve all accepted Qt views, navigation, artwork, selection identity, Inspector and search behavior. Phase 2A's *single* model-backed workspace `QTableView` is the baseline; do not restore legacy workspace `QTableWidget` or comparison mode.
 
@@ -62,10 +62,10 @@ The steps below are an **implementation proposal** translating accepted requirem
 ### 2B.1 — Field editing and validation [🔴 MUST: O2, A2]
 
 1. Inspect the existing Qt Inspector/Overview, `RecordTableModel`, sorting proxy and editable Tk field contract.
-2. Select the smallest existing supported safe operation; **proposed:** player gold, excluding sentinel/non-editable records as governed by existing rules.
-3. Provide a visibly editable Qt control in an appropriate existing context; display which value is from the source and which is staged.
+2. Select the smallest existing supported safe operation; **accepted:** player gold, excluding sentinel/non-editable records as governed by existing rules.
+3. Provide a visibly editable Qt control in the Inspector; display which value is from the source and which is staged.
 4. Resolve edits by authoritative record identity (XML element ID), **never** a visual row index after sort/filter.
-5. Parse and validate through `EditSession.validate()` and stage through `EditSession.stage()`; invalid input gives a clear refusal and does not mutate session or XML.
+5. Capture the record ID, field and original source-XML value when the editor opens; never derive the original from staged/display text. Commit or cancel before navigation; the edit must never be redirected to the next selected record. Re-staging the same key preserves the source original (7225 → 8000 → 9000 yields (7225,9000)); undo restores the opened-save value. Parse and validate through `EditSession.validate()` and stage through `EditSession.stage()`; invalid input gives a clear refusal and does not mutate session or XML.
 6. No-op changes remove/avoid the corresponding edit. Staged changes survive normal selection/filter/navigation.
 7. Refresh affected Overview, workspace row, Inspector and other relevant displays without pretending the persisted XML is already changed.
 
@@ -75,8 +75,8 @@ The steps below are an **implementation proposal** translating accepted requirem
 
 1. Embed a visible **staged-changes panel** into the accepted Qt interface without disturbing its three-pane navigation/workspace/Inspector experience.
 2. Show count on the actual Save/Save As button; if no changes, use a clear zero/disabled policy.
-3. Display affected record, field, original value and proposed value; identify edits unambiguously. Retain underlying typed edit keys, including composite keys, rather than using display text as identity.
-4. Support undo of the selected item and **unstage all**; refresh all affected UI controls and counts.
+3. Display readable record name/type/owner, field and original/staged values via a UI-free formatter, including diplomacy counterparts, equipment quantities and explicit deletion actions. Preserve the original typed key in Qt.UserRole on each item, with raw key in tooltip; do not use a parallel row-index key list.
+4. Support undo of the selected item and **unstage all**; the latter must ask confirmation with Cancel as default and count of edits to discard. Refresh all affected UI controls and counts.
 5. Keep independent edits intact on individual undo; support multiple outstanding edits and editing a staged field a second time.
 6. Ensure a staged edit does not alter `SaveDocument.root` or source bytes. Panel is a view/controller over the established `EditSession`, not a competing mutation model.
 
@@ -84,19 +84,19 @@ The steps below are an **implementation proposal** translating accepted requirem
 
 ### 2B.3 — Session lifecycle / discard protection [🔴 MUST: A10]
 
-1. Track whether there are **unexported staged changes**.
+1. Add a UI-free `EditSession` exported snapshot/path and `has_unexported_changes`, tracking the last successful export. Edits differing from that snapshot (including undo) are dirty. A failed export must never update this state.
 2. Prompt before application/window exit when staged changes would be lost.
 3. Prompt before opening another save in the same window when staged changes would be lost.
 4. Prompt on any other action that actually discards staged work; **do not** prompt on normal selection/navigation that preserves session.
 5. Offer a cancel/retain-work path; implement and test the precise meaning of each presented option.
 6. Avoid clearing the old session until a replacement file has loaded successfully; loading failure and canceled dialogs leave current work intact.
-7. Define and test session state after successful Save As (including whether edits remain staged or become an acknowledged exported state) before implementing it; never silently discard on export failure.
+7. **Accepted Save As contract:** successful export marks current snapshot clean but keeps all edits staged against the original document; give clear export-success feedback and optionally Open exported save. A later edit/undo makes the session dirty; a subsequent Save As exports the complete staged set from the original. Never silently switch baseline, clear edits, or discard on export failure.
 
 **Evidence:** exit, successful/failed open, canceled open, replacement, explicit discard, and export-error paths.
 
 ### 2B.4 — Safe Save As and archive integrity [🔴 MUST: A2, O3]
 
-1. Integrate a Qt Save As action/button and delegate export through `EditSession.save_as()` → `edit_backend.produce()`.
+1. Integrate a Qt Save As action/button, suppress the native Windows replace-confirmation (`DontConfirmOverwrite`) so existing targets receive the editor's own refusal; suggest an unused `<stem>_edited.fsg` name with numbered alternatives and delegate export through `EditSession.save_as()` → `edit_backend.produce()`.
 2. Never write to the source save; reject a target resolving to the source or **any** already existing path, including destination collisions.
 3. Preserve unrelated ZIP entries/metadata to the extent guaranteed by the accepted producer, and preserve unrelated FreeCol data.
 4. Verify generated ZIP structure and parse `savegame.xml`; apply existing safety/integrity checks; fail closed on validation/format/reference errors.
@@ -118,10 +118,10 @@ The steps below are an **implementation proposal** translating accepted requirem
 ### 2B.6 — Automated behavioral validation [🔴 MUST: A2, A5 and checkpoint safeguards]
 
 1. Test valid, invalid and boundary values through real `EditSession`/Qt interactions.
-2. Test no-op staging, cancellation, repeated edits, independent multiple edits, individual undo and unstage all.
-3. Verify sorting/filtering/navigation cannot redirect an edit to the wrong XML record.
+2. Test no-op staging, cancellation, repeated edits preserving source original, independent multiple edits, individual undo, unstage-all cancel/confirm, dirty/exported transitions and failed export.
+3. Verify sorting/filtering/navigation cannot redirect an open edit to a newly selected XML record; test sorted Gold column reordering and Inspector identity (including records hidden by filters).
 4. Test dirty-state prompts, canceled replacement, failed replacement and exit.
-5. Test Save As collisions, errors, ZIP/XML integrity, no source mutation and hash checks.
+5. Test Save As dialog collisions (monkeypatched real flow), errors, ZIP/XML integrity, no source mutation and hash checks; reload output and verify only selected player's gold changed; verify native gold sentinel cannot be edited.
 6. Preserve the existing accepted read-only Qt behavior and Tk operations through regression tests.
 7. Run the full offscreen/headless suite in required GitHub Actions `headless` check; record **exact** branch-head SHA and run outcome. Replace brittle source-text assertions with behavioral checks where practical without disabling meaningful guards.
 
@@ -159,7 +159,7 @@ These are proposed *engineering checkpoints*, not permission to merge automatica
 - `qt_readonly.py`: accepted shell; existing read-only labels and editor-disabled behavior must be updated deliberately, not indiscriminately.
 - `qt_overview_panel.py`: graphical Overview presentation, currently read-only.
 
-**Work initiated before this detailed planning request:**
+**Work initiated before plan acceptance:**
 - Branch `feature/phase2b-safe-qt-editing` created from accepted `main`.
 - Draft PR [#5](https://github.com/Asmodude/freecol_save_editor/pull/5) opened.
 - `qt_staged_changes_panel.py` added as a stand-alone session-backed pending-change review/undo widget.
@@ -167,7 +167,7 @@ These are proposed *engineering checkpoints*, not permission to merge automatica
 - Last implementation commit at drafting: `f1fc4e5bfc67a8f186b545a315cc47bdf8821d0b`.
 - The panel is **not wired into the Qt explorer**, no editable field is exposed and no Save As UI exists yet. The first CI was in progress when initially checked; **do not infer passing status** from this document.
 
-All initial work remains **unaccepted**. This plan document itself is a review submission, not Windows acceptance or engineering completion.
+All initial work remains **unaccepted**. Acceptance of this plan does not imply Windows acceptance or engineering completion.
 
 ## 6. Safety, design and non-regression constraints
 
@@ -181,9 +181,9 @@ All initial work remains **unaccepted**. This plan document itself is a review s
 - Fail closed on unexpected XML attributes, unsupported relationships and unsafe operations.
 - Each focused engineering increment includes meaningful tests and CI verification. Protected `main` is never directly modified.
 
-## 7. Independent review request for Claude
+## 7. Independent review (completed)
 
-Please assess the **proposed** Phase 2B breakdown against the **accepted** `docs/PHASE2_DEVELOPMENT_PLAN.md` and actual branch implementation. In particular:
+Claude independently assessed the **proposed** Phase 2B breakdown against the **accepted** `docs/PHASE2_DEVELOPMENT_PLAN.md` and actual branch implementation. In particular:
 
 1. Does it faithfully capture **all 2B-applicable Must/Should/Could** requirements while keeping 2C/2D/2E out of scope?
 2. Is the recommended player-gold first edit safe and suitable, considering native-player sentinel handling?
@@ -199,6 +199,20 @@ Please assess the **proposed** Phase 2B breakdown against the **accepted** `docs
 ## 8. Decision record
 
 - The **underlying Phase 2 scope and priority matrix are already accepted** by the user (25 October 2026).
-- This **detailed 2B sequencing and UX proposal awaits independent Claude review** and any resulting user decisions.
+- This **detailed 2B sequencing and UX plan is accepted by the user** incorporating the required corrections from `docs/PHASE2B_PLAN_REVIEW.md`.
 - Work already in draft PR #5 does not imply approval of all recommendations here.
 - No implementation checkpoint is accepted until its tests and required user sign-off have occurred.
+
+## 9. Review amendments and formal plan acceptance — 25 October 2026
+
+Independent review: [PHASE2B_PLAN_REVIEW.md](PHASE2B_PLAN_REVIEW.md), **PASS WITH CAVEATS**. User accepted the review recommendations and Inspector-first implementation caveat, and authorized continued Phase 2B implementation. These are **mandatory B1/B2 design/acceptance gates**, not already delivered functionality:
+
+1. Human-readable staged-change presentation for all existing EditSession key types, keyed by Qt.UserRole, not row indexes.
+2. Source XML is the only authority for original values; repeated staging never changes the original and per-item undo reverts to opened-save state.
+3. Explicit dirty/exported snapshot; successful Save As retains staged edits and original document as baseline, while recording a clean exported state. Any subsequent change is dirty.
+4. Editor captures the source record identity at creation and cannot commit onto a newly selected record; selection and Inspector track record identity through sorting/filtering.
+5. Confirmation with Cancel default for Unstage all; correct Save As overwrite-dialog behavior and proposed unused destination name.
+
+Additional required tests: all above, failed export, saved-file reload verifying unaffected other players and native sentinel restriction. The **Inspector is the accepted placement for the initial gold editor**, not the sorted workspace table. A separate 2B merge after complete acceptance is **approved as a milestone strategy**, but an actual merge still requires the user's explicit approval and green CI/Windows/in-game evidence.
+
+**Plan acceptance is not software acceptance.** B1, B2, B3 and B4 remain subject to their individual checks. The draft PR remains unmerged.
