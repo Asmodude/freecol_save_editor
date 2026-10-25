@@ -216,6 +216,23 @@ Every phase runs on its own branch. `main` changes only after the user accepts t
 
 **Exit:** the user can find everything they can find in the Tk version, faster.
 
+### Phase 1 final audit — 24 October 2026 (Build #21 accepted)
+
+**Confirmed by user on Windows:** PySide6 read-only window, navigation and inspector, numeric sorting/filtering, colony and native views, colony and national Goods (including cargo), Founding Fathers, unit grouping by colony/vessel/field, global sortable search including fathers, game properties, and long-value truncation with complete inspector values. The original Tk application remains the editing and mapping baseline. The newer larger save loads in approximately 300–315 ms; this must not be compared directly with the smaller save's ~270 ms baseline.
+
+**Automated protection:** pure helper tests plus `test_qt_phase1_exit_audit.py` check source compilation, read-only boundaries, navigation scopes, sorted-record identity, and deliberate development-only overrides. Automated CI is not proof of Windows GUI behavior.
+
+**Mockup fidelity — outstanding Phase 1 acceptance requirement (24 October 2026):** Replace the current generic Qt standard placeholder icons in the Savegame Explorer with the approved mockup's intended section, colony, unit, goods and other relevant icons, and use the correct nation flags for European and native faction entries where appropriate. Confirm icon sizes, alignment, hierarchy, selected-state legibility, and light/dark theme compatibility against the approved mockup on Windows. Prefer FreeCol artwork sourced from the locally installed game (never bundle copyrighted artwork), with predictable, tasteful fallbacks for genuinely unavailable assets. This is **not** optional packaging polish: Phase 1 is not visually accepted until the user verifies the navigation artwork/flags against the approved mockup.
+
+**Remaining exit checks (not silently assumed passed):**
+- Full representative end-to-end Windows smoke tour on a newer save, including rivals, native settlements, sorted search navigation, selected item Raw XML, all units and location groups, zero-stock Goods, cargo and game properties.
+- Confirm accurate high-DPI rendering and Windows dark appearance on the actual user system (11 pt size confirmed, theme behavior not formally verified).
+- Confirm that all relevant pre-existing Tk **read-only inspection** data are accessible in Qt; some navigation placeholders intentionally remain (Diplomacy, Research, Player Options, Map). Determine explicitly whether the first three must be implemented before closing Phase 1, rather than declaring the exit criterion met by assumption. The Qt map remains Phase 3.
+- Replace the development-only hard-coded default save directory prior to packaging; leave in place for now as an approved development convenience.
+- Obtain explicit Phase 1 sign-off before merging this feature branch to `main`.
+
+**Phase 1 verdict at this audit:** near completion, **not yet accepted as complete**. No Phase 2 edits are enabled.
+
 ### Phase 2: Editing in Qt
 **Purpose:** reach feature parity for all save edits.
 
@@ -225,6 +242,8 @@ Every phase runs on its own branch. `main` changes only after the user accepts t
 - 🟡 A staged-changes panel lists the pending edits with per-item undo; the Save button shows the count.
 - 🟡 Destructive actions are visually separated from routine edits and always confirmed.
 - 🟢 Keyboard workflow: Tab between fields, Enter to stage, Esc to cancel.
+
+**Additional Phase 2 requirement — saved random seed (requested 24 October 2026):** Identify the exact persisted random-seed field and its type/range in the target FreeCol save format before implementing editing. Display the existing seed in the Qt game-level information view, including the raw stored value. Provide an explicitly editable field in Phase 2 with validation, staged changes, per-item undo, and Save As through the established EditSession/produce pipeline; never modify the original save. Preserve unrelated RNG state and other savegame attributes. Test unchanged-value roundtrip, a changed seed, invalid inputs, and FreeCol load → advance turn → save → reload. Do not assume that editing a seed will reproduce a particular sequence of events without verifying FreeCol's RNG semantics.
 
 **Exit:** the Qt version can do everything the Tk version can, and the user is willing to use it instead.
 
@@ -286,3 +305,12 @@ Total: about 6–8 working sessions, plus the user's Windows and in-game testing
 - Report test results honestly with actual evidence. A build that compiles is not an accepted build.
 - Do not redistribute FreeCol artwork; load it from the user's installation.
 - Do not change accepted map geometry (the 0.6.2.6.3 diagonal-axis 9×9 layout, staggered-row parity rules).
+
+
+### Founding Fathers — user-requested capability (23 October 2026)
+
+**Phase 1 — required read-only nation view:** The My Nation → Founding Fathers navigation item must become a real, searchable view of the saved game's founding-father state. Display acquired fathers, their names and categories, and any reliably derived current recruitment/progress details. Clearly distinguish fields stored in the save from values derived from FreeCol rules. Do not invent progress or ownership for unavailable data. Make selection show useful contextual details and optionally raw identifiers.
+
+**Phase 2 — eventual editable capability:** Support staging/revoking a founding father's acquisition **only after** researching FreeCol's actual save representation and any linked invariants (e.g. recruitment state, abilities or pending choice). Validate and apply the smallest safe change through EditSession and Save As, with original-file preservation, post-save validation and a FreeCol load → advance turn → save → reload test. Never flip an arbitrary XML flag on an assumption. Destructive/removal operations require additional validation. User must separately review editing behavior before release.
+
+This is an explicit scope addition, not a claim that Founding Fathers are currently editable in the Qt preview. The present navigation placeholder stays labelled planned until its Phase 1 view is functional.

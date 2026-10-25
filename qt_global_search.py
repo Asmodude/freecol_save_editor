@@ -1,0 +1,39 @@
+"""UI-free global record search, preserving authoritative source elements."""
+import presentation
+from qt_founding_fathers import father_rows
+
+SEARCH_GROUPS=('Players','Colonies','Native settlements','Units')
+
+def global_results(document, query, limit=250):
+    term=query.strip().casefold()
+    if not term:
+        return []
+    found=[]
+    for group in SEARCH_GROUPS:
+        for item in document.records.get(group, ()):
+            owner=item.get('owner')
+            fields=(item.get('id',''), item.get('name',''), item.get('username',''),
+                    item.get('nationId',''), item.get('unitType',''), item.get('role',''),
+                    document.owner_name(owner) if owner else '')
+            if not any(term in str(field).casefold() or
+                       term in presentation.readable(field).casefold()
+                       for field in fields if field):
+                continue
+            name=(item.get('name') or item.get('username') or
+                  presentation.readable(item.get('unitType') or item.get('nationId')) or item.get('id'))
+            found.append((group,item,name,document.owner_name(owner) if owner else ''))
+            if len(found)>=limit:
+                return found
+    for player in getattr(document, 'players', {}).values():
+        if player.get('playerType') != 'colonial':
+            continue
+        for father in father_rows(player):
+            owner=father.get('owner')
+            fields=(father.get('name',''),father.get('id',''),
+                    document.owner_name(owner) if owner else '')
+            if any(term in str(value).casefold() for value in fields):
+                found.append(('Founding Fathers',father,father.get('name',''),
+                              document.owner_name(owner) if owner else ''))
+                if len(found)>=limit:
+                    return found
+    return found

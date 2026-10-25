@@ -2,9 +2,32 @@
 
 This is the detailed, permanent development history. It includes point releases, internal iterations and hotfixes. When a major release (0.1, 0.2, etc.) is accepted, a concise summary is also entered in README.txt. Detailed entries remain here.
 
-> Current accepted integration baseline: **v0.6.2.6.4-phase0** (v0.6.2.6.4 features on the Phase 0 extracted core). The 0.6 major milestone is still under development. Entries below distinguish tested/accepted features from experimental previews.
+> Current accepted integration baseline: **v0.6.2.6.4-phase1** (v0.6.2.6.4 features, Phase 0 core and the accepted read-only Qt explorer). The 0.6 major milestone is still under development. Entries below distinguish tested/accepted features from experimental previews.
 
 ## 0.6 — Terrain inspection and map work (ongoing)
+
+### Phase 1 Qt read-only interface — USER ACCEPTED (2026-10-25), merged to `main`
+- **Merge, 2026-10-25:** merged `feature/phase1-qt-readonly-shell` into `main` with a merge commit. Tag `v0.6.2.6.4-phase1` and feature-branch deletion are performed manually by the user (this review session cannot push tags or delete branches).
+- **Pre-merge fix:** the source-text assertion `self.tabs.currentWidget() is not table` in `test_qt_goods_drilldown_contract.py` broke on a behaviour-preserving rewrite in `2f3fb93`, turning CI red on the last eight commits. It was replaced by off-screen Qt behavioural tests of the National Goods → By colony drill-down: the button is hidden elsewhere; it is visible but disabled when the tab opens; it is enabled only after an explicit row selection; and clicking opens that colony's Goods tab with the good selected. Mutation-checked: the tests fail if visibility is forced on. Local suite: 189 tests OK, 1 expected skip; CI green on the merged head.
+- User explicitly approved Phase 1 following Windows visual and functional testing. Scope includes the strictly read-only three-pane Qt explorer, separate Rival Nations / Native diplomacy, colony detail tabs, Founding Fathers, national goods, global search, FreeCol flags and in-game artwork, responsive Overview, graphical Inspector, and contextual navigation actions.
+- FreeCol installation path is configurable via persistent Qt settings. The About dialog credits Morten Olsson and labels version **0.6.2.6.4 — Qt Preview**, preserving the original roadmap versions.
+- Independent synthetic-save review verified navigation, sorting and non-mutation. User's real Windows save produced identical SHA-256 hashes before and after Qt testing. User showed green GitHub Actions run **#265** on commit **`8ab9e2d`**. Subsequent contextual-button changes were user-tested; a green CI run on the subsequent head is not established by this record.
+- **Accepted milestone does not mean integrated release.** No `main` merge, release tag or feature-branch deletion is authorised. Existing Tkinter editing and Map Editor remain the editing interfaces.
+
+
+### Phase 1 dependency baseline — 25 October 2026 (accepted as part of Phase 1)
+- Windows verification environment reported by user: Python **3.14.3**, PySide6 **6.12.0**, Pillow **13.0.0**.
+- `requirements.txt` pins the two direct Python dependencies to these confirmed versions. GitHub Actions now installs from this file.
+- This records the Windows environment baseline; GitHub Actions run #265 subsequently passed on commit `8ab9e2d`. CI currently targets Python 3.13, so Windows Python 3.14.3 compatibility remains user-observed rather than replicated by CI.
+
+
+
+### Phase 1 Qt read-only shell — development history (superseded by acceptance entry above)
+- User approved a full visual mock-up on 2026-10-23 subject to two changes: avoid duplication between detailed workspace and contextual inspector, and make the Map Editor entry point conspicuous in the top toolbar.
+- `qt_readonly.py` now provides a separate workspace and per-selection inspector, plus a visible **Open Map Editor** control. The control is intentionally disabled and explains that the existing fully working Map Editor is still in Tkinter; Qt map implementation is deferred to Phase 3.
+- This is an experimental read-only Qt shell; the mock-up is a *visual design target*, not an assertion that the currently implemented window is pixel-identical or functionally complete. No Tk editing functionality was modified.
+- Added headless static guard tests; actual Qt launch, content and UI appearance still require Windows verification. No Phase 1 acceptance or `main` merge yet.
+
 
 ### Phase 0: core extraction — accepted and merged (2026-10-23)
 - Merged pull request #2 into `main` with a merge commit; tagged `v0.6.2.6.4-phase0`. Branch `refactor/phase0-core-extraction` deleted after merge.
