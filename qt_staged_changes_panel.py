@@ -6,7 +6,7 @@ is responsible for refreshing the affected views after a change is unstaged.
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QPushButton, QTreeWidget, QTreeWidgetItem,
-    QVBoxLayout, QWidget,
+    QVBoxLayout, QWidget, QMessageBox,
 )
 
 
@@ -71,6 +71,14 @@ class StagedChangesPanel(QWidget):
 
     def unstage_all(self):
         if not self.session.count:
+            return
+        choice = QMessageBox.question(
+            self, 'Discard staged changes',
+            f'Discard all {self.session.count} staged changes?',
+            QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if choice != QMessageBox.StandardButton.Discard:
             return
         self.session.clear()
         self.refresh()
