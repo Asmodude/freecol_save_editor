@@ -35,9 +35,10 @@ class Phase1ExitAudit(unittest.TestCase):
         self.assertIn('matches[source_index]',self.qt)
         self.assertIn('self.visible_rows[index] is element',self.qt)
 
-    def test_development_only_override_must_be_removed_before_release(self):
-        # Known Phase 1 carry-over; detect any accidental removal of the warning.
-        self.assertIn('# DEVELOPMENT ONLY: remove this local override',self.qt)
+    def test_development_only_override_removed(self):
+        self.assertNotIn('C:\\\\Users\\\\morte', self.qt)
+        self.assertNotIn('DEVELOPMENT ONLY: remove this local override', self.qt)
+        self.assertIn('return Path.home()', self.qt)
 
     def test_phase1_entrypoint_compiles(self):
         compile(self.qt,'qt_readonly.py','exec')
