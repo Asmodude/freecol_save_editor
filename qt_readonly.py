@@ -849,7 +849,7 @@ class QtExplorer(QMainWindow):
                     item = SortableItem(value, headings[col] in NUMERIC_DETAIL_COLUMNS)
                     item.setData(Qt.ItemDataRole.UserRole, row)
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                    if col == 0 and name in ('Goods', 'By colony') and name == 'Goods':
+                    if col == 0 and name == 'Goods':
                         icon = self.goods_icons.icon(value)
                         if not icon.isNull():
                             item.setIcon(icon)
