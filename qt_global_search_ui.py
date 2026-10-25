@@ -6,6 +6,7 @@ from qt_sortable_item import SortableItem
 from qt_global_search import global_results
 from qt_navigation import human_player_id
 from qt_navigation_lookup import find_navigation_item
+from qt_record_table_view import select_record_in_view
 
 
 class GlobalSearchMixin:
@@ -82,6 +83,10 @@ class GlobalSearchMixin:
             self.populate()
         else:
             self.navigation.setCurrentItem(target)
+        if getattr(self, '_compare_model_view', False) and group != 'Founding Fathers':
+            if select_record_in_view(self.model_view, self.record_model, element):
+                self.model_view.scrollTo(self.model_view.currentIndex())
+            return
         if group == 'Founding Fathers':
             if element.get('status') == 'Recruiting':
                 self.inspect_recruiting_father()
