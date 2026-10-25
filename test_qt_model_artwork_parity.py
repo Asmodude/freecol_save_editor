@@ -39,19 +39,16 @@ class ModelArtworkParityTests(unittest.TestCase):
                         self.assertIsNotNone(target)
                         window.navigation.setCurrentItem(target)
                         self.app.processEvents()
-                        window.grid.sortItems(0, Qt.SortOrder.DescendingOrder)
-                        for visible_row in range(window.grid.rowCount()):
-                            for column in range(window.grid.columnCount()):
-                                cell = window.grid.item(visible_row, column)
-                                source_row = cell.data(Qt.ItemDataRole.UserRole)
-                                model_index = window.record_model.index(source_row, column)
-                                decoration = window.record_model.data(model_index, Qt.ItemDataRole.DecorationRole)
-                                self.assertEqual(decoration is None, cell.icon().isNull())
-                                if decoration is not None:
-                                    self.assertEqual(decoration.cacheKey(), cell.icon().cacheKey())
-                                self.assertEqual(
-                                    window.record_model.data(model_index, Qt.ItemDataRole.ToolTipRole),
-                                    cell.toolTip() or None)
+                        window.model_view.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+                        for visible_row in range(window.record_proxy.rowCount()):
+                            proxy_index = window.record_proxy.index(visible_row, 0)
+                            source_index = window.record_proxy.mapToSource(proxy_index)
+                            self.assertTrue(source_index.isValid())
+                            icon = window.record_proxy.data(proxy_index, Qt.ItemDataRole.DecorationRole)
+                            self.assertIsNotNone(icon)
+                            self.assertFalse(icon.isNull())
+                            self.assertIs(window.record_model.record_at(source_index.row()),
+                                          window.visible_rows[source_index.row()])
             finally:
                 window.close()
                 window.deleteLater()
