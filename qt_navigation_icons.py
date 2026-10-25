@@ -220,6 +220,20 @@ class NavigationIcons:
             p.drawRect(QRectF(.5, .5, size-1, size-1))
         elif native and kind == 'nation' and key:
             _paint_native_emblem(p, key, size)
+        elif kind == 'map':
+            # Recognisable Earth globe, drawn independently of symbol fonts.
+            p.setBrush(QColor('#2688c7'))
+            p.setPen(QPen(QColor('#195587'), max(1, size * .06)))
+            p.drawEllipse(QRectF(size*.07, size*.07, size*.86, size*.86))
+            p.setBrush(QColor('#55b862'))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawPolygon(QPolygonF([QPointF(size*.27,size*.18),QPointF(size*.49,size*.15),
+                QPointF(size*.54,size*.32),QPointF(size*.44,size*.46),
+                QPointF(size*.48,size*.61),QPointF(size*.32,size*.73),
+                QPointF(size*.23,size*.50),QPointF(size*.14,size*.39)]))
+            p.drawPolygon(QPolygonF([QPointF(size*.65,size*.36),QPointF(size*.83,size*.43),
+                QPointF(size*.77,size*.66),QPointF(size*.64,size*.84),
+                QPointF(size*.56,size*.68),QPointF(size*.62,size*.53)]))
         else:
             background, foreground = ICON_PALETTE.get(kind, ICON_PALETTE['section'])
             p.setBrush(QColor(background).darker(112))
