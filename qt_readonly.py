@@ -390,6 +390,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.document = document
         self.session = EditSession()
         self.pending_panel.session = self.session
+        self.pending_panel.document = document
         self.pending_panel.refresh()
         self.gold_editor_key = None
         self.gold_edit_widget.hide()
