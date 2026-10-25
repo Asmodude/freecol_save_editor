@@ -243,6 +243,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.tabs = QTabWidget()
         self.overview = OverviewPanel()
         self.tabs.addTab(self.overview, 'Overview')
+        self.overview.edit_requested.connect(self.stage_overview_edit)
         self.colony_tables = {}
         for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'Alarm', 'By colony', 'In transit'):
             table = QTableWidget()
@@ -311,16 +312,20 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         inspector_layout.addWidget(self.unit_xml_button)
         self.inspector_hint = QLabel('Player gold supports staged editing; other fields remain read-only')
         inspector_layout.addWidget(self.inspector_hint)
-        panes.addWidget(inspector)
+        self.right_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.right_splitter.setObjectName('inspectorPendingSplitter')
+        self.right_splitter.addWidget(inspector)
+        self.pending_panel = StagedChangesPanel(self.session)
+        self.pending_panel.setObjectName('stagedChangesRightPanel')
+        self.pending_panel.changed.connect(self.refresh_staged_view)
+        self.right_splitter.addWidget(self.pending_panel)
+        self.right_splitter.setStretchFactor(0, 3)
+        self.right_splitter.setStretchFactor(1, 2)
+        self.right_splitter.setSizes([530, 240])
+        panes.addWidget(self.right_splitter)
         panes.setChildrenCollapsible(False)
         panes.setSizes([240, 885, 325])
         layout.addWidget(panes, 1)
-        self.pending_panel = StagedChangesPanel(self.session)
-        self.pending_panel.changed.connect(self.refresh_staged_view)
-        self.pending_dock = QDockWidget('Pending changes', self)
-        self.pending_dock.setObjectName('pendingChangesDock')
-        self.pending_dock.setWidget(self.pending_panel)
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.pending_dock)
         self.update_save_button()
 
         self.statusBar().showMessage(
@@ -340,6 +345,22 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.gold_editor_key = key  # snapshot identity at editor creation
         self.gold_edit.setText(str(self.session.staged_value(key, int(element.get('gold')))))
         self.gold_edit_widget.show()
+
+    def stage_overview_edit(self, record_id, field, raw_value):
+        if field != 'gold' or self.document is None:
+            return
+        element = self.document.players.get(record_id)
+        if element is None or 'gold' not in EditSession.editable_fields('Players', element):
+            return
+        original = int(element.get('gold'))
+        key = (record_id, field)
+        try:
+            new = self.session.validate(key, raw_value, original=original)
+            self.session.stage(key, original, new)
+        except (EditValidationError, ValueError) as exc:
+            QMessageBox.warning(self, 'Cannot stage gold', str(exc))
+            return
+        self.refresh_staged_view()
 
     def stage_selected_gold(self):
         key = self.gold_editor_key
@@ -820,7 +841,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         if self.group == 'Players' and self.session.is_changed((element.get('id'), 'gold')):
             overview_text += f'\n\nStaged gold: {self.session.staged_value((element.get("id"), "gold"), element.get("gold"))} (source: {element.get("gold")})'
         self.overview.setPlainText(overview_text)
-        self.overview.set_record(self.group, element, doc)
+        self.overview.set_record(self.group, element, doc, self.session)
         if self.group == 'Founding Fathers':
             self.raw_xml.setPlainText('Virtual read-only record. Membership is encoded in the owning player XML.\nSelect the player Overview to inspect the source XML.')
         else:
