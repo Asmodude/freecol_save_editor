@@ -26,6 +26,7 @@ from qt_navigation_builder import NavigationBuilderMixin
 from qt_global_search_ui import GlobalSearchMixin
 from qt_diplomacy_view import DiplomacyViewMixin
 from qt_founding_fathers_view import FoundingFathersViewMixin
+from qt_workspace_header_view import WorkspaceHeaderMixin
 from qt_sortable_item import SortableItem
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
@@ -69,7 +70,7 @@ HEADERS = {
 
 
 
-class QtExplorer(FoundingFathersViewMixin, DiplomacyViewMixin, GlobalSearchMixin, NavigationBuilderMixin, QMainWindow):
+class QtExplorer(WorkspaceHeaderMixin, FoundingFathersViewMixin, DiplomacyViewMixin, GlobalSearchMixin, NavigationBuilderMixin, QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('FreeCol Save Editor — Qt preview (READ ONLY)')
@@ -394,18 +395,6 @@ class QtExplorer(FoundingFathersViewMixin, DiplomacyViewMixin, GlobalSearchMixin
             self.populate()
             self.overview._render()
             self.details._render()
-
-    def update_workspace_header(self):
-        title, subtitle, nation_id, native, placeholder = workspace_identity(
-            self.document, self.group, self.scope)
-        self.workspace_title.setText(title)
-        self.workspace_subtitle.setText(subtitle)
-        self.search.setPlaceholderText(placeholder)
-        emblem = self.navigation_icons.icon(
-            'nation' if nation_id else 'map' if self.group == 'Game properties' else 'section',
-            nation_id=nation_id, native=native, size=48)
-        flag = flag_pixmap(nation_id, 39) if nation_id and not native else QPixmap()
-        self.workspace_emblem.setPixmap(flag if not flag.isNull() else emblem.pixmap(48, 48))
 
     def populate(self):
         self.update_workspace_header()
