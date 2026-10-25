@@ -42,7 +42,13 @@ class RecordTableModel(QAbstractTableModel):
             return Qt.ItemFlag.NoItemFlags
         return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
 
-    def replace_rows(self, rows):
+    def record_at(self, row):
+        """Return the authoritative source record or None for an invalid row."""
+        return self._rows[row][0] if 0 <= row < len(self._rows) else None
+
+    def replace_rows(self, rows, headings=None):
         self.beginResetModel()
+        if headings is not None:
+            self._headings = tuple(headings)
         self._rows = tuple(rows)
         self.endResetModel()
