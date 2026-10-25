@@ -24,10 +24,13 @@ class UnitIcons:
         self.cache = {}
         self._paths = None
 
-    def _local_image(self, key):
+    def _local_image(self, key, role=None):
         if self._paths is None:
             self._paths = self._index_images()
-        for name in (key + '.png', key + '.size0.png', key + '.size2.png'):
+        names = (key + '.png', key + '.size0.png', key + '.size2.png')
+        if role == 'dragoon':
+            names = tuple('dragoon/' + name for name in names) + names
+        for name in names:
             found = self._paths.get(name.casefold())
             if found is None:
                 continue
@@ -58,27 +61,30 @@ class UnitIcons:
             if not folder.is_dir():
                 continue
             for image in sorted(folder.rglob('*.png')):
-                paths.setdefault(image.name.casefold(),
-                                 ('file', folder, image.relative_to(folder)))
+                relative = image.relative_to(folder)
+                paths.setdefault(relative.as_posix().casefold(), ('file', folder, relative))
+                paths.setdefault(image.name.casefold(), ('file', folder, relative))
         if archive:
             try:
                 with zipfile.ZipFile(archive) as zf:
                     for entry in sorted(zf.namelist()):
                         if entry.startswith(prefix + 'units/') and entry.lower().endswith('.png'):
-                            paths.setdefault(Path(entry).name.casefold(),
-                                             ('archive', archive, entry))
+                            relative = entry.split(prefix + 'units/', 1)[-1]
+                            paths.setdefault(relative.casefold(), ('archive', archive, entry))
+                            paths.setdefault(Path(entry).name.casefold(), ('archive', archive, entry))
             except (OSError, zipfile.BadZipFile):
                 pass
         return paths
 
-    def icon(self, value, size=23):
+    def icon(self, value, size=23, role=None):
         key = unit_key(value)
         if not key:
             return QIcon()
-        cache_key = (key, size)
+        role_key = unit_key(role).casefold()
+        cache_key = (key, size, role_key)
         if cache_key in self.cache:
             return self.cache[cache_key]
-        data = self._local_image(key)
+        data = self._local_image(key, role_key)
         if data:
             pix = QPixmap()
             if pix.loadFromData(data) and not pix.isNull():
