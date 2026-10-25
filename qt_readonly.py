@@ -676,6 +676,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         # Refuse a mismatched inspection rather than showing the wrong object.
         if element is None or (not self._compare_model_view and self.visible_rows[source_index] is not element):
             return
+        # A proxy index can outlive the view state during a filter/navigation
+        # transition. Reject any record not present in the current scope.
+        if self._compare_model_view and not any(record is element for record in self.visible_rows):
+            return
         if self.group == 'Founding Fathers':
             self.inspect_father_record(element)
             return
