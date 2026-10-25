@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 from qt_property_icons import property_icon
+from qt_unit_icons import UnitIcons
 
 
 def inspector_fields(source):
@@ -29,6 +30,7 @@ class InspectorDetails(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._text = ''
+        self._units = UnitIcons()
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         self.scroll = QScrollArea()
@@ -69,7 +71,9 @@ class InspectorDetails(QWidget):
             for row, (key, value) in enumerate(fields):
                 glyph = QLabel()
                 glyph.setFixedSize(20, 20)
-                glyph.setPixmap(property_icon(key, 19).pixmap(19, 19))
+                sprite = self._units.icon(value.replace(' ', ''), 20) if key == 'Unit type' else None
+                glyph.setPixmap(sprite.pixmap(20, 20) if sprite is not None and not sprite.isNull()
+                                else property_icon(key, 19).pixmap(19, 19))
                 glyph.setToolTip(key)
                 label = QLabel(key)
                 label.setStyleSheet('color: palette(mid);')
