@@ -9,14 +9,14 @@ _Last revised: 2026-10-25. Planning document; targets are not deadlines._
 - **Workflow:** use GitHub branches and reviewed changes for experimental features; only mark milestones accepted after Windows and in-game testing.
 - **Original FreeCol artwork:** load from users' installed game rather than redistributing assets.
 
-## Phase 2B — Windows/game tested; final visual marker recheck and merge pending (2026-10-25)
+## Phase 2B — accepted and merged (2026-10-25)
 - Inline validated player-gold editing in lower middle Overview; staged values explicitly marked in the workspace and their original values shown next to the editor.
 - Staged-change review is in the resizable lower right pane under the Inspector, with per-item undo and confirmed Unstage All.
 - Save As preserves source, refuses existing paths, and retains staged values after successful export with exported/dirty-state tracking.
 - **Singleton selection** is a general standard-workspace behavior: one visible record (including filtered result) is automatically selected and inspected.
-- User confirmed Windows editing tests and a successful FreeCol roundtrip; subsequent staged-value styling requires targeted visual recheck before final approval and merge of PR #5.
+- User confirmed Windows editing tests, a successful FreeCol roundtrip and the staged-value markers; PR #5 merged with green CI. Tag `v0.6.2.6.4-phase2b` on the merge commit.
 - See `docs/PHASE2B_IMPLEMENTATION_PLAN.md`, `docs/PHASE2B_PLAN_REVIEW.md`, `docs/PHASE2B_WINDOWS_FREECOL_CHECKLIST.md`, and `docs/PHASE2B_ACCEPTANCE_EVIDENCE.md`.
-- Next: Phase 2C after explicit Phase 2B merge approval; non-destructive Tk-to-Qt editing parity.
+- **Next: Phase 2C** — non-destructive Tk-to-Qt editing parity.
 
 ## Phase 2A — accepted and merged (2026-10-25)
 - User accepted the experimental `QTableView` behaviour on Windows (25 Oct 2026).
