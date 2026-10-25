@@ -5,7 +5,9 @@ types receive an unmistakably neutral fallback instead of fabricated sprites.
 """
 from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
-from freecol_art_source import discover, read_bytes
+from pathlib import Path
+import zipfile
+from freecol_art_source import discover, installation_roots
 
 
 def unit_key(value):
@@ -20,6 +22,54 @@ class UnitIcons:
     def __init__(self, source=None):
         self.source = discover() if source is None else source
         self.cache = {}
+        self._paths = None
+
+    def _local_image(self, key):
+        if self._paths is None:
+            self._paths = self._index_images()
+        for name in (key + '.png', key + '.size0.png', key + '.size2.png'):
+            found = self._paths.get(name.casefold())
+            if found is None:
+                continue
+            mode, root, path = found
+            try:
+                if mode == 'file':
+                    return (root / path).read_bytes()
+                with zipfile.ZipFile(root) as zf:
+                    return zf.read(path)
+            except (OSError, KeyError, zipfile.BadZipFile):
+                continue
+        return None
+
+    def _index_images(self):
+        base, archive, prefix, _ = self.source
+        paths = {}
+        roots = [Path(base)] if base else []
+        if base is None and archive is None:
+            for root in installation_roots():
+                for rel in ('app/data/default/resources/images',
+                            'data/default/resources/images',
+                            'default/resources/images', 'resources/images'):
+                    candidate = Path(root) / rel
+                    if (candidate / 'units').is_dir():
+                        roots.append(candidate)
+        for root in roots:
+            folder = root / 'units'
+            if not folder.is_dir():
+                continue
+            for image in sorted(folder.rglob('*.png')):
+                paths.setdefault(image.name.casefold(),
+                                 ('file', folder, image.relative_to(folder)))
+        if archive:
+            try:
+                with zipfile.ZipFile(archive) as zf:
+                    for entry in sorted(zf.namelist()):
+                        if entry.startswith(prefix + 'units/') and entry.lower().endswith('.png'):
+                            paths.setdefault(Path(entry).name.casefold(),
+                                             ('archive', archive, entry))
+            except (OSError, zipfile.BadZipFile):
+                pass
+        return paths
 
     def icon(self, value, size=23):
         key = unit_key(value)
@@ -28,17 +78,13 @@ class UnitIcons:
         cache_key = (key, size)
         if cache_key in self.cache:
             return self.cache[cache_key]
-        base, archive, prefix, _ = self.source
-        # FreeCol installation layout varies between versions/rulesets.
-        for relative in (f'units/{key}.png', f'units/{key}.size0.png',
-                         f'unit/{key}.png', f'misc/units/{key}.png'):
-            data = read_bytes(base, archive, prefix, relative)
-            if data:
-                pix = QPixmap()
-                if pix.loadFromData(data) and not pix.isNull():
-                    result = QIcon(pix)
-                    self.cache[cache_key] = result
-                    return result
+        data = self._local_image(key)
+        if data:
+            pix = QPixmap()
+            if pix.loadFromData(data) and not pix.isNull():
+                result = QIcon(pix)
+                self.cache[cache_key] = result
+                return result
         pix = QPixmap(size, size)
         pix.fill(Qt.GlobalColor.transparent)
         painter = QPainter(pix)
