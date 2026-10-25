@@ -35,7 +35,7 @@ class Phase1ExitAudit(unittest.TestCase):
     def test_sorted_navigation_uses_original_row_identity(self):
         self.assertIn('cell.setData(Qt.ItemDataRole.UserRole, row)',self.search_ui)
         self.assertIn('matches[source_index]',self.search_ui)
-        self.assertIn('self.visible_rows[index] is element',self.qt)
+        self.assertIn('self.visible_rows[index] is element',self.search_ui)
 
     def test_development_only_override_removed(self):
         self.assertNotIn('C:\\\\Users\\\\morte', self.qt)
