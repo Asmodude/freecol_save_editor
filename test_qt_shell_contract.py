@@ -65,6 +65,12 @@ class QtShellContractTests(unittest.TestCase):
         self.assertNotIn("entry(rival, 'Research'", self.source)
         self.assertIn("entry(None, 'Map', ready=False, kind='map')", self.source)
 
+    def test_full_units_list_offers_actual_raw_xml_navigation(self):
+        self.assertIn("self.unit_xml_button = QPushButton('View selected unit XML →')", self.source)
+        self.assertIn("self.unit_xml_button.setVisible(self.group == 'Units')", self.source)
+        self.assertIn("self.inspector_tabs.setCurrentWidget(self.raw_xml)", self.source)
+        self.assertIn("self.unit_xml_button.hide()", self.source)
+
     def test_unit_drilldown_visibility_tracks_real_unit_selection(self):
         self.assertIn("self.jump_unit_button.setVisible(unit is not None)", self.source)
         self.assertIn("self.jump_unit_button.hide()", self.source)
