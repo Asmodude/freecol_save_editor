@@ -58,6 +58,22 @@ class NavigationArtworkTests(unittest.TestCase):
         self.assertIsNone(flag_for_nation('model.nation.portuguese_unknown'))
         self.assertIsNone(flag_for_nation('model.nation.portugueseREF_other'))
 
+    def test_map_icon_is_blue_green_earth(self):
+        icons = NavigationIcons()
+        image = icons.icon('map', size=48).pixmap(48, 48).toImage()
+        blue = green = 0
+        for y in range(48):
+            for x in range(48):
+                pixel = image.pixelColor(x, y)
+                if pixel.alpha() == 0:
+                    continue
+                if pixel.blue() > pixel.red() * 1.4:
+                    blue += 1
+                if pixel.green() > pixel.red() * 1.4:
+                    green += 1
+        self.assertGreater(blue, 100)
+        self.assertGreater(green, 50)
+
     def test_every_navigation_kind_has_an_icon(self):
         for kind in ('overview', 'diplomacy', 'colonies', 'colony',
                      'units', 'ships', 'goods', 'research', 'fathers',
