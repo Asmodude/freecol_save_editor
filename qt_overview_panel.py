@@ -53,6 +53,9 @@ class OverviewPanel(QWidget):
         self.body.setSpacing(10)
         self.scroll.setWidget(self.content)
         self.goods_icons = GoodsIcons()
+        self._section_cards = []
+        self._section_columns = 0
+        self._sections_grid = None
         self._text = ''
         self._record = None
         self._document = None
@@ -90,7 +93,28 @@ class OverviewPanel(QWidget):
     def _empty_layout(self):
         self._dispose(self.body)
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._layout_sections()
+
+    def _layout_sections(self):
+        if self._sections_grid is None or not self._section_cards:
+            return
+        # Respond to the *pane's* width, not the physical monitor resolution.
+        width = self.scroll.viewport().width()
+        columns = 3 if width >= 1180 else 2 if width >= 700 else 1
+        if columns == self._section_columns:
+            return
+        self._section_columns = columns
+        for card in self._section_cards:
+            self._sections_grid.removeWidget(card)
+        for index, card in enumerate(self._section_cards):
+            self._sections_grid.addWidget(card, index // columns, index % columns)
+
     def _render(self):
+        self._sections_grid = None
+        self._section_cards = []
+        self._section_columns = 0
         self._empty_layout()
         title, fields, notes = summary_parts(self._text)
         header = QHBoxLayout()
@@ -120,13 +144,25 @@ class OverviewPanel(QWidget):
 
         # Render headings with their own data, never as orphaned footnotes.
         _, sections = overview_sections(self._text)
+        section_grid = QGridLayout()
+        section_grid.setHorizontalSpacing(12)
+        section_grid.setVerticalSpacing(12)
+        self._sections_grid = section_grid
+        self.body.addLayout(section_grid)
         for section_title, fields, notes in sections:
+            card = QFrame()
+            card.setFrameShape(QFrame.Shape.StyledPanel)
+            card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            card_layout = QVBoxLayout(card)
+            card_layout.setContentsMargins(9, 9, 9, 9)
+            card_layout.setSpacing(7)
+            self._section_cards.append(card)
             if section_title != 'Colony properties' or len(sections) > 1:
                 heading_label = QLabel(section_title)
                 heading_font = QFont(heading_label.font())
                 heading_font.setBold(True)
                 heading_label.setFont(heading_font)
-                self.body.addWidget(heading_label)
+                card_layout.addWidget(heading_label)
             if fields:
                 # Only large standalone sections need two cards; otherwise a
                 # single card prevents short warehouse/building lists splitting.
@@ -166,10 +202,11 @@ class OverviewPanel(QWidget):
                         grid.addWidget(label, row, 1, Qt.AlignmentFlag.AlignTop)
                         grid.addWidget(value, row, 2, Qt.AlignmentFlag.AlignTop)
                     grids.addWidget(border, 1)
-                self.body.addLayout(grids)
+                card_layout.addLayout(grids)
             for note in notes:
                 note_label = QLabel(note)
                 note_label.setWordWrap(True)
                 note_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-                self.body.addWidget(note_label)
+                card_layout.addWidget(note_label)
+        self._layout_sections()
         self.body.addStretch(1)
