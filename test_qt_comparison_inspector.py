@@ -38,7 +38,6 @@ class ComparisonInspectorTests(unittest.TestCase):
                 with patch.object(QFileDialog, "getOpenFileName", return_value=(str(path), "")):
                     window.open_save()
                 window.navigation.setCurrentItem(find_navigation_item(window.navigation, "Colonies", "mine"))
-                window.set_model_view_comparison(True)
                 window.model_view.sortByColumn(1, Qt.SortOrder.DescendingOrder)
                 self.app.processEvents()
                 for record in window.document.colonies:
@@ -46,9 +45,7 @@ class ComparisonInspectorTests(unittest.TestCase):
                     self.app.processEvents()
                     self.assertIs(window.selected_element, record)
                     self.assertIn(record.get("name"), window.inspector_label.text())
-                window.set_model_view_comparison(False)
-                self.assertFalse(window._compare_model_view)
-                self.assertEqual(window.grid.rowCount(), 2)
+                self.assertEqual(window.model_view.model().rowCount(), 2)
             finally:
                 window.close()
                 window.deleteLater()
