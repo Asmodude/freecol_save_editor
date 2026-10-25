@@ -9,7 +9,7 @@ from time import perf_counter
 from pathlib import Path
 from xml.etree.ElementTree import Element
 
-from PySide6.QtCore import Qt, QSize, QSettings
+from PySide6.QtCore import Qt, QSize, QSettings, QSortFilterProxyModel
 from PySide6.QtGui import QFont, QBrush, QPixmap, QIcon
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QDialog,
@@ -85,6 +85,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         # Staged migration: mirror displayed records in a real Qt model while
         # keeping the accepted QTableWidget UI unchanged until parity is proven.
         self.record_model = RecordTableModel()
+        self.record_proxy = QSortFilterProxyModel(self)
+        self.record_proxy.setSourceModel(self.record_model)
+        self.record_proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.record_proxy.setFilterKeyColumn(-1)
         self.selected_element = None
         self.detail_unit_id = None
         self.detail_nodes = {}
