@@ -626,7 +626,11 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
         if not isinstance(source_index, int) or source_index >= len(self.visible_rows):
             return
-        element = self.visible_rows[source_index]
+        element = self.record_model.record_at(source_index)
+        # The legacy table and model must describe the same source record.
+        # Refuse a mismatched inspection rather than showing the wrong object.
+        if element is None or self.visible_rows[source_index] is not element:
+            return
         if self.group == 'Founding Fathers':
             self.inspect_father_record(element)
             return
