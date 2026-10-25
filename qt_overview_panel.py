@@ -2,10 +2,10 @@
 
 The source summary remains authoritative; this widget changes presentation only.
 """
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPixmap
 from PySide6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QLineEdit, QPushButton,
     QSizePolicy, QVBoxLayout, QWidget,
 )
 from colony_graphics import resolve_colony_graphic
@@ -39,7 +39,8 @@ def summary_parts(text):
 
 
 class OverviewPanel(QWidget):
-    """Drop-in replacement for the old plain-text Overview summaries."""
+    """Overview with scoped inline editing of supported fields."""
+    edit_requested = Signal(str, str, str)
     def __init__(self, parent=None):
         super().__init__(parent)
         frame = QVBoxLayout(self)
@@ -62,6 +63,7 @@ class OverviewPanel(QWidget):
         self._record = None
         self._document = None
         self._group = None
+        self._session = None
         self._render()
 
     def setPlainText(self, text):
@@ -77,10 +79,11 @@ class OverviewPanel(QWidget):
         self._group = None
         self._render()
 
-    def set_record(self, group, record, document=None):
+    def set_record(self, group, record, document=None, session=None):
         self._group = group
         self._record = record
         self._document = document
+        self._session = session
         self._render()
 
     @staticmethod
@@ -88,7 +91,12 @@ class OverviewPanel(QWidget):
         while layout.count():
             item = layout.takeAt(0)
             if item.widget() is not None:
-                item.widget().deleteLater()
+                # Detach immediately so findChild and signal lookups cannot
+                # discover an obsolete editor while Qt defers deletion.
+                widget = item.widget()
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
             elif item.layout() is not None:
                 OverviewPanel._dispose(item.layout())
 
@@ -185,9 +193,45 @@ class OverviewPanel(QWidget):
                     for row, (key, val) in enumerate(subset):
                         label = QLabel(key)
                         label.setStyleSheet('color: palette(mid);')
-                        value = QLabel(val)
-                        value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-                        value.setWordWrap(True)
+                        editable_gold = (self._group == 'Players' and key == 'Gold'
+                                         and self._record is not None and self._session is not None
+                                         and self._record.get('gold') not in (None, '-2147483648')
+                                         and (self._record.get('gold') or '').isascii()
+                                         and (self._record.get('gold') or '').isdecimal())
+                        if editable_gold:
+                            record_id = self._record.get('id')
+                            original = self._record.get('gold')
+                            value = QWidget()
+                            edit_layout = QHBoxLayout(value)
+                            edit_layout.setContentsMargins(0, 0, 0, 0)
+                            field = QLineEdit(str(self._session.staged_value((record_id, 'gold'), int(original))))
+                            field.setObjectName('inlineGoldInput')
+                            staged = self._session.is_changed((record_id, 'gold'))
+                            field.setToolTip(f'Original save: {original}. Press Enter to stage.')
+                            field.setStyleSheet('QLineEdit { border: 2px solid ' +
+                                                ('#26815A' if staged else '#76A9E8') + '; '
+                                                'border-radius: 3px; padding: 3px; '
+                                                'background: ' + ('#E5F5E9' if staged else '#EDF5FF') +
+                                                '; color: #172B45; }')
+                            if staged:
+                                original_label = QLabel('was ' + original)
+                                original_label.setObjectName('inlineGoldOriginal')
+                                original_label.setToolTip('Value in opened save')
+                                edit_layout.addWidget(original_label)
+                            button = QPushButton('✎')
+                            button.setObjectName('stageInlineGold')
+                            button.setFixedWidth(30)
+                            button.setToolTip('Stage this value')
+                            field.returnPressed.connect(
+                                lambda rid=record_id, edit=field: self.edit_requested.emit(rid, 'gold', edit.text()))
+                            button.clicked.connect(
+                                lambda checked=False, rid=record_id, edit=field: self.edit_requested.emit(rid, 'gold', edit.text()))
+                            edit_layout.addWidget(field, 1)
+                            edit_layout.addWidget(button)
+                        else:
+                            value = QLabel(val)
+                            value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                            value.setWordWrap(True)
                         icon_label = QLabel()
                         icon_label.setFixedSize(26, 19)
                         owner = (self._document.players.get(self._record.get('owner'))

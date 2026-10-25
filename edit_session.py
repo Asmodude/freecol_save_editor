@@ -16,6 +16,12 @@ class EditValidationError(ValueError):
 class EditSession:
     def __init__(self):
         self.edits = {}
+        self.exported_snapshot = {}
+        self.exported_path = None
+
+    @property
+    def has_unexported_changes(self):
+        return self.edits != self.exported_snapshot
 
     @property
     def count(self):
@@ -37,6 +43,11 @@ class EditSession:
         return self.edits.items()
 
     def stage(self, key, original, new):
+        # A staged display value must never replace the opened-save original.
+        if key in self.edits:
+            known_original = self.edits[key][0]
+            if original != known_original:
+                raise EditValidationError('Original value differs from opened save')
         if new == original:
             self.unstage(key)
         else:
@@ -116,4 +127,8 @@ class EditSession:
             raise ValueError('You cannot overwrite the opened save. Choose another filename.')
         if destination.exists():
             raise ValueError('For safety, this editor never overwrites an existing file. Choose a new filename.')
-        return produce(source,destination,self.edits)
+        result = produce(source,destination,self.edits)
+        # Only acknowledge the exact exported changes after successful production.
+        self.exported_snapshot = dict(self.edits)
+        self.exported_path = destination
+        return result

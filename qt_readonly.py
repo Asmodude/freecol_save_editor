@@ -1,7 +1,7 @@
-"""Phase 1: read-only PySide6 shell; launch independently with py qt_readonly.py.
+"""Qt explorer with Phase 2B staged editing; launch with py qt_readonly.py.
 
-The accepted Tkinter editor remains the only editor and map-rendering application.
-No savegame mutation is possible from this Qt window.
+Only explicitly supported fields are editable. Staged values never mutate
+source XML; export uses the established safe producer.
 """
 import sys
 import os
@@ -15,10 +15,11 @@ from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QDialog,
     QMessageBox, QPushButton, QSplitter, QTabWidget, QTableWidget,
     QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QVBoxLayout,
-    QWidget, QPlainTextEdit, QGroupBox, QHeaderView, QSizePolicy, QStyle
+    QWidget, QPlainTextEdit, QGroupBox, QHeaderView, QSizePolicy, QStyle, QDockWidget
 )
 from save_document import SaveDocument
-from edit_session import EditSession
+from edit_session import EditSession, EditValidationError
+from qt_staged_changes_panel import StagedChangesPanel
 import presentation
 from qt_navigation import rows_for_scope, human_player_id
 from qt_navigation_lookup import find_navigation_item
@@ -76,7 +77,7 @@ HEADERS = {
 class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin, DiplomacyViewMixin, GlobalSearchMixin, NavigationBuilderMixin, QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('FreeCol Save Editor — Qt preview (READ ONLY)')
+        self.setWindowTitle('FreeCol Save Editor — Qt staged editing')
         self.resize(1450, 875)
         self.document = None
         self.session = EditSession()
@@ -109,6 +110,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         settings_menu.addAction('Use automatic artwork discovery', self.reset_freecol_installation)
         settings_menu.addSeparator()
         settings_menu.addAction('Open Save…', self.open_save)
+        settings_menu.addAction('Save As…', self.save_as)
         settings_menu.addAction('Exit', self.close)
         help_menu = self.menuBar().addMenu('Help')
         help_menu.addAction('About FreeCol Save Editor…', self.show_about)
@@ -123,6 +125,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         toolbar.setContentsMargins(0, 0, 0, 0)
         self.open_button = QPushButton('Open Save…')
         self.open_button.clicked.connect(self.open_save)
+        self.save_button = QPushButton('Save As (0)')
+        self.save_button.setEnabled(False)
+        self.save_button.clicked.connect(self.save_as)
         self.global_button = QPushButton('Search all…')
         self.global_button.clicked.connect(self.open_global_search)
         self.global_button.setEnabled(False)
@@ -131,8 +136,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.map_button.setToolTip(
             'The existing Map Editor is available in the Tkinter application. '
             'The Qt map will be integrated in Phase 3.')
-        self.heading = QLabel('Open a FreeCol save to begin · Qt read-only preview')
+        self.heading = QLabel('Open a FreeCol save to begin · Safe staged editing')
         toolbar.addWidget(self.open_button)
+        toolbar.addWidget(self.save_button)
         toolbar.addWidget(self.global_button)
         toolbar.addWidget(self.map_button)
         toolbar.addWidget(self.heading, 1)
@@ -236,6 +242,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.tabs = QTabWidget()
         self.overview = OverviewPanel()
         self.tabs.addTab(self.overview, 'Overview')
+        self.overview.edit_requested.connect(self.stage_overview_edit)
         self.colony_tables = {}
         for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'Alarm', 'By colony', 'In transit'):
             table = QTableWidget()
@@ -288,16 +295,106 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.unit_xml_button.clicked.connect(
             lambda: self.inspector_tabs.setCurrentWidget(self.raw_xml))
         inspector_layout.addWidget(self.unit_xml_button)
-        self.inspector_hint = QLabel('Read only · no values can be changed here')
+        self.inspector_hint = QLabel('Player gold supports staged editing; other fields remain read-only')
         inspector_layout.addWidget(self.inspector_hint)
-        panes.addWidget(inspector)
+        self.right_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.right_splitter.setObjectName('inspectorPendingSplitter')
+        self.right_splitter.addWidget(inspector)
+        self.pending_panel = StagedChangesPanel(self.session)
+        self.pending_panel.setObjectName('stagedChangesRightPanel')
+        self.pending_panel.changed.connect(self.refresh_staged_view)
+        self.right_splitter.addWidget(self.pending_panel)
+        self.right_splitter.setStretchFactor(0, 3)
+        self.right_splitter.setStretchFactor(1, 2)
+        self.right_splitter.setSizes([530, 240])
+        panes.addWidget(self.right_splitter)
         panes.setChildrenCollapsible(False)
         panes.setSizes([240, 885, 325])
         layout.addWidget(panes, 1)
+        self.update_save_button()
 
         self.statusBar().showMessage(
-            'Read-only preview · Save As and the Map Editor remain in the Tkinter application')
+            'Safe staged editing · Map Editor remains in Tkinter')
         self.install_navigation()
+
+    def stage_overview_edit(self, record_id, field, raw_value):
+        if field != 'gold' or self.document is None:
+            return
+        element = self.document.players.get(record_id)
+        if element is None or 'gold' not in EditSession.editable_fields('Players', element):
+            return
+        original = int(element.get('gold'))
+        key = (record_id, field)
+        try:
+            new = self.session.validate(key, raw_value, original=original)
+            self.session.stage(key, original, new)
+        except (EditValidationError, ValueError) as exc:
+            QMessageBox.warning(self, 'Cannot stage gold', str(exc))
+            return
+        self.refresh_staged_view()
+
+    def refresh_staged_view(self):
+        self.pending_panel.refresh()
+        self.update_save_button()
+        if self.document is not None:
+            chosen = self.selected_element
+            self.populate()
+            if chosen is not None:
+                select_record_in_view(self.model_view, self.record_model, chosen)
+                self.inspect()
+
+    def update_save_button(self):
+        self.save_button.setText(f'Save As ({self.session.count})')
+        if self.session.has_unexported_changes:
+            self.save_button.setToolTip('Current staged changes differ from last successful export')
+        elif self.session.exported_path is not None:
+            self.save_button.setToolTip(f'Changes exported to {self.session.exported_path}; edits remain staged')
+        else:
+            self.save_button.setToolTip('Export staged changes to a new savegame')
+        self.save_button.setEnabled(self.document is not None and self.session.count > 0)
+
+    def confirm_discard(self):
+        if not self.session.has_unexported_changes:
+            return True
+        response = QMessageBox.question(
+            self, 'Unexported changes',
+            ('Your current changes differ from the last exported save. '
+             'Discard those differences?' if self.session.exported_path is not None
+             else f'Discard {self.session.count} unexported staged changes?'),
+            QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        return response == QMessageBox.StandardButton.Discard
+
+    def closeEvent(self, event):
+        if not self.confirm_discard():
+            event.ignore()
+            return
+        super().closeEvent(event)
+
+    def save_as(self):
+        if self.document is None or not self.session.count:
+            return
+        source = Path(self.document.path)
+        candidate = source.with_name(source.stem + '_edited.fsg')
+        suffix = 2
+        while candidate.exists():
+            candidate = source.with_name(f'{source.stem}_edited_{suffix}.fsg')
+            suffix += 1
+        destination, _ = QFileDialog.getSaveFileName(
+            self, 'Export edited FreeCol save', str(candidate),
+            'FreeCol saves (*.fsg)', options=QFileDialog.Option.DontConfirmOverwrite)
+        if not destination:
+            return
+        try:
+            self.session.save_as(source, destination)
+        except Exception as exc:
+            QMessageBox.warning(self, 'Export refused', str(exc))
+            return
+        self.update_save_button()
+        QMessageBox.information(
+            self, 'Export complete',
+            f'Exported {self.session.count} changes to {destination}. '
+            'Edits remain staged against the original opened save.')
 
     @staticmethod
     def _read_only_note(message):
@@ -318,6 +415,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             'FreeCol saves (*.fsg);;ZIP archives (*.zip);;All files (*)')
         if not path:
             return
+        if not self.confirm_discard():
+            return
         started = perf_counter()
         try:
             document = SaveDocument.load(path)
@@ -327,10 +426,15 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         loaded_at = perf_counter()
         self.art_settings.setValue('last_save_directory', str(Path(path).parent))
         self.document = document
+        self.session = EditSession()
+        self.pending_panel.session = self.session
+        self.pending_panel.document = document
+        self.pending_panel.refresh()
+        self.update_save_button()
         self.global_button.setEnabled(True)
         self.install_navigation()
         navigation_at = perf_counter()
-        self.heading.setText(f'{Path(path).name} · Turn {document.turn} · READ ONLY')
+        self.heading.setText(f'{Path(path).name} · Turn {document.turn} · staged editing')
         # install_navigation() selects Overview and already triggers populate().
         if os.environ.get('FREECOL_QT_PROFILE') == '1':
             print(f'Qt load stages: parse/index={loaded_at-started:.3f}s; '
@@ -339,7 +443,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.statusBar().showMessage(
             f'{len(document.players)} players · {len(document.colonies)} colonies · '
             f'{len(document.native_settlements)} native settlements · {len(document.units)} units'
-            ' · Qt read-only; Map Editor in Tkinter')
+            ' · Qt staged gold editing; Map Editor in Tkinter')
 
     def navigate(self, current, previous):
         if current is None:
@@ -483,10 +587,16 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
         model_decorations = {}
         model_tooltips = {}
+        staged_cells = set()
         for row, (record, values) in enumerate(rows):
             for col, value in enumerate(values):
                 icon = QIcon()
                 tooltip = None
+                if (self.group == 'Players' and col == 6
+                        and self.session.is_changed((record.get('id'), 'gold'))):
+                    staged_cells.add((row, col))
+                    tooltip = ('STAGED gold: ' + str(value) +
+                               ' (original save: ' + str(record.get('gold')) + ')')
                 if col == 0 and self.group != 'Founding Fathers':
                     row_kinds = {
                         'Players': 'nation', 'Colonies': 'colony',
@@ -546,7 +656,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                     model_decorations[(row, col)] = icon
                 if tooltip:
                     model_tooltips[(row, col)] = tooltip
-        self.record_model.set_presentation(model_decorations, model_tooltips)
+        self.record_model.set_presentation(model_decorations, model_tooltips, staged_cells)
         apply_record_view_sizing(self.model_view, self.group)
         self.model_view.resizeColumnsToContents()
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
@@ -557,14 +667,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             f'{context} · {self.group}: {len(rows)} displayed\n' + note +
             'Choose a row above to see its full read-only record here.\n'
             'The inspector on the right shows only the currently selected object.')
-        # A specific navigation-tree entry already identifies the record.
-        # Auto-inspect only identity-scoped singleton views, never arbitrary
-        # one-row search results or multi-record lists.
-        identity_scope = (
-            (self.group == 'Colonies' and self.scope.startswith('colony-id:'))
-            or (self.group == 'Native settlements' and self.scope.startswith('settlement-id:'))
-        )
-        if identity_scope and len(rows) == 1:
+        # Accepted Phase 2A usability contract: a sole displayed record
+        # must be selected and inspected without a redundant second click.
+        # This also applies to filtered results, using authoritative identity.
+        if len(rows) == 1:
             select_record_in_view(self.model_view, self.record_model, rows[0][0])
 
     def open_breakdown_colony(self):
@@ -669,7 +775,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             ('FreeCol identifier', element.get('id'))])
         elif self.group == 'Players':
             summary.extend([('Nation', presentation.short(element.get('nationId'))),
-                            ('Gold', element.get('gold')), ('Tax', element.get('tax')),
+                            ('Gold', str(self.session.staged_value((element.get('id'), 'gold'), element.get('gold')))), ('Tax', element.get('tax')),
                             ('AI controlled', element.get('ai'))])
         elif self.group == 'Colonies':
             summary.extend([('Owner', doc.owner_name(element.get('owner'))),
@@ -690,8 +796,11 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             ('Learnable skill', presentation.short(element.get('learnableSkill')))])
         self.details.setPlainText('\n'.join(
             f'{key}: {value}' for key, value in summary if value is not None))
-        self.overview.setPlainText(record_overview(self.group, element, doc))
-        self.overview.set_record(self.group, element, doc)
+        overview_text = record_overview(self.group, element, doc)
+        if self.group == 'Players' and self.session.is_changed((element.get('id'), 'gold')):
+            overview_text += f'\n\nStaged gold: {self.session.staged_value((element.get("id"), "gold"), element.get("gold"))} (source: {element.get("gold")})'
+        self.overview.setPlainText(overview_text)
+        self.overview.set_record(self.group, element, doc, self.session)
         if self.group == 'Founding Fathers':
             self.raw_xml.setPlainText('Virtual read-only record. Membership is encoded in the owning player XML.\nSelect the player Overview to inspect the source XML.')
         else:

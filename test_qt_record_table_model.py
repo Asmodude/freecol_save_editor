@@ -14,6 +14,18 @@ class RecordModelTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_staged_background_distinguishes_field_and_resets(self):
+        from PySide6.QtCore import Qt
+        from xml.etree.ElementTree import Element
+        from qt_record_table_model import RecordTableModel
+        record = Element('player', {'id': 'player:19'})
+        model = RecordTableModel(('Name', 'Gold'), ((record, ('Morten', '9000')),))
+        model.set_presentation(staged_cells={(0, 1)})
+        self.assertIsNone(model.data(model.index(0, 0), Qt.ItemDataRole.BackgroundRole))
+        self.assertIsNotNone(model.data(model.index(0, 1), Qt.ItemDataRole.BackgroundRole))
+        model.replace_rows(((record, ('Morten', '7225')),), ('Name', 'Gold'))
+        self.assertIsNone(model.data(model.index(0, 1), Qt.ItemDataRole.BackgroundRole))
+
     def test_record_identity_survives_proxy_sort(self):
         first = Element("unit", id="unit:2")
         second = Element("unit", id="unit:1")

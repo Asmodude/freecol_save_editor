@@ -51,6 +51,16 @@ class SaveBackedRecordIdentityTests(unittest.TestCase):
         self.app.processEvents()
         self.tmp.cleanup()
 
+    def test_single_human_player_is_selected_without_click(self):
+        w = self.window
+        self.assertEqual(w.group, 'Players')
+        self.assertEqual(w.record_model.rowCount(), 1)
+        self.assertIs(w.selected_element, w.record_model.record_at(0))
+        self.assertIn('Human', w.inspector_label.text())
+        self.assertIsNotNone(w.overview.findChild(
+            __import__('PySide6.QtWidgets', fromlist=['QLineEdit']).QLineEdit,
+            'inlineGoldInput'))
+
     def test_sorted_colonies_select_correct_xml_record(self):
         from qt_navigation_lookup import find_navigation_item
         w = self.window
@@ -77,9 +87,9 @@ class SaveBackedRecordIdentityTests(unittest.TestCase):
         self.assertEqual(w.record_proxy.rowCount(), 1)
         self.assertEqual(w.record_model.rowCount(), 1)
         self.assertEqual(w.record_model.record_at(0).get("name"), "Alpha")
-        w.model_view.setCurrentIndex(w.record_proxy.index(0, 0))
-        self.app.processEvents()
+        # A filtered singleton is automatically inspected without a second click.
         self.assertIs(w.selected_element, w.record_model.record_at(0))
+        self.assertEqual(w.inspector_label.text(), 'Alpha')
 
 
 if __name__ == "__main__":
