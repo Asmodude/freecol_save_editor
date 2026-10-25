@@ -21,7 +21,7 @@ class FoundingFathersViewMixin:
 
     def inspect_recruiting_father(self):
         if self.recruiting_father is not None:
-            self.grid.clearSelection()
+            self.model_view.clearSelection()
             self.inspect_father_record(self.recruiting_father)
 
     def inspect_father_record(self, element):
