@@ -111,6 +111,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         settings_menu.addAction('Use automatic artwork discovery', self.reset_freecol_installation)
         settings_menu.addSeparator()
         settings_menu.addAction('Open Save…', self.open_save)
+        settings_menu.addAction('Save As…', self.save_as)
         settings_menu.addAction('Exit', self.close)
         help_menu = self.menuBar().addMenu('Help')
         help_menu.addAction('About FreeCol Save Editor…', self.show_about)
@@ -125,6 +126,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         toolbar.setContentsMargins(0, 0, 0, 0)
         self.open_button = QPushButton('Open Save…')
         self.open_button.clicked.connect(self.open_save)
+        self.save_button = QPushButton('Save As (0)')
+        self.save_button.setEnabled(False)
+        self.save_button.clicked.connect(self.save_as)
         self.global_button = QPushButton('Search all…')
         self.global_button.clicked.connect(self.open_global_search)
         self.global_button.setEnabled(False)
@@ -135,6 +139,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             'The Qt map will be integrated in Phase 3.')
         self.heading = QLabel('Open a FreeCol save to begin · Qt read-only preview')
         toolbar.addWidget(self.open_button)
+        toolbar.addWidget(self.save_button)
         toolbar.addWidget(self.global_button)
         toolbar.addWidget(self.map_button)
         toolbar.addWidget(self.heading, 1)
@@ -316,6 +321,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.pending_dock.setObjectName('pendingChangesDock')
         self.pending_dock.setWidget(self.pending_panel)
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.pending_dock)
+        self.update_save_button()
 
         self.statusBar().showMessage(
             'Read-only preview · Save As and the Map Editor remain in the Tkinter application')
@@ -352,12 +358,58 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
 
     def refresh_staged_view(self):
         self.pending_panel.refresh()
+        self.update_save_button()
         if self.document is not None:
             chosen = self.selected_element
             self.populate()
             if chosen is not None:
                 select_record_in_view(self.model_view, self.record_model, chosen)
                 self.inspect()
+
+    def update_save_button(self):
+        self.save_button.setText(f'Save As ({self.session.count})')
+        self.save_button.setEnabled(self.document is not None and self.session.count > 0)
+
+    def confirm_discard(self):
+        if not self.session.has_unexported_changes:
+            return True
+        response = QMessageBox.question(
+            self, 'Unexported changes',
+            f'{self.session.count} staged changes have not been exported. Discard them?',
+            QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        return response == QMessageBox.StandardButton.Discard
+
+    def closeEvent(self, event):
+        if not self.confirm_discard():
+            event.ignore()
+            return
+        super().closeEvent(event)
+
+    def save_as(self):
+        if self.document is None or not self.session.count:
+            return
+        source = Path(self.document.path)
+        candidate = source.with_name(source.stem + '_edited.fsg')
+        suffix = 2
+        while candidate.exists():
+            candidate = source.with_name(f'{source.stem}_edited_{suffix}.fsg')
+            suffix += 1
+        destination, _ = QFileDialog.getSaveFileName(
+            self, 'Export edited FreeCol save', str(candidate),
+            'FreeCol saves (*.fsg)', options=QFileDialog.Option.DontConfirmOverwrite)
+        if not destination:
+            return
+        try:
+            self.session.save_as(source, destination)
+        except Exception as exc:
+            QMessageBox.warning(self, 'Export refused', str(exc))
+            return
+        self.update_save_button()
+        QMessageBox.information(
+            self, 'Export complete',
+            f'Exported {self.session.count} changes to {destination}. '
+            'Edits remain staged against the original opened save.')
 
     @staticmethod
     def _read_only_note(message):
@@ -378,6 +430,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             'FreeCol saves (*.fsg);;ZIP archives (*.zip);;All files (*)')
         if not path:
             return
+        if not self.confirm_discard():
+            return
         started = perf_counter()
         try:
             document = SaveDocument.load(path)
@@ -391,6 +445,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.pending_panel.session = self.session
         self.pending_panel.document = document
         self.pending_panel.refresh()
+        self.update_save_button()
         self.gold_editor_key = None
         self.gold_edit_widget.hide()
         self.global_button.setEnabled(True)
