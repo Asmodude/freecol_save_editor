@@ -93,7 +93,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.record_proxy.setFilterKeyColumn(-1)
         self.gold_editor_key = None
         self.selected_element = None
-        self.update_gold_editor()
         self.detail_unit_id = None
         self.detail_nodes = {}
         self.breakdown_target = None
@@ -480,6 +479,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.visible_rows = []
         self.record_model.replace_rows((), HEADERS[self.group])
         self.selected_element = None
+        self.update_gold_editor()
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
         self.jump_unit_button.hide()
