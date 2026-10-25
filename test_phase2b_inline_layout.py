@@ -32,6 +32,8 @@ class InlineLayoutTests(unittest.TestCase):
             doc = SimpleNamespace(players={'player:1': player})
             window.document = doc
             captured = []
+            # Isolate widget emission: this fixture lacks full SaveDocument indexes.
+            window.overview.edit_requested.disconnect(window.stage_overview_edit)
             window.overview.edit_requested.connect(
                 lambda rid, field, value: captured.append((rid, field, value)))
             window.overview.setPlainText('Denmark\nGold: 7225\nTax: 10')
