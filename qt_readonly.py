@@ -492,10 +492,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.grid.setIconSize(QSize(32, 30) if self.group == 'Colonies' else QSize(60, 65) if self.group == 'Founding Fathers' else QSize(60, 20) if self.group == 'Native settlements' else QSize(42, 42) if self.group == 'Units' else QSize(20, 20))
         for row, (_, values) in enumerate(rows):
             for col, value in enumerate(values):
-                # First visible model-backed column: Game properties' Source and
-                # Property labels now come from the canonical Qt model. Preserve
-                # the existing compact formatting for long saved values.
-                if self.group == 'Game properties' and col in (0, 1):
+                # Render simple, unformatted columns from the shared model.
+                # Preserve Game properties' abbreviated saved-value display.
+                if (self.group == 'Game properties' and col in (0, 1)) or self.group == 'National Goods':
                     value = self.record_model.data(self.record_model.index(row, col))
                 displayed = (compact_property_value(value)
                              if self.group == 'Game properties' and col == 2 else value)
