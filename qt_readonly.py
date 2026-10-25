@@ -721,7 +721,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return
         element = selected_source_record(self.model_view, self.record_model)
         if element is None or not any(record is element for record in self.visible_rows):
-                return
+            return
         if self.group == 'Founding Fathers':
             self.inspect_father_record(element)
             return
