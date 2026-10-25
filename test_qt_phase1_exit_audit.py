@@ -14,6 +14,7 @@ class Phase1ExitAudit(unittest.TestCase):
         cls.qt=(ROOT/'qt_readonly.py').read_text(encoding='utf-8')
         cls.tree=ast.parse(cls.qt)
         cls.navigation=(ROOT/'qt_navigation_builder.py').read_text(encoding='utf-8')
+        cls.search_ui=(ROOT/'qt_global_search_ui.py').read_text(encoding='utf-8')
 
     def test_read_only_shell_does_not_serialize_or_change_xml(self):
         forbidden=('.set(', '.append(', '.remove(', '.write(', 'produce(', '.save_as(')
@@ -28,12 +29,12 @@ class Phase1ExitAudit(unittest.TestCase):
         for token in ("'National Goods'", "'Founding Fathers'", "'Game properties'",
                       "unit_group_scope(owner, 'vessel'", "('In the field', 'field')"):
             with self.subTest(token=token):
-                self.assertIn(token,self.qt + self.navigation)
+                self.assertIn(token,self.qt + self.navigation + self.search_ui)
         self.assertIn('self.global_button.clicked.connect(self.open_global_search)',self.qt)
 
     def test_sorted_navigation_uses_original_row_identity(self):
-        self.assertIn('cell.setData(Qt.ItemDataRole.UserRole, row)',self.qt)
-        self.assertIn('matches[source_index]',self.qt)
+        self.assertIn('cell.setData(Qt.ItemDataRole.UserRole, row)',self.search_ui)
+        self.assertIn('matches[source_index]',self.search_ui)
         self.assertIn('self.visible_rows[index] is element',self.qt)
 
     def test_development_only_override_removed(self):
