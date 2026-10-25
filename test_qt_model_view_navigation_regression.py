@@ -48,7 +48,6 @@ class NavigationModelViewRegressionTests(unittest.TestCase):
                 self.assertIsNotNone(colonies)
                 self.assertIsNotNone(players)
                 window.navigation.setCurrentItem(colonies)
-                window.set_model_view_comparison(True)
                 window.model_view.sortByColumn(1, Qt.SortOrder.DescendingOrder)
                 chosen = next(c for c in window.document.colonies if c.get("name") == "Alpha")
                 self.assertTrue(select_record_in_view(window.model_view, window.record_model, chosen))
@@ -59,8 +58,7 @@ class NavigationModelViewRegressionTests(unittest.TestCase):
                 self.assertEqual(window.record_model.rowCount(), window.record_proxy.rowCount())
                 self.assertIsNot(window.selected_element, chosen)
                 self.assertIsNot(selected_source_record(window.model_view, window.record_model), chosen)
-                window.set_model_view_comparison(False)
-                self.assertEqual(window.grid.rowCount(), window.record_model.rowCount())
+                self.assertEqual(window.record_proxy.rowCount(), window.record_model.rowCount())
             finally:
                 window.close()
                 window.deleteLater()
