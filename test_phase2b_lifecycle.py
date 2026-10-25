@@ -43,7 +43,7 @@ class Phase2BLifecycleTests(unittest.TestCase):
         with patch("qt_readonly.QMessageBox.question",
                    return_value=QMessageBox.StandardButton.Cancel) as prompt:
             self.assertFalse(self.window.confirm_discard())
-            self.assertIn("0 currently staged changes", prompt.call_args.args[2])
+            self.assertIn("differ from the last exported save", prompt.call_args.args[2])
         self.window.update_save_button()
         self.assertFalse(self.window.save_button.isEnabled())
 
