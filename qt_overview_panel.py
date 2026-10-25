@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
 )
 from colony_graphics import resolve_colony_graphic
 from qt_property_icons import property_icon
+from qt_goods_icons import GoodsIcons, goods_key
+from qt_flag_icons import flag_pixmap
 
 
 def summary_parts(text):
@@ -49,6 +51,7 @@ class OverviewPanel(QWidget):
         self.body.setContentsMargins(12, 12, 12, 12)
         self.body.setSpacing(10)
         self.scroll.setWidget(self.content)
+        self.goods_icons = GoodsIcons()
         self._text = ''
         self._record = None
         self._group = None
@@ -135,7 +138,9 @@ class OverviewPanel(QWidget):
                     value.setWordWrap(True)
                     icon_label = QLabel()
                     icon_label.setFixedSize(19, 19)
-                    icon_label.setPixmap(property_icon(key).pixmap(19, 19))
+                    good = self.goods_icons.icon(key, 23) if goods_key(key) else None
+                    icon_label.setPixmap(good.pixmap(19, 19) if good is not None and not good.isNull()
+                                         else property_icon(key).pixmap(19, 19))
                     icon_label.setToolTip(key)
                     grid.addWidget(icon_label, row, 0, Qt.AlignmentFlag.AlignTop)
                     grid.addWidget(label, row, 1, Qt.AlignmentFlag.AlignTop)
