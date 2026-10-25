@@ -65,6 +65,11 @@ class QtShellContractTests(unittest.TestCase):
         self.assertNotIn("entry(rival, 'Research'", self.source)
         self.assertIn("entry(None, 'Map', ready=False, kind='map')", self.source)
 
+    def test_unit_drilldown_visibility_tracks_real_unit_selection(self):
+        self.assertIn("self.jump_unit_button.setVisible(unit is not None)", self.source)
+        self.assertIn("self.jump_unit_button.hide()", self.source)
+        self.assertIn("self.document.unit_by_id(unit_id)", self.source)
+
     def test_colony_goods_action_only_visible_in_breakdown_context(self):
         self.assertIn("self.jump_colony_button.setVisible(relevant)", self.source)
         self.assertIn("self.tabs.currentWidget() is table", self.source)
