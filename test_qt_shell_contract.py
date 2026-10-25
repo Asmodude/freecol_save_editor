@@ -59,6 +59,13 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn("cell.setData(Qt.ItemDataRole.UserRole, row)", self.source)
         self.assertIn("self.grid.setSortingEnabled(True)", self.source)
 
+    def test_final_unit_rows_and_navigation_cleanup(self):
+        self.assertIn("else QSize(42, 42) if self.group == 'Units'", self.source)
+        self.assertIn("height = 44 if self.group == 'Units' else 36", self.source)
+        self.assertNotIn("entry(my, 'Research'", self.source)
+        self.assertNotIn("entry(rival, 'Research'", self.source)
+        self.assertIn("entry(None, 'Map', ready=False, kind='map')", self.source)
+
     def test_vertical_workspace_splitter(self):
         self.assertIn('self.workspace_splitter = QSplitter(Qt.Orientation.Vertical)', self.source)
         self.assertIn('self.workspace_splitter.addWidget(self.workspace_table_area)', self.source)
