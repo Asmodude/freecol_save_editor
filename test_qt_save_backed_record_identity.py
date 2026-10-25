@@ -58,14 +58,13 @@ class SaveBackedRecordIdentityTests(unittest.TestCase):
         self.assertIsNotNone(item)
         w.navigation.setCurrentItem(item)
         self.app.processEvents()
-        self.assertEqual(w.grid.rowCount(), 2)
+        self.assertEqual(w.record_proxy.rowCount(), 2)
         self.assertEqual(w.record_model.rowCount(), 2)
-        w.grid.sortItems(1, Qt.SortOrder.DescendingOrder)  # Name
-        for display_row in range(w.grid.rowCount()):
-            cell = w.grid.item(display_row, 0)
-            source_row = cell.data(Qt.ItemDataRole.UserRole)
+        w.model_view.sortByColumn(1, Qt.SortOrder.DescendingOrder)  # Name
+        for display_row in range(w.record_proxy.rowCount()):
+            source_row = w.record_proxy.mapToSource(w.record_proxy.index(display_row, 0)).row()
             expected = w.record_model.record_at(source_row)
-            w.grid.selectRow(display_row)
+            w.model_view.setCurrentIndex(w.record_proxy.index(display_row, 0))
             self.app.processEvents()
             self.assertIs(w.selected_element, expected)
 
@@ -75,10 +74,10 @@ class SaveBackedRecordIdentityTests(unittest.TestCase):
         w.navigation.setCurrentItem(find_navigation_item(w.navigation, "Colonies", "mine"))
         w.search.setText("Alpha")
         self.app.processEvents()
-        self.assertEqual(w.grid.rowCount(), 1)
+        self.assertEqual(w.record_proxy.rowCount(), 1)
         self.assertEqual(w.record_model.rowCount(), 1)
         self.assertEqual(w.record_model.record_at(0).get("name"), "Alpha")
-        w.grid.selectRow(0)
+        w.model_view.setCurrentIndex(w.record_proxy.index(0, 0))
         self.app.processEvents()
         self.assertIs(w.selected_element, w.record_model.record_at(0))
 
