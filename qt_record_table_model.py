@@ -1,0 +1,48 @@
+"""Read-only Qt record table model, preparatory infrastructure for Phase 2A.
+
+The initial model deliberately does not replace the accepted QTableWidget UI.
+It preserves source-record identity independently of sorting/filtering and
+does not mutate records. Wiring it into views requires separate parity tests.
+"""
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
+
+
+class RecordTableModel(QAbstractTableModel):
+    RecordRole = Qt.ItemDataRole.UserRole + 1
+
+    def __init__(self, headings=(), rows=(), parent=None):
+        super().__init__(parent)
+        self._headings = tuple(headings)
+        self._rows = tuple(rows)
+
+    def rowCount(self, parent=QModelIndex()):
+        return 0 if parent.isValid() else len(self._rows)
+
+    def columnCount(self, parent=QModelIndex()):
+        return 0 if parent.isValid() else len(self._headings)
+
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
+            return self._headings[section] if 0 <= section < len(self._headings) else None
+        return None
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if not index.isValid() or not (0 <= index.row() < len(self._rows)):
+            return None
+        record, values = self._rows[index.row()]
+        if role == self.RecordRole:
+            return record
+        if role == Qt.ItemDataRole.DisplayRole and 0 <= index.column() < len(values):
+            value = values[index.column()]
+            return '' if value is None else str(value)
+        return None
+
+    def flags(self, index):
+        if not index.isValid():
+            return Qt.ItemFlag.NoItemFlags
+        return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+
+    def replace_rows(self, rows):
+        self.beginResetModel()
+        self._rows = tuple(rows)
+        self.endResetModel()
