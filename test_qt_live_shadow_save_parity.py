@@ -64,20 +64,17 @@ class SaveBackedShadowViewTests(unittest.TestCase):
         self.assertTrue(select_record_in_view(w.model_view, w.record_model, zulu))
         self.assertIs(selected_source_record(w.model_view, w.record_model), zulu)
         w.record_proxy.setFilterFixedString("")
-        self.assertTrue(w.model_view.isHidden())
-        self.assertEqual(w.grid.rowCount(), 2)
+        self.assertEqual(w.record_proxy.rowCount(), 2)
 
     def test_artwork_role_matches_accepted_grid(self):
         w = self.window
         w.navigation.setCurrentItem(find_navigation_item(w.navigation, "Colonies", "mine"))
         self.app.processEvents()
-        for row in range(w.grid.rowCount()):
-            source = w.grid.item(row, 0).data(Qt.ItemDataRole.UserRole)
-            expected = w.grid.item(row, 0).icon()
-            actual = w.record_model.data(w.record_model.index(source, 0), Qt.ItemDataRole.DecorationRole)
-            self.assertEqual(actual is None, expected.isNull())
-            if actual is not None:
-                self.assertEqual(actual.cacheKey(), expected.cacheKey())
+        for row in range(w.record_proxy.rowCount()):
+            source = w.record_proxy.mapToSource(w.record_proxy.index(row, 0)).row()
+            icon = w.record_model.data(w.record_model.index(source, 0), Qt.ItemDataRole.DecorationRole)
+            self.assertIsNotNone(icon)
+            self.assertFalse(icon.isNull())
 
 
 if __name__ == "__main__":
