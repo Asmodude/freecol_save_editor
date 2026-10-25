@@ -71,7 +71,7 @@ class InspectorDetails(QWidget):
             for row, (key, value) in enumerate(fields):
                 glyph = QLabel()
                 glyph.setFixedSize(20, 20)
-                sprite = self._units.icon(value.replace(' ', ''), 20) if key == 'Unit type' else None
+                sprite = self._units.icon(value, 20) if key == 'Unit type' else None
                 glyph.setPixmap(sprite.pixmap(20, 20) if sprite is not None and not sprite.isNull()
                                 else property_icon(key, 19).pixmap(19, 19))
                 glyph.setToolTip(key)
