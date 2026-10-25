@@ -9,7 +9,7 @@ from time import perf_counter
 from pathlib import Path
 from xml.etree.ElementTree import Element
 
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QSettings
 from PySide6.QtGui import QFont, QBrush, QPixmap, QIcon
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QDialog,
@@ -45,6 +45,7 @@ from qt_navigation_icons import NavigationIcons
 from qt_flag_icons import flag_icon, flag_pixmap
 from qt_goods_icons import GoodsIcons
 from qt_workspace_header import workspace_identity
+from freecol_art_source import set_installation_root, validate_installation, configured_root
 
 GROUPS = ('Players', 'Colonies', 'Native settlements', 'Units', 'Founding Fathers', 'National Goods', 'Game properties', 'Diplomacy')
 HEADERS = {
@@ -86,12 +87,22 @@ class QtExplorer(QMainWindow):
         self.detail_unit_id = None
         self.detail_nodes = {}
         self.breakdown_target = None
+        self.art_settings = QSettings('FreeColSaveEditor', 'QtPreview')
+        saved_art_root = self.art_settings.value('freecol_installation', '', type=str)
+        set_installation_root(saved_art_root if saved_art_root and validate_installation(saved_art_root)[0] else None)
         self.father_portraits = FatherPortraits()
         self.navigation_icons = NavigationIcons()
         self.goods_icons = GoodsIcons()
         self.unit_icons = UnitIcons()
         self.recruiting_father = None
         self.offered_fathers = []
+
+        settings_menu = self.menuBar().addMenu('File')
+        settings_menu.addAction('FreeCol installation…', self.choose_freecol_installation)
+        settings_menu.addAction('Use automatic artwork discovery', self.reset_freecol_installation)
+        settings_menu.addSeparator()
+        settings_menu.addAction('Open Save…', self.open_save)
+        settings_menu.addAction('Exit', self.close)
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -619,6 +630,39 @@ class QtExplorer(QMainWindow):
         owner = self.document.players.get(element.get('owner'))
         self.raw_xml.setPlainText(formatted_record_xml(owner) if owner is not None
                                   else 'No saved source player available.')
+
+    def choose_freecol_installation(self):
+        folder = QFileDialog.getExistingDirectory(
+            self, 'Locate FreeCol installation', str(configured_root() or Path.home()))
+        if not folder:
+            return
+        valid, message = validate_installation(folder)
+        if not valid:
+            QMessageBox.warning(self, 'FreeCol artwork not found', message)
+            return
+        set_installation_root(folder)
+        self.art_settings.setValue('freecol_installation', folder)
+        self.refresh_artwork()
+        QMessageBox.information(self, 'FreeCol artwork', message)
+
+    def reset_freecol_installation(self):
+        self.art_settings.remove('freecol_installation')
+        set_installation_root(None)
+        self.refresh_artwork()
+
+    def refresh_artwork(self):
+        """Invalidate existing caches and redraw visible artwork."""
+        self.navigation_icons = NavigationIcons()
+        self.goods_icons = GoodsIcons()
+        self.unit_icons = UnitIcons()
+        self.overview.goods_icons = GoodsIcons()
+        self.overview.unit_icons = UnitIcons()
+        self.details._units = UnitIcons()
+        if self.document is not None:
+            self.install_navigation()
+            self.populate()
+            self.overview._render()
+            self.details._render()
 
     def update_workspace_header(self):
         title, subtitle, nation_id, native, placeholder = workspace_identity(
