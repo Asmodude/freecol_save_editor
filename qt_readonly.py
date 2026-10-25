@@ -25,6 +25,7 @@ from qt_navigation_lookup import find_navigation_item
 from qt_navigation_builder import NavigationBuilderMixin
 from qt_global_search_ui import GlobalSearchMixin
 from qt_diplomacy_view import DiplomacyViewMixin
+from qt_founding_fathers_view import FoundingFathersViewMixin
 from qt_sortable_item import SortableItem
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
@@ -68,7 +69,7 @@ HEADERS = {
 
 
 
-class QtExplorer(DiplomacyViewMixin, GlobalSearchMixin, NavigationBuilderMixin, QMainWindow):
+class QtExplorer(FoundingFathersViewMixin, DiplomacyViewMixin, GlobalSearchMixin, NavigationBuilderMixin, QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('FreeCol Save Editor — Qt preview (READ ONLY)')
@@ -570,37 +571,6 @@ class QtExplorer(DiplomacyViewMixin, GlobalSearchMixin, NavigationBuilderMixin, 
             f'{context} · {self.group}: {len(rows)} displayed\n' + note +
             'Choose a row above to see its full read-only record here.\n'
             'The inspector on the right shows only the currently selected object.')
-
-    def _set_father_portrait(self, label, father_id, width, height):
-        data = self.father_portraits.get(father_id)
-        pixmap = QPixmap()
-        if data and pixmap.loadFromData(data):
-            label.setPixmap(pixmap.scaled(width, height,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation))
-        else:
-            label.clear()
-            label.setText('Portrait unavailable')
-
-    def inspect_recruiting_father(self):
-        if self.recruiting_father is not None:
-            self.grid.clearSelection()
-            self.inspect_father_record(self.recruiting_father)
-
-    def inspect_father_record(self, element):
-        self.selected_element = element
-        self.update_detail_tabs(element)
-        self.inspector_label.setText(element.get('name', 'Founding Father'))
-        self.details.setPlainText(
-            'Name: ' + element.get('name', '') + '\n' +
-            'Category: Founding Fathers\n' +
-            'Status: ' + element.get('status', '') + '\n' +
-            'FreeCol identifier: ' + element.get('id', ''))
-        self.overview.setPlainText(record_overview('Founding Fathers', element, self.document))
-        source = father_source_node(self.document, element)
-        self.raw_xml.setPlainText(
-            formatted_record_xml(source) if source is not None else
-            'No matching source XML node found for this Founding Father.')
 
     def update_detail_tabs(self, element):
         self.detail_unit_id = None
