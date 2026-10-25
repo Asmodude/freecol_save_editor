@@ -24,8 +24,8 @@ class StagedChangesPanel(QWidget):
         self.heading = QLabel()
         layout.addWidget(self.heading)
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(4)
-        self.tree.setHeaderLabels(("Record", "Field", "Original", "Staged"))
+        self.tree.setColumnCount(5)
+        self.tree.setHeaderLabels(("Record", "Field", "Original", "Staged", ""))
         self.tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
         self.tree.itemSelectionChanged.connect(self._update_buttons)
         layout.addWidget(self.tree)
@@ -80,6 +80,17 @@ class StagedChangesPanel(QWidget):
             item.setData(0, Qt.ItemDataRole.UserRole, key)
             item.setToolTip(0, str(key))
             self.tree.addTopLevelItem(item)
+            undo = QPushButton('↶')
+            undo.setObjectName('undoStagedChange')
+            undo.setToolTip('Undo this change (restore opened-save value)')
+            undo.setFixedWidth(28)
+            undo.clicked.connect(lambda checked=False, edit_key=key: self.undo_key(edit_key))
+            self.tree.setItemWidget(item, 4, undo)
+        self.tree.setColumnWidth(0, 110)
+        self.tree.setColumnWidth(1, 75)
+        self.tree.setColumnWidth(2, 60)
+        self.tree.setColumnWidth(3, 60)
+        self.tree.setColumnWidth(4, 33)
         count = self.session.count
         self.heading.setText(f"Pending changes: {count}")
         self.clear_button.setEnabled(count > 0)
@@ -93,6 +104,11 @@ class StagedChangesPanel(QWidget):
         if not selection:
             return
         key = selection[0].data(0, Qt.ItemDataRole.UserRole)
+        if key not in self.session.edits:
+            return
+        self.undo_key(key)
+
+    def undo_key(self, key):
         if key not in self.session.edits:
             return
         self.session.unstage(key)
