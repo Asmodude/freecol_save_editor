@@ -30,7 +30,7 @@ from qt_workspace_header_view import WorkspaceHeaderMixin
 from qt_detail_tabs_view import DetailTabsMixin
 from qt_record_table_model import RecordTableModel
 from qt_record_sort_proxy import RecordSortFilterProxy
-from qt_record_table_view import build_record_table_view, apply_record_view_sizing, selected_source_record
+from qt_record_table_view import build_record_table_view, apply_record_view_sizing, selected_source_record, select_record_in_view
 from qt_sortable_item import SortableItem
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
@@ -648,6 +648,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return
         self.search.clear()
         self.navigation.setCurrentItem(target)
+        if self._compare_model_view:
+            if select_record_in_view(self.model_view, self.record_model, unit):
+                self.model_view.scrollTo(self.model_view.currentIndex())
+            return
         for index, record in enumerate(self.visible_rows):
             if record.get('id') == unit_id:
                 for display_row_index in range(self.grid.rowCount()):
