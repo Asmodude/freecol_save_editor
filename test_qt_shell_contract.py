@@ -9,6 +9,7 @@ class QtShellContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.source = (Path(__file__).resolve().parent / 'qt_readonly.py').read_text(encoding='utf-8')
         cls.tree = ast.parse(cls.source)
+        cls.navigation_source = (Path(__file__).resolve().parent / 'qt_navigation_builder.py').read_text(encoding='utf-8')
 
     def test_read_only_entry_point_and_no_save_mutation(self):
         self.assertIn('SaveDocument.load(', self.source)
@@ -22,18 +23,18 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn('available in the Tkinter application', self.source)
 
     def test_load_batches_navigation_and_supports_diagnostics(self):
-        self.assertIn('self.navigation.setUpdatesEnabled(False)', self.source)
-        self.assertIn('self.navigation.setUpdatesEnabled(True)', self.source)
+        self.assertIn('self.navigation.setUpdatesEnabled(False)', self.navigation_source)
+        self.assertIn('self.navigation.setUpdatesEnabled(True)', self.navigation_source)
         self.assertIn('FREECOL_QT_PROFILE', self.source)
-        self.assertIn('self.navigation_icons.icon(kind, nation_id, native)', self.source)
+        self.assertIn('self.navigation_icons.icon(kind, nation_id, native)', self.navigation_source)
         self.assertNotIn('standardIcon(', self.source)
 
     def test_navigation_styles_preserve_semantic_filters(self):
         self.assertIn("self.navigation.setIndentation(19)", self.source)
-        self.assertIn("kind='nation'", self.source)
-        self.assertIn("kind='colony'", self.source)
-        self.assertIn("item.setData(0, Qt.ItemDataRole.UserRole, (group, scope))", self.source)
-        self.assertIn("item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)", self.source)
+        self.assertIn("kind='nation'", self.navigation_source)
+        self.assertIn("kind='colony'", self.navigation_source)
+        self.assertIn("item.setData(0, Qt.ItemDataRole.UserRole, (group, scope))", self.navigation_source)
+        self.assertIn("item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)", self.navigation_source)
 
     def test_detail_unit_navigation_is_read_only(self):
         self.assertIn("self.jump_unit_button.clicked.connect(self.open_detail_unit)", self.source)
@@ -61,9 +62,9 @@ class QtShellContractTests(unittest.TestCase):
     def test_final_unit_rows_and_navigation_cleanup(self):
         self.assertIn("else QSize(42, 42) if self.group == 'Units'", self.source)
         self.assertIn("height = 44 if self.group == 'Units' else 36", self.source)
-        self.assertNotIn("entry(my, 'Research'", self.source)
-        self.assertNotIn("entry(rival, 'Research'", self.source)
-        self.assertIn("entry(None, 'Map', ready=False, kind='map')", self.source)
+        self.assertNotIn("entry(my, 'Research'", self.navigation_source)
+        self.assertNotIn("entry(rival, 'Research'", self.navigation_source)
+        self.assertIn("entry(None, 'Map', ready=False, kind='map')", self.navigation_source)
 
     def test_full_units_list_offers_actual_raw_xml_navigation(self):
         self.assertIn("self.unit_xml_button = QPushButton('View selected unit XML →')", self.source)
