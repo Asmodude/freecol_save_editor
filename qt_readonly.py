@@ -360,7 +360,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             self.search.blockSignals(False)
         self.populate()
         if direct and self.visible_rows:
-            self.grid.selectRow(0)
+            select_record_in_view(self.model_view, self.record_model, self.visible_rows[0])
 
     def choose_freecol_installation(self):
         folder = QFileDialog.getExistingDirectory(
@@ -440,7 +440,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         query = self.search.text().strip().casefold()
         if is_diplomacy:
             self.populate_diplomacy(query)
-            self.grid.setSortingEnabled(True)
             return
         if self.group == 'Founding Fathers':
             father_records = rows_for_scope(doc, self.group, self.scope)
