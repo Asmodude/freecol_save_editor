@@ -132,7 +132,7 @@ class QtExplorer(QMainWindow):
         header_layout.setContentsMargins(7, 8, 7, 9)
         header_layout.setSpacing(13)
         self.workspace_emblem = QLabel()
-        self.workspace_emblem.setFixedSize(52, 52)
+        self.workspace_emblem.setFixedSize(66, 52)
         self.workspace_emblem.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(self.workspace_emblem)
         header_text = QWidget()
