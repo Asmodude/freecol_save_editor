@@ -33,13 +33,7 @@ class RecordSelectionIdentityTests(unittest.TestCase):
             window.group = "Units"
             window.visible_rows = [a]
             window.record_model.replace_rows(((b, ("Other",)),), ("Name",))
-            window.grid.setColumnCount(1)
-            window.grid.setRowCount(1)
-            from PySide6.QtWidgets import QTableWidgetItem
-            cell = QTableWidgetItem("Unit")
-            cell.setData(Qt.ItemDataRole.UserRole, 0)
-            window.grid.setItem(0, 0, cell)
-            window.grid.selectRow(0)
+            window.model_view.setCurrentIndex(window.record_proxy.index(0, 0))
             window.selected_element = None
             window.inspect()
             self.assertIsNone(window.selected_element)
