@@ -9,6 +9,15 @@ _Last revised: 2026-10-25. Planning document; targets are not deadlines._
 - **Workflow:** use GitHub branches and reviewed changes for experimental features; only mark milestones accepted after Windows and in-game testing.
 - **Original FreeCol artwork:** load from users' installed game rather than redistributing assets.
 
+## Phase 2A — single-table pre-merge checkpoint
+- User accepted the experimental `QTableView` behaviour on Windows (25 Oct 2026).
+- In PR #4, the new model-backed `QTableView` is now the **only** workspace table by default. The old `QTableWidget` workspace, `--compare-model-view` flag, and comparison mode have been removed.
+- Navigation, sorting/filtering, Inspector record identity, search and drill-down use the sole table. Diplomacy and detail-tab tables can remain `QTableWidget` until editing support in 2C.
+- Also accepted as visible changes: role-based unit sprites, direct inspection of uniquely scoped colonies/native settlements, and matching Workers/Stationed units row heights.
+- **Not merged yet:** final green CI and the Windows default single-table sanity re-check must be completed before the user authorizes PR #4 merge.
+- Post-merge: tag **the merge commit** `v0.6.2.6.4-phase2a`, then delete the feature branch.
+- Carry into 2B: gradually replace the remaining source-text tests with behavioural tests; split the remaining section-specific `populate`/`inspect` logic into per-section classes as needed during 2C.
+
 ## Current status
 - **Latest accepted integration baseline:** `v0.6.2.6.4` — 9×9 map, native-mask river prototype, established directional roads, and 12 accepted colony sprites (user-verified on Windows).
 - **Phase 0 (core extraction):** accepted and merged 2026-10-23, tag `v0.6.2.6.4-phase0`. UI-free core: `save_document.py`, `edit_session.py`, `presentation.py`, `map_render.py`, `freecol_art_source.py`; 65 headless tests in CI on `main`. No user-visible changes.
