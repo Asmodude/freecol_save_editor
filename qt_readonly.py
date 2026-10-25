@@ -412,6 +412,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
 
     def populate(self):
         self.update_workspace_header()
+        # Apply category sizing even when no save is loaded and populate exits early.
+        apply_record_view_sizing(self.model_view, self.group)
         is_diplomacy = self.group == 'Diplomacy'
         self.grid.setVisible(not is_diplomacy)
         self.diplomacy_tabs.setVisible(is_diplomacy)
