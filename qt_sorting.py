@@ -18,7 +18,8 @@ def sort_key(value, numeric=False):
     text = '' if value is None else str(value).strip()
     if numeric:
         try:
-            return (0, int(text.replace(',', '')))
+            number = text[5:] if text.startswith('Turn ') else text
+            return (0, int(number.replace(',', '')))
         except ValueError:
             return (1, text.casefold())
     return (0, text.casefold())
