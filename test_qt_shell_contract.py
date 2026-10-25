@@ -9,6 +9,7 @@ class QtShellContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.source = (Path(__file__).resolve().parent / 'qt_readonly.py').read_text(encoding='utf-8')
         cls.tree = ast.parse(cls.source)
+        cls.detail_source = (Path(__file__).resolve().parent / 'qt_detail_tabs_view.py').read_text(encoding='utf-8')
         cls.global_search_source = (Path(__file__).resolve().parent / 'qt_global_search_ui.py').read_text(encoding='utf-8')
         cls.navigation_source = (Path(__file__).resolve().parent / 'qt_navigation_builder.py').read_text(encoding='utf-8')
 
@@ -74,13 +75,13 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn("self.unit_xml_button.hide()", self.source)
 
     def test_unit_drilldown_visibility_tracks_real_unit_selection(self):
-        self.assertIn("self.jump_unit_button.setVisible(unit is not None)", self.source)
+        self.assertIn("self.jump_unit_button.setVisible(unit is not None)", self.detail_source)
         self.assertIn("self.jump_unit_button.hide()", self.source)
         self.assertIn("self.document.unit_by_id(unit_id)", self.source)
 
     def test_colony_goods_action_only_visible_in_breakdown_context(self):
-        self.assertIn("self.jump_colony_button.setVisible(relevant)", self.source)
-        self.assertIn("self.tabs.currentWidget() is table", self.source)
+        self.assertIn("self.jump_colony_button.setVisible(relevant)", self.detail_source)
+        self.assertIn("self.tabs.currentWidget() is table", self.detail_source)
         self.assertIn("self.group == 'National Goods'", self.source)
         self.assertIn("self.refresh_breakdown_action(self.tabs.currentIndex())", self.source)
 
