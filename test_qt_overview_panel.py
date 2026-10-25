@@ -23,6 +23,20 @@ class OverviewPanelTests(unittest.TestCase):
         self.assertEqual(fields, [('Owner','Danish'),('Liberty bells','42'),('Buildings','3')])
         self.assertIn('Population and activity', notes)
 
+    def test_colony_sections_render_with_all_values(self):
+        panel = OverviewPanel()
+        panel.setPlainText(
+            'Christiansborg\nOwner: Danish\n'
+            'Population and activity\nWorkplace workers: 6\n'
+            'Largest warehouse stockpiles\nBells: 649\n'
+            'Occupied buildings\nTown Hall: 1 worker')
+        labels = [widget.text() for widget in panel.findChildren(QLabel)]
+        for expected in ('Population and activity','Workplace workers',
+                         'Largest warehouse stockpiles','Bells',
+                         'Occupied buildings','Town Hall'):
+            self.assertIn(expected, labels)
+        panel.deleteLater()
+
     def test_icons_cover_property_rows(self):
         labels = ('Owner', 'Map location', 'Established', 'Liberty bells',
                   'Sons of Liberty', 'Production bonus', 'Workplace workers',
