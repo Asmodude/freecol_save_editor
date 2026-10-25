@@ -15,10 +15,11 @@ from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QDialog,
     QMessageBox, QPushButton, QSplitter, QTabWidget, QTableWidget,
     QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QVBoxLayout,
-    QWidget, QPlainTextEdit, QGroupBox, QHeaderView, QSizePolicy, QStyle
+    QWidget, QPlainTextEdit, QGroupBox, QHeaderView, QSizePolicy, QStyle, QDockWidget
 )
 from save_document import SaveDocument
-from edit_session import EditSession
+from edit_session import EditSession, EditValidationError
+from qt_staged_changes_panel import StagedChangesPanel
 import presentation
 from qt_navigation import rows_for_scope, human_player_id
 from qt_navigation_lookup import find_navigation_item
@@ -90,7 +91,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.record_proxy.setSourceModel(self.record_model)
         self.record_proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.record_proxy.setFilterKeyColumn(-1)
+        self.gold_editor_key = None
         self.selected_element = None
+        self.update_gold_editor()
         self.detail_unit_id = None
         self.detail_nodes = {}
         self.breakdown_target = None
@@ -266,6 +269,20 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.inspector_label = QLabel('Select an individual row to inspect its attributes.')
         self.inspector_label.setWordWrap(True)
         inspector_layout.addWidget(self.inspector_label)
+        self.gold_edit_widget = QWidget()
+        gold_layout = QHBoxLayout(self.gold_edit_widget)
+        gold_layout.setContentsMargins(0, 0, 0, 0)
+        gold_layout.addWidget(QLabel('Gold:'))
+        self.gold_edit = QLineEdit()
+        self.gold_edit.setObjectName('stagedGoldInput')
+        self.gold_edit.setToolTip('Original saved value is preserved; stage changes explicitly.')
+        gold_layout.addWidget(self.gold_edit)
+        self.gold_stage_button = QPushButton('Stage')
+        self.gold_stage_button.clicked.connect(self.stage_selected_gold)
+        self.gold_edit.returnPressed.connect(self.stage_selected_gold)
+        gold_layout.addWidget(self.gold_stage_button)
+        inspector_layout.addWidget(self.gold_edit_widget)
+        self.gold_edit_widget.hide()
         self.details = InspectorDetails()
         self.inspector_tabs = QTabWidget()
         self.inspector_tabs.addTab(self.details, 'Details')
@@ -294,10 +311,54 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         panes.setChildrenCollapsible(False)
         panes.setSizes([240, 885, 325])
         layout.addWidget(panes, 1)
+        self.pending_panel = StagedChangesPanel(self.session)
+        self.pending_panel.changed.connect(self.refresh_staged_view)
+        self.pending_dock = QDockWidget('Pending changes', self)
+        self.pending_dock.setObjectName('pendingChangesDock')
+        self.pending_dock.setWidget(self.pending_panel)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.pending_dock)
 
         self.statusBar().showMessage(
             'Read-only preview · Save As and the Map Editor remain in the Tkinter application')
         self.install_navigation()
+
+    def update_gold_editor(self, element=None):
+        self.gold_editor_key = None
+        self.gold_edit_widget.hide()
+        if self.document is None or self.group != 'Players' or element is None:
+            return
+        if 'gold' not in EditSession.editable_fields('Players', element):
+            return
+        key = (element.get('id'), 'gold')
+        self.gold_editor_key = key  # snapshot identity at editor creation
+        self.gold_edit.setText(str(self.session.staged_value(key, int(element.get('gold')))))
+        self.gold_edit_widget.show()
+
+    def stage_selected_gold(self):
+        key = self.gold_editor_key
+        if key is None or self.document is None:
+            return
+        # Never look up the currently selected row to identify the edit target.
+        element = self.document.players.get(key[0])
+        if element is None or 'gold' not in EditSession.editable_fields('Players', element):
+            return
+        original = int(element.get('gold'))
+        try:
+            value = self.session.validate(key, self.gold_edit.text(), original=original)
+            self.session.stage(key, original, value)
+        except (EditValidationError, ValueError) as exc:
+            QMessageBox.warning(self, 'Cannot stage gold', str(exc))
+            return
+        self.refresh_staged_view()
+
+    def refresh_staged_view(self):
+        self.pending_panel.refresh()
+        if self.document is not None:
+            chosen = self.selected_element
+            self.populate()
+            if chosen is not None:
+                select_record_in_view(self.model_view, self.record_model, chosen)
+                self.inspect()
 
     @staticmethod
     def _read_only_note(message):
@@ -327,6 +388,11 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         loaded_at = perf_counter()
         self.art_settings.setValue('last_save_directory', str(Path(path).parent))
         self.document = document
+        self.session = EditSession()
+        self.pending_panel.session = self.session
+        self.pending_panel.refresh()
+        self.gold_editor_key = None
+        self.gold_edit_widget.hide()
         self.global_button.setEnabled(True)
         self.install_navigation()
         navigation_at = perf_counter()
@@ -614,6 +680,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         if self.document is None:
             return
         element = selected_source_record(self.model_view, self.record_model)
+        self.update_gold_editor(element)
         if element is None or not any(record is element for record in self.visible_rows):
             return
         if self.group == 'Founding Fathers':
@@ -669,7 +736,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             ('FreeCol identifier', element.get('id'))])
         elif self.group == 'Players':
             summary.extend([('Nation', presentation.short(element.get('nationId'))),
-                            ('Gold', element.get('gold')), ('Tax', element.get('tax')),
+                            ('Gold', str(self.session.staged_value((element.get('id'), 'gold'), element.get('gold')))), ('Tax', element.get('tax')),
                             ('AI controlled', element.get('ai'))])
         elif self.group == 'Colonies':
             summary.extend([('Owner', doc.owner_name(element.get('owner'))),
@@ -690,7 +757,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             ('Learnable skill', presentation.short(element.get('learnableSkill')))])
         self.details.setPlainText('\n'.join(
             f'{key}: {value}' for key, value in summary if value is not None))
-        self.overview.setPlainText(record_overview(self.group, element, doc))
+        overview_text = record_overview(self.group, element, doc)
+        if self.group == 'Players' and self.session.is_changed((element.get('id'), 'gold')):
+            overview_text += f'\n\nStaged gold: {self.session.staged_value((element.get("id"), "gold"), element.get("gold"))} (source: {element.get("gold")})'
+        self.overview.setPlainText(overview_text)
         self.overview.set_record(self.group, element, doc)
         if self.group == 'Founding Fathers':
             self.raw_xml.setPlainText('Virtual read-only record. Membership is encoded in the owning player XML.\nSelect the player Overview to inspect the source XML.')
