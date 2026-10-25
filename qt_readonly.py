@@ -426,9 +426,8 @@ class QtExplorer(QMainWindow):
 
     @staticmethod
     def _default_save_directory():
-        # DEVELOPMENT ONLY: remove this local override before release packaging.
-        dev_save = Path(r'C:\Users\morte\OneDrive\Dokumenter\freecol\save')
-        return dev_save if dev_save.is_dir() else Path.home()
+        # Portable default: never point users to a developer-specific directory.
+        return Path.home()
 
     def open_save(self):
         path, _ = QFileDialog.getOpenFileName(
