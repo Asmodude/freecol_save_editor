@@ -27,7 +27,7 @@ class Phase2BInspectorTests(unittest.TestCase):
             explorer.document = SimpleNamespace(players={"player:1": player_a, "player:2": player_b})
             explorer.group = "Players"
             # The only production editor is the lower-middle Overview control.
-            explorer.overview.setPlainText("Player A\\nGold: 7225")
+            explorer.overview.setPlainText("Player A\nGold: 7225")
             explorer.overview.set_record("Players", player_a, explorer.document, explorer.session)
             from PySide6.QtWidgets import QLineEdit
             editor = explorer.overview.findChild(QLineEdit, "inlineGoldInput")
@@ -49,7 +49,7 @@ class Phase2BInspectorTests(unittest.TestCase):
         try:
             native = Element("player", {"id": "player:3", "gold": "-2147483648"})
             explorer.document = SimpleNamespace(players={"player:3": native})
-            explorer.overview.setPlainText("Native\\nGold: -2147483648")
+            explorer.overview.setPlainText("Native\nGold: -2147483648")
             explorer.overview.set_record("Players", native, explorer.document, explorer.session)
             from PySide6.QtWidgets import QLineEdit
             self.assertIsNone(explorer.overview.findChild(QLineEdit, "inlineGoldInput"))
