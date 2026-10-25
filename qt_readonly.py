@@ -21,6 +21,7 @@ from save_document import SaveDocument
 from edit_session import EditSession
 import presentation
 from qt_navigation import rows_for_scope, human_player_id
+from qt_navigation_lookup import find_navigation_item
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
@@ -533,19 +534,7 @@ class QtExplorer(QMainWindow):
             scope = 'mine' if record_id == own else 'player:' + record_id
         else:
             scope = 'mine' if owner == own else 'player:' + owner
-        def find_item(parent):
-            if parent.data(0, Qt.ItemDataRole.UserRole) == (group, scope):
-                return parent
-            for i in range(parent.childCount()):
-                match = find_item(parent.child(i))
-                if match is not None:
-                    return match
-            return None
-        target = None
-        for i in range(self.navigation.topLevelItemCount()):
-            target = find_item(self.navigation.topLevelItem(i))
-            if target is not None:
-                break
+        target = find_navigation_item(self.navigation, group, scope)
         if target is None:
             return
         self.search.blockSignals(True)
@@ -1030,20 +1019,7 @@ class QtExplorer(QMainWindow):
         if len(matches) != 1 or not matches[0].get('id'):
             return
         scope = 'colony-id:' + matches[0].get('id')
-        def find_item(parent):
-            for index in range(parent.childCount()):
-                item = parent.child(index)
-                if item.data(0, Qt.ItemDataRole.UserRole) == ('Colonies', scope):
-                    return item
-                found = find_item(item)
-                if found is not None:
-                    return found
-            return None
-        destination = None
-        for index in range(self.navigation.topLevelItemCount()):
-            destination = find_item(self.navigation.topLevelItem(index))
-            if destination is not None:
-                break
+        destination = find_navigation_item(self.navigation, 'Colonies', scope)
         if destination is None:
             return
         self.navigation.setCurrentItem(destination)
@@ -1065,20 +1041,7 @@ class QtExplorer(QMainWindow):
             return
         owner = unit.get('owner')
         scope = 'mine' if owner == human_player_id(self.document) else 'player:' + owner if owner else 'all'
-        def matching_item(parent):
-            for i in range(parent.childCount()):
-                child = parent.child(i)
-                if child.data(0, Qt.ItemDataRole.UserRole) == ('Units', scope):
-                    return child
-                found = matching_item(child)
-                if found is not None:
-                    return found
-            return None
-        target = None
-        for i in range(self.navigation.topLevelItemCount()):
-            target = matching_item(self.navigation.topLevelItem(i))
-            if target is not None:
-                break
+        target = find_navigation_item(self.navigation, 'Units', scope)
         if target is None:
             return
         self.search.clear()
