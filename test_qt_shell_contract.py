@@ -16,7 +16,7 @@ class QtShellContractTests(unittest.TestCase):
     def test_read_only_entry_point_and_no_save_mutation(self):
         self.assertIn('SaveDocument.load(', self.source)
         self.assertNotIn('produce(', self.source)
-        self.assertNotIn('.save_as(', self.source)
+        self.assertIn('self.session.save_as(', self.source)  # Phase 2B safe producer
         self.assertIn('NoEditTriggers', self.source)
 
     def test_map_editor_entry_point_is_honest(self):
