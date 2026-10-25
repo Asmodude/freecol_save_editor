@@ -874,7 +874,7 @@ class QtExplorer(QMainWindow):
                     item.setData(Qt.ItemDataRole.UserRole, row)
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     if col == 1 and name in ('Workers', 'Stationed units', 'Affiliated units', 'In transit'):
-                        icon = self.unit_icons.icon(value if str(value).startswith('model.unit.') else 'model.unit.' + str(value).replace(' ', ''))
+                        icon = self.unit_icons.icon(value)
                         if not icon.isNull():
                             item.setIcon(icon)
                     if col == 0 and name == 'Goods':
