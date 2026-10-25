@@ -14,7 +14,7 @@ from PySide6.QtGui import QFont, QBrush, QPixmap, QIcon
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QDialog,
     QMessageBox, QPushButton, QSplitter, QTabWidget, QTableWidget,
-    QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout,
+    QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QTreeWidgetItemIterator, QVBoxLayout,
     QWidget, QPlainTextEdit, QGroupBox, QHeaderView, QSizePolicy, QStyle
 )
 from save_document import SaveDocument
@@ -659,7 +659,15 @@ class QtExplorer(QMainWindow):
         self.overview.unit_icons = UnitIcons()
         self.details._units = UnitIcons()
         if self.document is not None:
+            target = (self.group, self.scope)
             self.install_navigation()
+            iterator = QTreeWidgetItemIterator(self.navigation)
+            while iterator.value():
+                item = iterator.value()
+                if item.data(0, Qt.ItemDataRole.UserRole) == target:
+                    self.navigation.setCurrentItem(item)
+                    break
+                iterator += 1
             self.populate()
             self.overview._render()
             self.details._render()
