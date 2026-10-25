@@ -3,7 +3,8 @@
 The panel never mutates XML. All edits belong to EditSession, and the caller
 is responsible for refreshing the affected views after a change is unstaged.
 """
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
+import presentation
 from PySide6.QtWidgets import (
     QHBoxLayout, QLabel, QPushButton, QTreeWidget, QTreeWidgetItem,
     QVBoxLayout, QWidget, QMessageBox,
@@ -15,9 +16,10 @@ class StagedChangesPanel(QWidget):
 
     changed = Signal()
 
-    def __init__(self, session, parent=None):
+    def __init__(self, session, parent=None, document=None):
         super().__init__(parent)
         self.session = session
+        self.document = document
         layout = QVBoxLayout(self)
         self.heading = QLabel()
         layout.addWidget(self.heading)
@@ -35,37 +37,64 @@ class StagedChangesPanel(QWidget):
         buttons.addWidget(self.undo_button)
         buttons.addWidget(self.clear_button)
         layout.addLayout(buttons)
-        self._keys = []
         self.refresh()
 
+    def labels_for(self, key, original, staged):
+        record_id, field = key
+        lookup_id = record_id.split('|', 1)[0]
+        element = None
+        doc = self.document
+        if doc is not None:
+            element = (doc.players.get(lookup_id)
+                       or next((e for e in doc.colonies + doc.native_settlements + doc.units
+                                if e.get('id') == lookup_id), None))
+        name = (element.get('name') or element.get('username') or lookup_id) if element is not None else lookup_id
+        kind = ('player' if lookup_id.startswith('player:') else
+                'colony' if lookup_id.startswith('colony:') else
+                'native settlement' if lookup_id.startswith('indianSettlement:') else 'unit')
+        if element is not None and element.get('owner') and doc is not None:
+            name += ' — ' + doc.owner_name(element.get('owner'))
+        title = f'{name} ({kind})'
+        if field.startswith(('delete',)):
+            label = 'Delete ' + kind
+            return title, label, 'Present', 'Delete'
+        if field == 'equipment':
+            def role(value):
+                return f'{presentation.readable(value[0])} × {value[1]}'
+            return title, 'Equipment', role(original), role(staged)
+        if field.startswith(('stance|', 'tension|', 'alarm|')):
+            topic, other = field.split('|', 1)
+            counterpart = doc.owner_name(other) if doc is not None else other
+            label = presentation.readable(topic) + ' — ' + counterpart
+        elif field == 'sonsOfLibertyTarget':
+            label = 'Sons of Liberty'
+        else:
+            label = presentation.readable(field)
+        return title, label, str(original), str(staged)
+
     def refresh(self):
-        """Render session state without changing or interpreting edit keys."""
         self.tree.clear()
-        self._keys = []
         for key, (original, staged) in self.session.items():
-            self._keys.append(key)
-            label = (str(key[0]), str(key[1]), str(original), str(staged))
-            self.tree.addTopLevelItem(QTreeWidgetItem(label))
+            item = QTreeWidgetItem(self.labels_for(key, original, staged))
+            item.setData(0, Qt.ItemDataRole.UserRole, key)
+            item.setToolTip(0, str(key))
+            self.tree.addTopLevelItem(item)
         count = self.session.count
         self.heading.setText(f"Pending changes: {count}")
         self.clear_button.setEnabled(count > 0)
         self._update_buttons()
 
     def _update_buttons(self):
-        self.undo_button.setEnabled(
-            len(self.tree.selectedItems()) == 1 and self.tree.indexOfTopLevelItem(
-                self.tree.selectedItems()[0]) < len(self._keys)
-            if self.tree.selectedItems() else False
-        )
+        self.undo_button.setEnabled(bool(self.tree.selectedItems()))
 
     def undo_selected(self):
         selection = self.tree.selectedItems()
         if not selection:
             return
-        index = self.tree.indexOfTopLevelItem(selection[0])
-        if not 0 <= index < len(self._keys):
+        key = selection[0].data(0, Qt.ItemDataRole.UserRole)
+        if key not in self.session.edits:
             return
-        self.session.unstage(self._keys[index])
+        self.session.unstage(key)
         self.refresh()
         self.changed.emit()
 
