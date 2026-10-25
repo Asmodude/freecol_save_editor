@@ -36,6 +36,17 @@ class UnitIconTests(unittest.TestCase):
             pix = icons.icon('model.unit.freeColonist', 24).pixmap(24, 24)
             self.assertEqual(pix.toImage().pixelColor(12, 12).name(), '#14a26b')
 
+    def test_nested_civilian_sprite_is_selected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            (folder/'units'/'civilian').mkdir(parents=True)
+            sprite = QPixmap(24, 24)
+            sprite.fill(QColor('#17c38a'))
+            self.assertTrue(sprite.save(str(folder/'units'/'civilian'/'freeColonist.png')))
+            icon = UnitIcons(source=(folder, None, '', 'test')).icon(
+                'model.unit.freeColonist', 24)
+            self.assertEqual(icon.pixmap(24,24).toImage().pixelColor(12,12).name(), '#17c38a')
+
     def test_missing_assets_are_visible_without_cross(self):
         icons = UnitIcons(source=(None, None, '', 'unavailable'))
         pix = icons.icon('model.unit.freeColonist', 24).pixmap(24, 24)
