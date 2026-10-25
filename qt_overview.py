@@ -3,6 +3,7 @@
 Only fields present in the savegame are shown; absent values are not guessed.
 """
 from qt_colony_details import colony_sections
+from qt_final_visual_format import established_turn
 import presentation
 
 
@@ -16,7 +17,7 @@ def record_overview(group, element, document):
         sections = colony_sections(element, document)
         field('Owner', document.owner_name(element.get('owner')))
         field('Map location', document.location_name(element.get('tile')))
-        field('Established', element.get('established'))
+        field('Established', established_turn(element.get('established')))
         field('Liberty bells', element.get('liberty'))
         field('Sons of Liberty', element.get('sonsOfLiberty'))
         field('Production bonus', element.get('productionBonus'))
