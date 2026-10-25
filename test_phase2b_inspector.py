@@ -40,6 +40,7 @@ class Phase2BInspectorTests(unittest.TestCase):
                 explorer.stage_selected_gold()
             self.assertEqual(explorer.session.edits[("player:1", "gold")], (7225, 9500))
         finally:
+            explorer.session.exported_snapshot = dict(explorer.session.edits)
             explorer.close()
 
     def test_native_gold_sentinel_does_not_offer_editor(self):
