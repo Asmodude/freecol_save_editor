@@ -950,7 +950,13 @@ class QtExplorer(QMainWindow):
                 or self.selected_element is None):
             return
         # Opening this tab is not a selection. Require an explicit colony click.
-        self.jump_colony_button.setEnabled(bool(table.selectedItems()) and self.breakdown_target is not None)
+        # Clicking or keyboard-selecting a row must establish its drill-down
+        # target; merely switching to this tab does not choose a colony.
+        if table.selectedItems():
+            self.inspect_detail('By colony')
+        else:
+            self.breakdown_target = None
+            self.jump_colony_button.setEnabled(False)
 
     def inspect_detail(self, section):
         table = self.colony_tables[section]
@@ -981,7 +987,7 @@ class QtExplorer(QMainWindow):
         exact = exact_nodes[source_index] if isinstance(source_index, int) and source_index < len(exact_nodes) else None
         if section == 'By colony':
             self.breakdown_target = (self.selected_element.get('id'), values[0])
-            self.jump_colony_button.setEnabled(True)
+            self.jump_colony_button.setEnabled(bool(self.breakdown_target[0] and self.breakdown_target[1]))
             self.details.setPlainText(description + '\n\nUse Open colony Goods to inspect this warehouse.')
             self.raw_xml.setPlainText('Read-only summary; visit the colony for source XML.')
             return
