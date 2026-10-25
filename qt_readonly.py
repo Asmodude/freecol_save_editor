@@ -31,7 +31,6 @@ from qt_detail_tabs_view import DetailTabsMixin
 from qt_record_table_model import RecordTableModel
 from qt_record_sort_proxy import RecordSortFilterProxy
 from qt_record_table_view import build_record_table_view, apply_record_view_sizing, selected_source_record, select_record_in_view
-from qt_sortable_item import SortableItem
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
@@ -484,20 +483,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
         model_decorations = {}
         model_tooltips = {}
-        for row, (_, values) in enumerate(rows):
+        for row, (record, values) in enumerate(rows):
             for col, value in enumerate(values):
-                # Render simple, unformatted columns from the shared model.
-                # Preserve Game properties' abbreviated saved-value display.
-                if (self.group == 'Game properties' and col in (0, 1)) or self.group in (
-                        'National Goods', 'Players', 'Colonies', 'Units',
-                        'Native settlements', 'Founding Fathers'):
-                    value = self.record_model.data(self.record_model.index(row, col))
-                displayed = (compact_property_value(value)
-                             if self.group == 'Game properties' and col == 2 else value)
-                if self.group == 'Colonies' and HEADERS[self.group][col] == 'Established':
-                    displayed = established_turn(displayed)
-                cell = SortableItem(displayed, HEADERS[self.group][col] in NUMERIC_COLUMNS.get(self.group, ()))
-                cell.setData(Qt.ItemDataRole.UserRole, row)
+                icon = QIcon()
+                tooltip = None
                 if col == 0 and self.group != 'Founding Fathers':
                     row_kinds = {
                         'Players': 'nation', 'Colonies': 'colony',
@@ -506,35 +495,32 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                     }
                     kind = row_kinds.get(self.group)
                     if kind:
-                        record = rows[row][0]
                         if self.group == 'Players':
                             nation_id = record.get('nationId') or record.get('nation')
                             native = record.get('playerType') in ('native', 'indian')
                             flag = flag_icon(nation_id, 15) if not native else QIcon()
-                            cell.setIcon(flag if not flag.isNull() else self.navigation_icons.icon(
-                                kind, nation_id=nation_id, native=native, size=20))
+                            icon = flag if not flag.isNull() else self.navigation_icons.icon(
+                                kind, nation_id=nation_id, native=native, size=20)
                         elif self.group == 'Units':
                             icon = self.unit_icons.icon(record.get('unitType'), role=record.get('role'))
-                            cell.setIcon(icon if not icon.isNull() else self.navigation_icons.icon('units', size=20))
+                            if icon.isNull():
+                                icon = self.navigation_icons.icon('units', size=20)
                         elif self.group == 'National Goods':
                             icon = self.goods_icons.icon(record.get('id') or record.get('name'))
-                            cell.setIcon(icon if not icon.isNull() else self.navigation_icons.icon(kind, size=20))
+                            if icon.isNull():
+                                icon = self.navigation_icons.icon(kind, size=20)
                         elif self.group == 'Colonies':
                             art = resolve_colony_graphic(record)
                             image = QPixmap(str(art.image_path)) if art.image_path else QPixmap()
-                            if not image.isNull():
-                                cell.setIcon(QIcon(image.scaled(
-                                    32, 30, Qt.AspectRatioMode.KeepAspectRatio,
-                                    Qt.TransformationMode.SmoothTransformation)))
-                            else:
-                                cell.setIcon(self.navigation_icons.icon('colony', size=22))
+                            icon = (QIcon(image.scaled(
+                                32, 30, Qt.AspectRatioMode.KeepAspectRatio,
+                                Qt.TransformationMode.SmoothTransformation))
+                                if not image.isNull() else self.navigation_icons.icon('colony', size=22))
                         else:
-                            cell.setIcon(self.navigation_icons.icon(kind, size=20))
+                            icon = self.navigation_icons.icon(kind, size=20)
                 if self.group == 'Native settlements' and col == 5:
-                    # The accepted display combines up to three wanted goods in
-                    # one cell; decorate only unequivocally recognised goods.
-                    names = [piece.strip() for piece in str(value or '').split(',')]
                     from qt_goods_icons import goods_key
+                    names = [part.strip() for part in str(value or '').split(',')]
                     recognised = [name for name in names if goods_key(name)]
                     if recognised:
                         strip = QPixmap(20 * len(recognised), 20)
@@ -542,25 +528,24 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                         from PySide6.QtGui import QPainter
                         painter = QPainter(strip)
                         for position, good in enumerate(recognised):
-                            pix = self.goods_icons.icon(good, 20).pixmap(20, 20)
-                            painter.drawPixmap(position * 20, 0, pix)
+                            painter.drawPixmap(position * 20, 0,
+                                               self.goods_icons.icon(good, 20).pixmap(20, 20))
                         painter.end()
-                        cell.setIcon(QIcon(strip))
-                if self.group == 'Game properties' and col == 2 and displayed != value:
-                    cell.setToolTip('Long value shortened here. Select the row for its complete saved value.')
-                cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                        icon = QIcon(strip)
+                if self.group == 'Game properties' and col == 2:
+                    if compact_property_value(value) != str(value or ''):
+                        tooltip = ('Long value shortened here. Select the row '
+                                   'for its complete saved value.')
                 if self.group == 'Founding Fathers' and col == 0:
-                    data = self.father_portraits.get(rows[row][0].get('id'))
+                    data = self.father_portraits.get(record.get('id'))
                     if data:
                         pixmap = QPixmap()
                         if pixmap.loadFromData(data):
-                            cell.setIcon(QIcon(pixmap))
-                # Mirror approved presentation metadata onto the model's original
-                # row identity, so QTableView can render it after proxy sorting.
-                if not cell.icon().isNull():
-                    model_decorations[(row, col)] = cell.icon()
-                if cell.toolTip():
-                    model_tooltips[(row, col)] = cell.toolTip()
+                            icon = QIcon(pixmap)
+                if not icon.isNull():
+                    model_decorations[(row, col)] = icon
+                if tooltip:
+                    model_tooltips[(row, col)] = tooltip
         self.record_model.set_presentation(model_decorations, model_tooltips)
         apply_record_view_sizing(self.model_view, self.group)
         self.model_view.resizeColumnsToContents()
