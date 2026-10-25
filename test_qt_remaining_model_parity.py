@@ -40,13 +40,13 @@ class RemainingModelParityTests(unittest.TestCase):
                         self.assertIsNotNone(target)
                         window.navigation.setCurrentItem(target)
                         self.app.processEvents()
-                        window.grid.sortItems(0, Qt.SortOrder.DescendingOrder)
-                        self.assertEqual(window.grid.rowCount(), window.record_model.rowCount())
-                        for visible_row in range(window.grid.rowCount()):
-                            source_row = window.grid.item(visible_row, 0).data(Qt.ItemDataRole.UserRole)
+                        window.model_view.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+                        self.assertEqual(window.record_proxy.rowCount(), window.record_model.rowCount())
+                        for visible_row in range(window.record_proxy.rowCount()):
+                            source_row = window.record_proxy.mapToSource(window.record_proxy.index(visible_row, 0)).row()
                             self.assertIs(window.record_model.record_at(source_row), window.visible_rows[source_row])
-                            for col in range(window.grid.columnCount()):
-                                self.assertEqual(window.grid.item(visible_row, col).text(),
+                            for col in range(window.record_proxy.columnCount()):
+                                self.assertEqual(window.record_proxy.data(window.record_proxy.index(visible_row, col)),
                                                  window.record_model.data(window.record_model.index(source_row, col)))
             finally:
                 window.close()
