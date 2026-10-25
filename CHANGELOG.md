@@ -6,6 +6,14 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Phase 2B — Safe Qt staged editing — USER WINDOWS/GAME TESTS PASSED (2026-10-25), merge pending
+- Added validated inline player-gold edits in the lower middle Overview, with staged-change source value visible beside the field and changed values visually distinguished in the Players workspace.
+- Integrated resizable staged-changes review beneath the right Inspector, readable entries, per-entry undo, confirmed Unstage All, pending count and safe Save As.
+- Retained authoritative source value through repeated stages; tracked dirty/exported snapshots, warned before discard and rejected source/existing destination overwrites.
+- **General singleton behavior:** whenever the standard upper-middle model table shows exactly one visible record (including filtered results), select it automatically and populate Overview/Inspector; no redundant second click.
+- User reported all editor acceptance cases passed and successful FreeCol load → turn → save → reload roundtrip. Claude independently confirmed editing correctness but identified staged-value marking and documentation gaps, now addressed on the branch.
+- Phase 2B implementation remains in draft PR #5, subject to final CI, targeted Windows recheck of visual markers and explicit merge approval. Full Tk editing parity remains Phase 2C.
+
 ### Phase 2A — modular Qt model/view refactor — USER ACCEPTED (2026-10-25), merged to `main` via PR #4
 - Extracted Qt navigation, global search, diplomacy, Founding Fathers, contextual detail tabs, and workspace header into focused modules.
 - Introduced the source-identity-preserving `RecordTableModel`, category-aware sort/filter proxy, and a single permanent `QTableView` workspace; removed the old workspace `QTableWidget`, duplicate population, comparison switch, and `--compare-model-view` launcher flag.
