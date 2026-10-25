@@ -91,7 +91,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.record_proxy.setSourceModel(self.record_model)
         self.record_proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.record_proxy.setFilterKeyColumn(-1)
-        self.gold_editor_key = None
         self.selected_element = None
         self.detail_unit_id = None
         self.detail_nodes = {}
@@ -274,20 +273,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.inspector_label = QLabel('Select an individual row to inspect its attributes.')
         self.inspector_label.setWordWrap(True)
         inspector_layout.addWidget(self.inspector_label)
-        self.gold_edit_widget = QWidget()
-        gold_layout = QHBoxLayout(self.gold_edit_widget)
-        gold_layout.setContentsMargins(0, 0, 0, 0)
-        gold_layout.addWidget(QLabel('Gold:'))
-        self.gold_edit = QLineEdit()
-        self.gold_edit.setObjectName('stagedGoldInput')
-        self.gold_edit.setToolTip('Original saved value is preserved; stage changes explicitly.')
-        gold_layout.addWidget(self.gold_edit)
-        self.gold_stage_button = QPushButton('Stage')
-        self.gold_stage_button.clicked.connect(self.stage_selected_gold)
-        self.gold_edit.returnPressed.connect(self.stage_selected_gold)
-        gold_layout.addWidget(self.gold_stage_button)
-        inspector_layout.addWidget(self.gold_edit_widget)
-        self.gold_edit_widget.hide()
         self.details = InspectorDetails()
         self.inspector_tabs = QTabWidget()
         self.inspector_tabs.addTab(self.details, 'Details')
@@ -332,21 +317,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             'Safe staged editing · Map Editor remains in Tkinter')
         self.install_navigation()
 
-    def update_gold_editor(self, element=None):
-        self.gold_editor_key = None
-        self.gold_edit_widget.hide()
-        if self.document is None or self.group != 'Players' or element is None:
-            return
-        if 'gold' not in EditSession.editable_fields('Players', element):
-            return
-        if not (element.get('gold') or '').isascii() or not (element.get('gold') or '').isdecimal():
-            return
-        key = (element.get('id'), 'gold')
-        self.gold_editor_key = key  # snapshot identity at editor creation
-        self.gold_edit.setText(str(self.session.staged_value(key, int(element.get('gold')))))
-        # Gold is now edited inline in the lower middle Overview, not Inspector.
-        self.gold_edit_widget.hide()
-
     def stage_overview_edit(self, record_id, field, raw_value):
         if field != 'gold' or self.document is None:
             return
@@ -358,23 +328,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         try:
             new = self.session.validate(key, raw_value, original=original)
             self.session.stage(key, original, new)
-        except (EditValidationError, ValueError) as exc:
-            QMessageBox.warning(self, 'Cannot stage gold', str(exc))
-            return
-        self.refresh_staged_view()
-
-    def stage_selected_gold(self):
-        key = self.gold_editor_key
-        if key is None or self.document is None:
-            return
-        # Never look up the currently selected row to identify the edit target.
-        element = self.document.players.get(key[0])
-        if element is None or 'gold' not in EditSession.editable_fields('Players', element):
-            return
-        original = int(element.get('gold'))
-        try:
-            value = self.session.validate(key, self.gold_edit.text(), original=original)
-            self.session.stage(key, original, value)
         except (EditValidationError, ValueError) as exc:
             QMessageBox.warning(self, 'Cannot stage gold', str(exc))
             return
@@ -405,8 +358,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return True
         response = QMessageBox.question(
             self, 'Unexported changes',
-            f'The current edits differ from the last successful export. '
-            f'Discard this session state ({self.session.count} currently staged changes)?',
+            ('Your current changes differ from the last exported save. '
+             'Discard those differences?' if self.session.exported_path is not None
+             else f'Discard {self.session.count} unexported staged changes?'),
             QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel)
         return response == QMessageBox.StandardButton.Discard
@@ -477,8 +431,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.pending_panel.document = document
         self.pending_panel.refresh()
         self.update_save_button()
-        self.gold_editor_key = None
-        self.gold_edit_widget.hide()
         self.global_button.setEnabled(True)
         self.install_navigation()
         navigation_at = perf_counter()
@@ -565,7 +517,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.visible_rows = []
         self.record_model.replace_rows((), HEADERS[self.group])
         self.selected_element = None
-        self.update_gold_editor()
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
         self.jump_unit_button.hide()
@@ -770,9 +721,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return
         element = selected_source_record(self.model_view, self.record_model)
         if element is None or not any(record is element for record in self.visible_rows):
-            self.update_gold_editor()
-            return
-        self.update_gold_editor(element)
+                return
         if self.group == 'Founding Fathers':
             self.inspect_father_record(element)
             return
