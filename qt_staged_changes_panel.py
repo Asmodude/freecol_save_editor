@@ -45,9 +45,10 @@ class StagedChangesPanel(QWidget):
         element = None
         doc = self.document
         if doc is not None:
-            element = (doc.players.get(lookup_id)
-                       or next((e for e in doc.colonies + doc.native_settlements + doc.units
-                                if e.get('id') == lookup_id), None))
+            element = doc.players.get(lookup_id)
+            if element is None:
+                element = next((e for e in doc.colonies + doc.native_settlements + doc.units
+                                if e.get('id') == lookup_id), None)
         name = (element.get('name') or element.get('username') or lookup_id) if element is not None else lookup_id
         kind = ('player' if lookup_id.startswith('player:') else
                 'colony' if lookup_id.startswith('colony:') else
