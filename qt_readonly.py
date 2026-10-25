@@ -28,6 +28,7 @@ from qt_diplomacy_view import DiplomacyViewMixin
 from qt_founding_fathers_view import FoundingFathersViewMixin
 from qt_workspace_header_view import WorkspaceHeaderMixin
 from qt_detail_tabs_view import DetailTabsMixin
+from qt_record_table_model import RecordTableModel
 from qt_sortable_item import SortableItem
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
@@ -81,6 +82,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.group = 'Players'
         self.scope = 'mine'
         self.visible_rows = []
+        # Staged migration: mirror displayed records in a real Qt model while
+        # keeping the accepted QTableWidget UI unchanged until parity is proven.
+        self.record_model = RecordTableModel()
         self.selected_element = None
         self.detail_unit_id = None
         self.detail_nodes = {}
@@ -406,6 +410,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.grid.setRowCount(0)
         self.grid.clearContents()
         self.visible_rows = []
+        self.record_model.replace_rows((), HEADERS[self.group])
         self.selected_element = None
         self.detail_unit_id = None
         self.jump_unit_button.setEnabled(False)
@@ -475,6 +480,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             if query and query not in ' '.join(str(value) for value in values).casefold():
                 continue
             rows.append((element, values))
+        self.record_model.replace_rows(rows, HEADERS[self.group])
         self.visible_rows = [element for element, _ in rows]
         if self.group == 'Founding Fathers':
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
