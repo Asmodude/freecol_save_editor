@@ -91,7 +91,12 @@ class OverviewPanel(QWidget):
         while layout.count():
             item = layout.takeAt(0)
             if item.widget() is not None:
-                item.widget().deleteLater()
+                # Detach immediately so findChild and signal lookups cannot
+                # discover an obsolete editor while Qt defers deletion.
+                widget = item.widget()
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
             elif item.layout() is not None:
                 OverviewPanel._dispose(item.layout())
 
