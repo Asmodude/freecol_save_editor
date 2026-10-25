@@ -201,10 +201,18 @@ class OverviewPanel(QWidget):
                             edit_layout.setContentsMargins(0, 0, 0, 0)
                             field = QLineEdit(str(self._session.staged_value((record_id, 'gold'), int(original))))
                             field.setObjectName('inlineGoldInput')
+                            staged = self._session.is_changed((record_id, 'gold'))
                             field.setToolTip(f'Original save: {original}. Press Enter to stage.')
-                            field.setStyleSheet('QLineEdit { border: 1px solid #76A9E8; '
+                            field.setStyleSheet('QLineEdit { border: 2px solid ' +
+                                                ('#26815A' if staged else '#76A9E8') + '; '
                                                 'border-radius: 3px; padding: 3px; '
-                                                'background: #EDF5FF; color: #172B45; }')
+                                                'background: ' + ('#E5F5E9' if staged else '#EDF5FF') +
+                                                '; color: #172B45; }')
+                            if staged:
+                                original_label = QLabel('was ' + original)
+                                original_label.setObjectName('inlineGoldOriginal')
+                                original_label.setToolTip('Value in opened save')
+                                edit_layout.addWidget(original_label)
                             button = QPushButton('✎')
                             button.setObjectName('stageInlineGold')
                             button.setFixedWidth(30)
