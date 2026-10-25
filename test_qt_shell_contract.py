@@ -57,13 +57,12 @@ class QtShellContractTests(unittest.TestCase):
 
     def test_workspace_rows_keep_identity_with_icons(self):
         self.assertIn("if col == 0 and self.group != 'Founding Fathers':", self.source)
-        self.assertIn("cell.setIcon(self.navigation_icons.icon(", self.source)
-        self.assertIn("cell.setData(Qt.ItemDataRole.UserRole, row)", self.source)
+        self.assertIn("model_decorations[(row, col)] = icon", self.source)
+        self.assertIn("self.record_model.set_presentation(model_decorations, model_tooltips)", self.source)
         self.assertIn("self.model_view = build_record_table_view", self.source)
 
     def test_final_unit_rows_and_navigation_cleanup(self):
-        self.assertIn("else QSize(42, 42) if self.group == 'Units'", self.source)
-        self.assertIn("height = 44 if self.group == 'Units' else 36", self.source)
+        self.assertIn("apply_record_view_sizing(self.model_view, self.group)", self.source)
         self.assertNotIn("entry(my, 'Research'", self.navigation_source)
         self.assertNotIn("entry(rival, 'Research'", self.navigation_source)
         self.assertIn("entry(None, 'Map', ready=False, kind='map')", self.navigation_source)
