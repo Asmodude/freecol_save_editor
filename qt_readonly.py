@@ -361,7 +361,6 @@ class QtExplorer(QMainWindow):
         my_units = entry(my, 'Units', 'Units', 'mine', kind='units')
         grouped_unit_entries(my_units, own)
         entry(my, 'Goods', 'National Goods', 'mine', kind='goods')
-        entry(my, 'Research', ready=False, kind='research')
         entry(my, 'Founding Fathers', 'Founding Fathers', 'mine', kind='fathers')
         entry(my, 'Player Options', ready=False, kind='options')
 
@@ -388,7 +387,6 @@ class QtExplorer(QMainWindow):
                     rival_units = entry(rival, 'Units', 'Units', 'player:' + pid)
                     grouped_unit_entries(rival_units, pid)
                     entry(rival, 'Goods', 'National Goods', 'player:' + pid)
-                    entry(rival, 'Research', ready=False)
                     entry(rival, 'Founding Fathers', 'Founding Fathers', 'player:' + pid)
                     entry(rival, 'Player Options', ready=False)
                 elif player.get('playerType') in ('indian', 'native'):
@@ -713,7 +711,7 @@ class QtExplorer(QMainWindow):
         if self.group == 'Founding Fathers':
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
         self.grid.setRowCount(len(rows))
-        self.grid.setIconSize(QSize(32, 30) if self.group == 'Colonies' else QSize(60, 65) if self.group == 'Founding Fathers' else QSize(60, 20) if self.group == 'Native settlements' else QSize(20, 20))
+        self.grid.setIconSize(QSize(32, 30) if self.group == 'Colonies' else QSize(60, 65) if self.group == 'Founding Fathers' else QSize(60, 20) if self.group == 'Native settlements' else QSize(42, 42) if self.group == 'Units' else QSize(20, 20))
         for row, (_, values) in enumerate(rows):
             for col, value in enumerate(values):
                 displayed = (compact_property_value(value)
@@ -781,9 +779,10 @@ class QtExplorer(QMainWindow):
                             cell.setIcon(QIcon(pixmap))
                     self.grid.setRowHeight(row, 75)
                 self.grid.setItem(row, col, cell)
-        if self.group == 'Colonies':
+        if self.group in ('Colonies', 'Units'):
+            height = 44 if self.group == 'Units' else 36
             for row in range(self.grid.rowCount()):
-                self.grid.setRowHeight(row, 36)
+                self.grid.setRowHeight(row, height)
         self.grid.setSortingEnabled(True)
         self.grid.resizeColumnsToContents()
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
