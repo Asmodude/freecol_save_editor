@@ -619,11 +619,11 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             if self._compare_model_view:
                 select_record_in_view(self.model_view, self.record_model, record)
             else:
-                for display_row in range(self.grid.rowCount()):
-                    cell = self.grid.item(display_row, 0)
+                for view_row in range(self.grid.rowCount()):
+                    cell = self.grid.item(view_row, 0)
                     source = cell.data(Qt.ItemDataRole.UserRole) if cell is not None else None
                     if isinstance(source, int) and self.record_model.record_at(source) is record:
-                        self.grid.selectRow(display_row)
+                        self.grid.selectRow(view_row)
                         break
 
     def open_breakdown_colony(self):
