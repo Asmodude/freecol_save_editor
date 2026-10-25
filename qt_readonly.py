@@ -26,6 +26,8 @@ from qt_settlement_details import settlement_units
 from qt_overview import record_overview
 from qt_overview_panel import OverviewPanel
 from qt_inspector_details import InspectorDetails
+from qt_final_visual_format import established_turn, colony_inspector_location
+from qt_unit_icons import UnitIcons
 from colony_graphics import resolve_colony_graphic
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
@@ -87,6 +89,7 @@ class QtExplorer(QMainWindow):
         self.father_portraits = FatherPortraits()
         self.navigation_icons = NavigationIcons()
         self.goods_icons = GoodsIcons()
+        self.unit_icons = UnitIcons()
         self.recruiting_father = None
         self.offered_fathers = []
 
@@ -715,6 +718,8 @@ class QtExplorer(QMainWindow):
             for col, value in enumerate(values):
                 displayed = (compact_property_value(value)
                              if self.group == 'Game properties' and col == 2 else value)
+                if self.group == 'Colonies' and HEADERS[self.group][col] == 'Established':
+                    displayed = established_turn(displayed)
                 cell = SortableItem(displayed, HEADERS[self.group][col] in NUMERIC_COLUMNS.get(self.group, ()))
                 cell.setData(Qt.ItemDataRole.UserRole, row)
                 if col == 0 and self.group != 'Founding Fathers':
@@ -732,6 +737,9 @@ class QtExplorer(QMainWindow):
                             flag = flag_icon(nation_id, 15) if not native else QIcon()
                             cell.setIcon(flag if not flag.isNull() else self.navigation_icons.icon(
                                 kind, nation_id=nation_id, native=native, size=20))
+                        elif self.group == 'Units':
+                            icon = self.unit_icons.icon(record.get('unitType'))
+                            cell.setIcon(icon if not icon.isNull() else self.navigation_icons.icon('units', size=20))
                         elif self.group == 'National Goods':
                             icon = self.goods_icons.icon(record.get('id') or record.get('name'))
                             cell.setIcon(icon if not icon.isNull() else self.navigation_icons.icon(kind, size=20))
@@ -865,6 +873,10 @@ class QtExplorer(QMainWindow):
                     item = SortableItem(value, headings[col] in NUMERIC_DETAIL_COLUMNS)
                     item.setData(Qt.ItemDataRole.UserRole, row)
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                    if col == 1 and name in ('Workers', 'Stationed units', 'Affiliated units', 'In transit'):
+                        icon = self.unit_icons.icon(value if str(value).startswith('model.unit.') else 'model.unit.' + str(value).replace(' ', ''))
+                        if not icon.isNull():
+                            item.setIcon(icon)
                     if col == 0 and name == 'Goods':
                         icon = self.goods_icons.icon(value)
                         if not icon.isNull():
@@ -1068,7 +1080,8 @@ class QtExplorer(QMainWindow):
                             ('AI controlled', element.get('ai'))])
         elif self.group == 'Colonies':
             summary.extend([('Owner', doc.owner_name(element.get('owner'))),
-                            ('Location', doc.location_name(element.get('tile'))),
+                            ('Location', colony_inspector_location(element, doc)),
+                            ('Established', established_turn(element.get('established'))),
                             ('Sons of Liberty', element.get('sonsOfLiberty')),
                             ('Production bonus', element.get('productionBonus'))])
         elif self.group == 'Units':
