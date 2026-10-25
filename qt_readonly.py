@@ -29,7 +29,7 @@ from qt_founding_fathers_view import FoundingFathersViewMixin
 from qt_workspace_header_view import WorkspaceHeaderMixin
 from qt_detail_tabs_view import DetailTabsMixin
 from qt_record_table_model import RecordTableModel
-from qt_record_table_view import build_record_table_view, apply_record_view_sizing
+from qt_record_table_view import build_record_table_view, apply_record_view_sizing, selected_source_record
 from qt_sortable_item import SortableItem
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
@@ -225,6 +225,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         # window lifecycle but stays hidden until interactive parity is proven.
         self.model_view = build_record_table_view(self.record_proxy, self.workspace_table_area)
         self.model_view.hide()
+        self.model_view.selectionModel().currentChanged.connect(
+            lambda current, previous: self.inspect() if self._compare_model_view else None)
         # Explicit opt-in for comparison only; the accepted table is default.
         self._compare_model_view = False
         table_area_layout.addWidget(self.model_view, 1)
@@ -655,17 +657,24 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                 break
 
     def inspect(self):
-        row = self.grid.currentRow()
-        if self.document is None or row < 0 or row >= len(self.visible_rows):
+        if self.document is None:
             return
-        source_item = self.grid.item(row, 0)
-        source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
-        if not isinstance(source_index, int) or source_index >= len(self.visible_rows):
-            return
-        element = self.record_model.record_at(source_index)
+        if self._compare_model_view:
+            element = selected_source_record(self.model_view, self.record_model)
+            if element is None:
+                return
+        else:
+            row = self.grid.currentRow()
+            if row < 0 or row >= len(self.visible_rows):
+                return
+            source_item = self.grid.item(row, 0)
+            source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
+            if not isinstance(source_index, int) or source_index >= len(self.visible_rows):
+                return
+            element = self.record_model.record_at(source_index)
         # The legacy table and model must describe the same source record.
         # Refuse a mismatched inspection rather than showing the wrong object.
-        if element is None or self.visible_rows[source_index] is not element:
+        if element is None or (not self._compare_model_view and self.visible_rows[source_index] is not element):
             return
         if self.group == 'Founding Fathers':
             self.inspect_father_record(element)
