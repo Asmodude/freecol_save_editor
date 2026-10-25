@@ -9,6 +9,7 @@ class QtShellContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.source = (Path(__file__).resolve().parent / 'qt_readonly.py').read_text(encoding='utf-8')
         cls.tree = ast.parse(cls.source)
+        cls.global_search_source = (Path(__file__).resolve().parent / 'qt_global_search_ui.py').read_text(encoding='utf-8')
         cls.navigation_source = (Path(__file__).resolve().parent / 'qt_navigation_builder.py').read_text(encoding='utf-8')
 
     def test_read_only_entry_point_and_no_save_mutation(self):
@@ -43,10 +44,10 @@ class QtShellContractTests(unittest.TestCase):
         self.assertNotIn('self.document.save(', self.source)
 
     def test_global_search_sort_preserves_record_identity(self):
-        self.assertIn('results.setSortingEnabled(True)', self.source)
-        self.assertIn('results.setSortingEnabled(False)', self.source)
-        self.assertIn('cell.setData(Qt.ItemDataRole.UserRole, row)', self.source)
-        self.assertIn('matches[source_index]', self.source)
+        self.assertIn('results.setSortingEnabled(True)', self.global_search_source)
+        self.assertIn('results.setSortingEnabled(False)', self.global_search_source)
+        self.assertIn('cell.setData(Qt.ItemDataRole.UserRole, row)', self.global_search_source)
+        self.assertIn('matches[source_index]', self.global_search_source)
 
     def test_colony_row_minis_use_approved_art_resolver(self):
         self.assertIn('resolve_colony_graphic(record)', self.source)
