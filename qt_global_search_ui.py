@@ -83,31 +83,13 @@ class GlobalSearchMixin:
             self.populate()
         else:
             self.navigation.setCurrentItem(target)
-        if getattr(self, '_compare_model_view', False) and group != 'Founding Fathers':
-            if select_record_in_view(self.model_view, self.record_model, element):
-                self.model_view.scrollTo(self.model_view.currentIndex())
+        if group == 'Founding Fathers' and element.get('status') == 'Recruiting':
+            self.inspect_recruiting_father()
+            return
+        if select_record_in_view(self.model_view, self.record_model, element):
+            self.model_view.scrollTo(self.model_view.currentIndex())
             return
         if group == 'Founding Fathers':
-            if element.get('status') == 'Recruiting':
-                self.inspect_recruiting_father()
-                return
-            for row in range(self.grid.rowCount()):
-                cell=self.grid.item(row,0)
-                if cell is not None and cell.text() == element.get('name'):
-                    self.grid.selectRow(row)
-                    self.grid.scrollToItem(cell)
-                    return
-            # Offered fathers are not Congress members; inspect the virtual record.
+            # Offered fathers are virtual records, not Congress rows.
             self.inspect_father_record(element)
-            return
-        for row in range(self.grid.rowCount()):
-            cell = self.grid.item(row, 0)
-            if cell is None:
-                continue
-            index = cell.data(Qt.ItemDataRole.UserRole)
-            if isinstance(index, int) and index < len(self.visible_rows):
-                if self.visible_rows[index] is element:
-                    self.grid.selectRow(row)
-                    self.grid.scrollToItem(cell)
-                    return
 
