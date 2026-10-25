@@ -41,12 +41,11 @@ class IdentityScopedAutoInspectionTests(unittest.TestCase):
                 self.app.processEvents()
                 self.assertIs(window.selected_element, target)
                 self.assertIn("Christiansborg", window.inspector_label.text())
-                window.set_model_view_comparison(True)
                 self.app.processEvents()
                 self.assertIs(window.selected_element, target)
                 window.navigation.setCurrentItem(find_navigation_item(window.navigation, 'Colonies', 'mine'))
                 self.app.processEvents()
-                self.assertEqual(window.grid.rowCount(), 2)
+                self.assertEqual(window.record_proxy.rowCount(), 2)
                 self.assertIsNone(window.selected_element)
             finally:
                 window.close()
