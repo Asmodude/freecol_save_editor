@@ -67,7 +67,8 @@ class QtShellContractTests(unittest.TestCase):
 
     def test_separate_workspace_and_inspector(self):
         self.assertIn('self.overview = OverviewPanel()', self.source)
-        self.assertIn('self.details = QPlainTextEdit()', self.source)
+        self.assertIn('self.details = InspectorDetails()', self.source)
+        self.assertIn('self.raw_xml = QPlainTextEdit()', self.source)
         self.assertIn('self.grid.itemSelectionChanged.connect(self.inspect)', self.source)
 
 
