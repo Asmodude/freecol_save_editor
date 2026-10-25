@@ -1,7 +1,7 @@
-"""Phase 1: read-only PySide6 shell; launch independently with py qt_readonly.py.
+"""Qt explorer with Phase 2B staged editing; launch with py qt_readonly.py.
 
-The accepted Tkinter editor remains the only editor and map-rendering application.
-No savegame mutation is possible from this Qt window.
+Only explicitly supported fields are editable. Staged values never mutate
+source XML; export uses the established safe producer.
 """
 import sys
 import os
@@ -77,7 +77,7 @@ HEADERS = {
 class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin, DiplomacyViewMixin, GlobalSearchMixin, NavigationBuilderMixin, QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('FreeCol Save Editor — Qt preview (READ ONLY)')
+        self.setWindowTitle('FreeCol Save Editor — Qt staged editing')
         self.resize(1450, 875)
         self.document = None
         self.session = EditSession()
@@ -137,7 +137,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.map_button.setToolTip(
             'The existing Map Editor is available in the Tkinter application. '
             'The Qt map will be integrated in Phase 3.')
-        self.heading = QLabel('Open a FreeCol save to begin · Qt read-only preview')
+        self.heading = QLabel('Open a FreeCol save to begin · Safe staged editing')
         toolbar.addWidget(self.open_button)
         toolbar.addWidget(self.save_button)
         toolbar.addWidget(self.global_button)
@@ -309,7 +309,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.unit_xml_button.clicked.connect(
             lambda: self.inspector_tabs.setCurrentWidget(self.raw_xml))
         inspector_layout.addWidget(self.unit_xml_button)
-        self.inspector_hint = QLabel('Read only · no values can be changed here')
+        self.inspector_hint = QLabel('Player gold supports staged editing; other fields remain read-only')
         inspector_layout.addWidget(self.inspector_hint)
         panes.addWidget(inspector)
         panes.setChildrenCollapsible(False)
@@ -324,7 +324,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.update_save_button()
 
         self.statusBar().showMessage(
-            'Read-only preview · Save As and the Map Editor remain in the Tkinter application')
+            'Safe staged editing · Map Editor remains in Tkinter')
         self.install_navigation()
 
     def update_gold_editor(self, element=None):
@@ -453,7 +453,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.global_button.setEnabled(True)
         self.install_navigation()
         navigation_at = perf_counter()
-        self.heading.setText(f'{Path(path).name} · Turn {document.turn} · READ ONLY')
+        self.heading.setText(f'{Path(path).name} · Turn {document.turn} · staged editing')
         # install_navigation() selects Overview and already triggers populate().
         if os.environ.get('FREECOL_QT_PROFILE') == '1':
             print(f'Qt load stages: parse/index={loaded_at-started:.3f}s; '
@@ -462,7 +462,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.statusBar().showMessage(
             f'{len(document.players)} players · {len(document.colonies)} colonies · '
             f'{len(document.native_settlements)} native settlements · {len(document.units)} units'
-            ' · Qt read-only; Map Editor in Tkinter')
+            ' · Qt staged gold editing; Map Editor in Tkinter')
 
     def navigate(self, current, previous):
         if current is None:
