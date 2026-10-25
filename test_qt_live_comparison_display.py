@@ -42,14 +42,15 @@ class LiveComparisonDisplayTests(unittest.TestCase):
                 window.navigation.setCurrentItem(target)
                 window.model_view.sortByColumn(4, Qt.SortOrder.AscendingOrder)
                 self.app.processEvents()
-                self.assertEqual(window.record_proxy.rowCount(), 1)
-                for column in range(window.record_proxy.columnCount()):
-                    proxy_index = window.record_proxy.index(0, column)
-                    source_index = window.record_proxy.mapToSource(proxy_index)
-                    expected = window.record_model.data(source_index)
-                    if window.record_model.headerData(column, Qt.Orientation.Horizontal) == 'Established':
-                        expected = 'Turn ' + expected
-                    self.assertEqual(window.record_proxy.data(proxy_index), expected)
+                self.assertEqual(window.record_proxy.rowCount(), 2)
+                for row in range(window.record_proxy.rowCount()):
+                    for column in range(window.record_proxy.columnCount()):
+                        proxy_index = window.record_proxy.index(row, column)
+                        source_index = window.record_proxy.mapToSource(proxy_index)
+                        expected = window.record_model.data(source_index)
+                        if window.record_model.headerData(column, Qt.Orientation.Horizontal) == 'Established':
+                            expected = 'Turn ' + expected
+                        self.assertEqual(window.record_proxy.data(proxy_index), expected)
             finally:
                 window.close()
                 window.deleteLater()
