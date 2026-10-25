@@ -25,7 +25,7 @@ The original six prioritised requirements from `UI_MODERNISATION_PLAN.md` are **
 | O6 | 🟢 Could | Keyboard workflow: Tab between fields, Enter to stage, Esc to cancel. | 2B–2C | Keyboard UI checks |
 | A1 | 🔴 Must | Refactor Qt into view components with model/proxy tables and robust behavioural Qt tests before implementing edits. | 2A | Visual/functional parity; offscreen test suite |
 | A2 | 🔴 Must | Stage/validate/undo and export edits exclusively via the existing safe Save As pipeline; original save untouched. | 2B | Hash checks, undo, valid export, overwrite rejection |
-| A3 | 🔴 Must | Delete units owned by **any** nation, including the human player, rival European nations, and native nations, subject to safety validation. **Either fix or explicitly carry the known cached-missionary deletion caveat** (see 2D). | 2D | Cross-owner deletion tests |
+| A3 | 🔴 Must | Delete units owned by **any** nation, including the human player, rival European nations, and native nations, subject to safety validation. **Preserve existing safe refusal for cached-missionary cases; fixing that limitation is explicitly deferred until after 1.0 if users request it** (see 2D). | 2D | Cross-owner deletion tests |
 | A4 | 🔴 Must | Safely delete **European colonies**, whether owned by the human or a rival European nation; validate references and associated objects, preserve/rehome visiting or stationed units only where valid, refuse unresolved dependencies. **Accepted and merged as a separate step that cannot block the 2A–2C merges** (see Delivery). | 2D | Real-game tests and dependency matrix |
 | A5 | 🔴 Must | Preserve all accepted Phase 1 Qt views, artwork, navigation, contextual buttons and accepted Tk editing behaviour. | 2A–2F | Behavioural and Windows regression suite |
 | A6 | 🟢 Could, research-gated _(lowest value of A6–A8)_ | Inspect and edit saved random seed only after confirming format, validation, and RNG semantics. | 2E | Changed/unchanged/invalid cases plus game roundtrip |
@@ -77,7 +77,7 @@ Maintain an explicit Tk → Qt parity checklist and test realistic combinations 
 
 - **Port the accepted Tk native unit and native settlement deletion** (O1 parity). This reuses the existing `deletion_engine` planning and confirmation behaviour: dependency check, refusal of unsafe cases, removal of cached copies and linked tiles. It is not new research.
 
-**Known caveat to resolve or carry (A3):** `CHANGELOG.md` records that the deletion engine still traverses cached XML and may refuse to delete missionaries whose unit has cached-tile snapshots. Extending deletion to every nation makes this more visible. Either fix it with dedicated tests and an in-game check, or carry it explicitly as a documented limitation shown in the UI. Do not leave it unmentioned.
+**Accepted non-blocking limitation (user decision, 25 October 2026):** `CHANGELOG.md` records that the deletion engine may refuse to delete missionaries whose unit has cached-tile snapshots. **Do not attempt to fix this in Phase 2.** Preserve the existing safe refusal, explain it clearly in the UI, and document it as a known limitation. Its resolution is deferred **until after version 1.0, and only if users request it**. Cached-missionary deletion must not block any Phase 2 checkpoint or final Phase 2 sign-off.
 
 **European colony deletion (A4): dependencies that must be explicitly researched and handled**, not discovered late:
 - **Cached copies:** other players' map knowledge (`cachedTile` and related snapshots) can contain copies of the colony and its tile. Use the native settlement deletion's handling of `cached_copies` as the template.
@@ -134,8 +134,14 @@ Phase 3 retains the integrated Qt map view, map geometry/visual refinement and n
 Applied directly in this document:
 1. **Native settlement and native unit deletion** are existing, game-tested Tk features (0.5.3), so they are **O1 parity (Must)**, not research-gated.
 2. **European colony deletion (A4)** stays Must, but is accepted and merged separately, with its dependencies named explicitly in 2D.
-3. **Known cached-missionary deletion caveat** must be fixed or explicitly carried as part of A3.
+3. **Known cached-missionary deletion caveat:** originally proposed fix-or-carry; subsequently superseded by the user's decision of 25 October 2026 to defer any fix until after 1.0 if requested. Safe refusal remains mandatory; a fix is not a Phase 2 gate.
 4. **O4 promoted to Must**; **A10** (no silent loss of staged changes) added as Must; **A6 (random seed)** moved to Could.
 5. **Checkpoint merges** after 2A and 2C; **Tk frozen** for new features; **branch protection** on `main`.
 
 **Decision requested:** Approve or adjust this amended matrix. This document records a **proposal**, not approved Phase 2 scope.
+
+## Scope decision — 25 October 2026 (user)
+
+- **European colony deletion remains a mandatory Phase 2 completion and sign-off requirement**, for both the human nation and rival European nations. It cannot be deferred to claim full Phase 2 acceptance.
+- **Cached-missionary deletion is explicitly non-blocking and out of scope for Phase 2.** Keep safe refusal and clear explanation. Reconsider a fix only after 1.0 if users request it; do not spend Phase 2 implementation effort on a fix.
+- These decisions supersede any earlier wording that suggests the cached-missionary bug should be fixed in Phase 2.
