@@ -214,22 +214,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         table_area_layout = QVBoxLayout(self.workspace_table_area)
         table_area_layout.setContentsMargins(0, 0, 0, 0)
         table_area_layout.setSpacing(0)
-        self.grid = QTableWidget()
-        self.grid.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.grid.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.grid.setAlternatingRowColors(True)
-        self.grid.setSortingEnabled(True)
-        self.grid.setIconSize(QSize(60, 65))
-        self.grid.itemSelectionChanged.connect(self.inspect)
-        table_area_layout.addWidget(self.grid, 1)
-        # Integration shadow: the model/view widget participates in the real
-        # window lifecycle but stays hidden until interactive parity is proven.
         self.model_view = build_record_table_view(self.record_proxy, self.workspace_table_area)
-        self.model_view.hide()
         self.model_view.selectionModel().currentChanged.connect(
-            lambda current, previous: self.inspect() if self._compare_model_view else None)
-        # Explicit opt-in for comparison only; the accepted table is default.
-        self._compare_model_view = False
+            lambda current, previous: self.inspect())
         table_area_layout.addWidget(self.model_view, 1)
         self.diplomacy_tabs = QTabWidget()
         self.diplomacy_grids = {}
@@ -416,23 +403,14 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             self.overview._render()
             self.details._render()
 
-    def set_model_view_comparison(self, enabled):
-        """Developer/test-only comparison switch; no user-facing control yet."""
-        self._compare_model_view = bool(enabled)
-        self.populate()
-
     def populate(self):
         self.update_workspace_header()
         # Apply category sizing even when no save is loaded and populate exits early.
         apply_record_view_sizing(self.model_view, self.group)
         self.record_proxy.set_record_group(self.group)
         is_diplomacy = self.group == 'Diplomacy'
-        self.grid.setVisible(not is_diplomacy and not self._compare_model_view)
-        self.model_view.setVisible(not is_diplomacy and self._compare_model_view)
+        self.model_view.setVisible(not is_diplomacy)
         self.diplomacy_tabs.setVisible(is_diplomacy)
-        self.grid.setSortingEnabled(False)
-        self.grid.setRowCount(0)
-        self.grid.clearContents()
         self.visible_rows = []
         self.record_model.replace_rows((), HEADERS[self.group])
         self.selected_element = None
@@ -456,11 +434,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.recruiting_father = None
         self.offered_fathers = []
         self.update_detail_tabs(None)
-        self.grid.setColumnCount(len(HEADERS[self.group]))
-        self.grid.setHorizontalHeaderLabels(HEADERS[self.group])
         doc = self.document
         if doc is None:
-            self.grid.setSortingEnabled(True)
             return
         query = self.search.text().strip().casefold()
         if is_diplomacy:
@@ -508,8 +483,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.visible_rows = [element for element, _ in rows]
         if self.group == 'Founding Fathers':
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
-        self.grid.setRowCount(len(rows))
-        self.grid.setIconSize(QSize(32, 30) if self.group == 'Colonies' else QSize(60, 65) if self.group == 'Founding Fathers' else QSize(60, 20) if self.group == 'Native settlements' else QSize(42, 42) if self.group == 'Units' else QSize(20, 20))
         model_decorations = {}
         model_tooltips = {}
         for row, (_, values) in enumerate(rows):
@@ -583,22 +556,15 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                         pixmap = QPixmap()
                         if pixmap.loadFromData(data):
                             cell.setIcon(QIcon(pixmap))
-                    self.grid.setRowHeight(row, 75)
                 # Mirror approved presentation metadata onto the model's original
                 # row identity, so QTableView can render it after proxy sorting.
                 if not cell.icon().isNull():
                     model_decorations[(row, col)] = cell.icon()
                 if cell.toolTip():
                     model_tooltips[(row, col)] = cell.toolTip()
-                self.grid.setItem(row, col, cell)
         self.record_model.set_presentation(model_decorations, model_tooltips)
         apply_record_view_sizing(self.model_view, self.group)
-        if self.group in ('Colonies', 'Units'):
-            height = 44 if self.group == 'Units' else 36
-            for row in range(self.grid.rowCount()):
-                self.grid.setRowHeight(row, height)
-        self.grid.setSortingEnabled(True)
-        self.grid.resizeColumnsToContents()
+        self.model_view.resizeColumnsToContents()
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
         note = ('Human player could not be uniquely identified; no player was guessed.\n' 
                 if self.scope=='mine' and human_player_id(doc) is None else '')
@@ -615,16 +581,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             or (self.group == 'Native settlements' and self.scope.startswith('settlement-id:'))
         )
         if identity_scope and len(rows) == 1:
-            record = rows[0][0]
-            if self._compare_model_view:
-                select_record_in_view(self.model_view, self.record_model, record)
-            else:
-                for view_row in range(self.grid.rowCount()):
-                    cell = self.grid.item(view_row, 0)
-                    source = cell.data(Qt.ItemDataRole.UserRole) if cell is not None else None
-                    if isinstance(source, int) and self.record_model.record_at(source) is record:
-                        self.grid.selectRow(view_row)
-                        break
+            select_record_in_view(self.model_view, self.record_model, rows[0][0])
 
     def open_breakdown_colony(self):
         target = self.breakdown_target
@@ -666,43 +623,14 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return
         self.search.clear()
         self.navigation.setCurrentItem(target)
-        if self._compare_model_view:
-            if select_record_in_view(self.model_view, self.record_model, unit):
-                self.model_view.scrollTo(self.model_view.currentIndex())
-            return
-        for index, record in enumerate(self.visible_rows):
-            if record.get('id') == unit_id:
-                for display_row_index in range(self.grid.rowCount()):
-                    cell = self.grid.item(display_row_index, 0)
-                    if cell and cell.data(Qt.ItemDataRole.UserRole) == index:
-                        self.grid.selectRow(display_row_index)
-                        self.grid.scrollToItem(cell)
-                        break
-                break
+        if select_record_in_view(self.model_view, self.record_model, unit):
+            self.model_view.scrollTo(self.model_view.currentIndex())
 
     def inspect(self):
         if self.document is None:
             return
-        if self._compare_model_view:
-            element = selected_source_record(self.model_view, self.record_model)
-            if element is None:
-                return
-        else:
-            row = self.grid.currentRow()
-            if row < 0 or row >= len(self.visible_rows):
-                return
-            source_item = self.grid.item(row, 0)
-            source_index = source_item.data(Qt.ItemDataRole.UserRole) if source_item else None
-            if not isinstance(source_index, int) or source_index >= len(self.visible_rows):
-                return
-            element = self.record_model.record_at(source_index)
-        # The legacy table and model must describe the same source record.
-        # Refuse a mismatched inspection rather than showing the wrong object.
-        if element is None or (not self._compare_model_view and self.visible_rows[source_index] is not element):
-            return
-        # A proxy index can outlive the view state during a filter/navigation
-        # transition. Reject any record not present in the current scope.
-        if self._compare_model_view and not any(record is element for record in self.visible_rows):
+        element = selected_source_record(self.model_view, self.record_model)
+        if element is None or not any(record is element for record in self.visible_rows):
             return
         if self.group == 'Founding Fathers':
             self.inspect_father_record(element)
@@ -793,8 +721,6 @@ def main():
     font.setPointSize(11)
     app.setFont(font)
     window = QtExplorer()
-    if '--compare-model-view' in sys.argv[1:]:
-        window.set_model_view_comparison(True)
     window.show()
     return app.exec()
 
