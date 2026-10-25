@@ -41,7 +41,7 @@ class QtShellContractTests(unittest.TestCase):
     def test_detail_unit_navigation_is_read_only(self):
         self.assertIn("self.jump_unit_button.clicked.connect(self.open_detail_unit)", self.source)
         self.assertIn("self.document.unit_by_id(unit_id)", self.source)
-        self.assertIn("self.grid.selectRow(display_row_index)", self.source)
+        self.assertIn("select_record_in_view(self.model_view, self.record_model, unit)", self.source)
         self.assertNotIn('self.document.save(', self.source)
 
     def test_global_search_sort_preserves_record_identity(self):
@@ -59,7 +59,7 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn("if col == 0 and self.group != 'Founding Fathers':", self.source)
         self.assertIn("cell.setIcon(self.navigation_icons.icon(", self.source)
         self.assertIn("cell.setData(Qt.ItemDataRole.UserRole, row)", self.source)
-        self.assertIn("self.grid.setSortingEnabled(True)", self.source)
+        self.assertIn("self.model_view = build_record_table_view", self.source)
 
     def test_final_unit_rows_and_navigation_cleanup(self):
         self.assertIn("else QSize(42, 42) if self.group == 'Units'", self.source)
@@ -95,7 +95,7 @@ class QtShellContractTests(unittest.TestCase):
         self.assertIn('self.overview = OverviewPanel()', self.source)
         self.assertIn('self.details = InspectorDetails()', self.source)
         self.assertIn('self.raw_xml = QPlainTextEdit()', self.source)
-        self.assertIn('self.grid.itemSelectionChanged.connect(self.inspect)', self.source)
+        self.assertIn('self.model_view.selectionModel().currentChanged.connect(', self.source)
 
 
 if __name__ == '__main__':
