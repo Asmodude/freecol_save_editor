@@ -49,21 +49,22 @@ class PrincipalModelParityTests(unittest.TestCase):
                         self.assertIsNotNone(target)
                         window.navigation.setCurrentItem(target)
                         self.app.processEvents()
-                        self.assertEqual(window.grid.rowCount(), window.record_model.rowCount())
-                        self.assertEqual(window.grid.columnCount(), window.record_model.columnCount())
-                        window.grid.sortItems(0, Qt.SortOrder.DescendingOrder)
-                        for visible in range(window.grid.rowCount()):
-                            source = window.grid.item(visible, 0).data(Qt.ItemDataRole.UserRole)
+                        self.assertEqual(window.record_proxy.rowCount(), window.record_model.rowCount())
+                        self.assertEqual(window.record_proxy.columnCount(), window.record_model.columnCount())
+                        window.model_view.sortByColumn(0, Qt.SortOrder.DescendingOrder)
+                        for visible in range(window.record_proxy.rowCount()):
+                            source = window.record_proxy.mapToSource(window.record_proxy.index(visible, 0)).row()
                             self.assertIs(window.record_model.record_at(source), window.visible_rows[source])
-                            for column in range(window.grid.columnCount()):
+                            for column in range(window.record_proxy.columnCount()):
                                 value = window.record_model.data(window.record_model.index(source, column))
                                 if group == "Colonies" and HEADERS[group][column] == "Established":
                                     value = established_turn(value)
-                                self.assertEqual(window.grid.item(visible, column).text(), value)
-                        if window.grid.rowCount():
-                            window.grid.selectRow(0)
+                                self.assertEqual(window.record_proxy.data(window.record_proxy.index(visible, column)), value)
+                        if window.record_proxy.rowCount():
+                            window.model_view.selectRow(0)
+                            window.model_view.setCurrentIndex(window.record_proxy.index(0, 0))
                             self.app.processEvents()
-                            source = window.grid.item(0, 0).data(Qt.ItemDataRole.UserRole)
+                            source = window.record_proxy.mapToSource(window.record_proxy.index(0, 0)).row()
                             self.assertIs(window.selected_element, window.record_model.record_at(source))
             finally:
                 window.close()
