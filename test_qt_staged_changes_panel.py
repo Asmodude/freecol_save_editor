@@ -50,6 +50,19 @@ class StagedChangesPanelTests(unittest.TestCase):
         self.assertEqual(observed, [1])
         self.assertEqual(self.panel.tree.topLevelItemCount(), 1)
 
+    def test_per_item_undo_button_only_removes_its_own_key(self):
+        first = ("player:1", "gold")
+        second = ("player:2", "tax")
+        self.session.stage(first, 100, 200)
+        self.session.stage(second, 20, 30)
+        self.panel.refresh()
+        row = self.panel.tree.topLevelItem(0)
+        button = self.panel.tree.itemWidget(row, 4)
+        self.assertEqual(button.objectName(), 'undoStagedChange')
+        button.click()
+        self.assertNotIn(first, self.session.edits)
+        self.assertIn(second, self.session.edits)
+
     def test_unstage_all_cancel_preserves_session(self):
         self.session.stage(("player:1", "gold"), 1, 2)
         self.panel.refresh()
