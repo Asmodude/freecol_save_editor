@@ -6,6 +6,13 @@ This is the detailed, permanent development history. It includes point releases,
 
 ## 0.6 — Terrain inspection and map work (ongoing)
 
+### Phase 1 dependency baseline — 25 October 2026 (not yet accepted)
+- Windows verification environment reported by user: Python **3.14.3**, PySide6 **6.12.0**, Pillow **13.0.0**.
+- `requirements.txt` pins the two direct Python dependencies to these confirmed versions. GitHub Actions now installs from this file.
+- This records an environment baseline, **not** a passing CI run or formal Phase 1 acceptance. CI currently targets Python 3.13, so Windows Python 3.14.3 compatibility remains user-observed rather than replicated by CI.
+
+
+
 ### Phase 1 Qt read-only shell — approved visual direction, implementation in progress
 - User approved a full visual mock-up on 2026-10-23 subject to two changes: avoid duplication between detailed workspace and contextual inspector, and make the Map Editor entry point conspicuous in the top toolbar.
 - `qt_readonly.py` now provides a separate workspace and per-selection inspector, plus a visible **Open Map Editor** control. The control is intentionally disabled and explains that the existing fully working Map Editor is still in Tkinter; Qt map implementation is deferred to Phase 3.
