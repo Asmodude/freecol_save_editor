@@ -710,7 +710,7 @@ class QtExplorer(QMainWindow):
         if self.group == 'Founding Fathers':
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
         self.grid.setRowCount(len(rows))
-        self.grid.setIconSize(QSize(32, 30) if self.group == 'Colonies' else QSize(60, 65) if self.group == 'Founding Fathers' else QSize(20, 20))
+        self.grid.setIconSize(QSize(32, 30) if self.group == 'Colonies' else QSize(60, 65) if self.group == 'Founding Fathers' else QSize(60, 20) if self.group == 'Native settlements' else QSize(20, 20))
         for row, (_, values) in enumerate(rows):
             for col, value in enumerate(values):
                 displayed = (compact_property_value(value)
@@ -746,6 +746,22 @@ class QtExplorer(QMainWindow):
                                 cell.setIcon(self.navigation_icons.icon('colony', size=22))
                         else:
                             cell.setIcon(self.navigation_icons.icon(kind, size=20))
+                if self.group == 'Native settlements' and col == 5:
+                    # The accepted display combines up to three wanted goods in
+                    # one cell; decorate only unequivocally recognised goods.
+                    names = [piece.strip() for piece in str(value or '').split(',')]
+                    from qt_goods_icons import goods_key
+                    recognised = [name for name in names if goods_key(name)]
+                    if recognised:
+                        strip = QPixmap(20 * len(recognised), 20)
+                        strip.fill(Qt.GlobalColor.transparent)
+                        from PySide6.QtGui import QPainter
+                        painter = QPainter(strip)
+                        for position, good in enumerate(recognised):
+                            pix = self.goods_icons.icon(good, 20).pixmap(20, 20)
+                            painter.drawPixmap(position * 20, 0, pix)
+                        painter.end()
+                        cell.setIcon(QIcon(strip))
                 if self.group == 'Game properties' and col == 2 and displayed != value:
                     cell.setToolTip('Long value shortened here. Select the row for its complete saved value.')
                 cell.setFlags(cell.flags() & ~Qt.ItemFlag.ItemIsEditable)
