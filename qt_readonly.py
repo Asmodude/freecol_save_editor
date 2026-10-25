@@ -25,6 +25,7 @@ from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
 from qt_overview_panel import OverviewPanel
+from qt_inspector_details import InspectorDetails
 from colony_graphics import resolve_colony_graphic
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
@@ -246,8 +247,7 @@ class QtExplorer(QMainWindow):
         self.inspector_label = QLabel('Select an individual row to inspect its attributes.')
         self.inspector_label.setWordWrap(True)
         inspector_layout.addWidget(self.inspector_label)
-        self.details = QPlainTextEdit()
-        self.details.setReadOnly(True)
+        self.details = InspectorDetails()
         self.inspector_tabs = QTabWidget()
         self.inspector_tabs.addTab(self.details, 'Details')
         self.raw_xml = QPlainTextEdit()
