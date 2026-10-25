@@ -703,14 +703,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             f'{context} · {self.group}: {len(rows)} displayed\n' + note +
             'Choose a row above to see its full read-only record here.\n'
             'The inspector on the right shows only the currently selected object.')
-        # A specific navigation-tree entry already identifies the record.
-        # Auto-inspect only identity-scoped singleton views, never arbitrary
-        # one-row search results or multi-record lists.
-        identity_scope = (
-            (self.group == 'Colonies' and self.scope.startswith('colony-id:'))
-            or (self.group == 'Native settlements' and self.scope.startswith('settlement-id:'))
-        )
-        if identity_scope and len(rows) == 1:
+        # Accepted Phase 2A usability contract: a sole displayed record
+        # must be selected and inspected without a redundant second click.
+        # This also applies to filtered results, using authoritative identity.
+        if len(rows) == 1:
             select_record_in_view(self.model_view, self.record_model, rows[0][0])
 
     def open_breakdown_colony(self):
