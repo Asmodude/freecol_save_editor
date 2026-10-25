@@ -34,6 +34,19 @@ class Phase2BLifecycleTests(unittest.TestCase):
             self.assertTrue(self.window.confirm_discard())
             prompt.assert_not_called()
 
+    def test_undo_after_export_is_dirty_even_when_count_zero(self):
+        self.window.session.exported_snapshot = dict(self.window.session.edits)
+        self.window.session.exported_path = Path('last_export.fsg')
+        self.window.session.unstage(("player:1", "gold"))
+        self.assertEqual(self.window.session.count, 0)
+        self.assertTrue(self.window.session.has_unexported_changes)
+        with patch("qt_readonly.QMessageBox.question",
+                   return_value=QMessageBox.StandardButton.Cancel) as prompt:
+            self.assertFalse(self.window.confirm_discard())
+            self.assertIn("0 currently staged changes", prompt.call_args.args[2])
+        self.window.update_save_button()
+        self.assertFalse(self.window.save_button.isEnabled())
+
     def test_save_as_uses_safe_dialog_and_original_source(self):
         with tempfile.TemporaryDirectory() as folder:
             original = Path(folder) / "test.fsg"
