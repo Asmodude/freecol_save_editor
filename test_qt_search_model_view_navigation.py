@@ -33,7 +33,6 @@ class SearchToViewTests(unittest.TestCase):
             try:
                 with patch.object(QFileDialog, "getOpenFileName", return_value=(str(path), "")):
                     window.open_save()
-                window.set_model_view_comparison(True)
                 for colony in window.document.colonies:
                     with self.subTest(colony=colony.get("name")):
                         window.navigate_to_global_result("Colonies", colony)
