@@ -636,10 +636,16 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
         model_decorations = {}
         model_tooltips = {}
+        staged_cells = set()
         for row, (record, values) in enumerate(rows):
             for col, value in enumerate(values):
                 icon = QIcon()
                 tooltip = None
+                if (self.group == 'Players' and col == 6
+                        and self.session.is_changed((record.get('id'), 'gold'))):
+                    staged_cells.add((row, col))
+                    tooltip = ('STAGED gold: ' + str(value) +
+                               ' (original save: ' + str(record.get('gold')) + ')')
                 if col == 0 and self.group != 'Founding Fathers':
                     row_kinds = {
                         'Players': 'nation', 'Colonies': 'colony',
@@ -699,7 +705,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                     model_decorations[(row, col)] = icon
                 if tooltip:
                     model_tooltips[(row, col)] = tooltip
-        self.record_model.set_presentation(model_decorations, model_tooltips)
+        self.record_model.set_presentation(model_decorations, model_tooltips, staged_cells)
         apply_record_view_sizing(self.model_view, self.group)
         self.model_view.resizeColumnsToContents()
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
