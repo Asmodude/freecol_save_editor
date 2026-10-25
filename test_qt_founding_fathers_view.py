@@ -4,7 +4,7 @@ import unittest
 from xml.etree.ElementTree import Element
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QLabel
 from qt_readonly import QtExplorer
 from qt_founding_fathers_view import FoundingFathersViewMixin
 
@@ -20,7 +20,9 @@ class FoundingFathersViewTests(unittest.TestCase):
     def test_missing_portrait_is_handled_without_error(self):
         window = QtExplorer()
         try:
-            window._set_father_portrait(window.father_banner, "unknown-father-id", 60, 60)
+            label = QLabel()
+            window._set_father_portrait(label, "unknown-father-id", 60, 60)
+            self.assertEqual(label.text(), 'Portrait unavailable')
         finally:
             window.close()
 
