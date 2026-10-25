@@ -20,13 +20,13 @@ class LiveShadowTableTests(unittest.TestCase):
         try:
             self.assertIs(window.model_view.model(), window.record_proxy)
             self.assertIs(window.record_proxy.sourceModel(), window.record_model)
-            self.assertTrue(window.model_view.isHidden())
-            self.assertIsNotNone(window.grid)
-            self.assertEqual(window.grid.rowCount(), window.model_view.model().rowCount())
+            self.assertIsNotNone(window.model_view)
+            self.assertFalse(hasattr(window, "grid"))
+            self.assertEqual(window.record_model.rowCount(), window.model_view.model().rowCount())
             window.group = "Units"
             window.populate()
             self.assertEqual(window.model_view.iconSize().width(), 42)
-            self.assertEqual(window.model_view.model().rowCount(), window.grid.rowCount())
+            self.assertEqual(window.model_view.model().rowCount(), window.record_model.rowCount())
             self.assertTrue(window.model_view.isHidden())
         finally:
             window.close()
