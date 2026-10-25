@@ -18,10 +18,8 @@ class DiplomacyViewTests(unittest.TestCase):
         window = QtExplorer()
         try:
             self.assertIsInstance(window, DiplomacyViewMixin)
-            self.assertEqual(set(window.diplomacy_grids),
-                             {"Rival Nations", "Native Nations"} if "Rival Nations" in window.diplomacy_grids
-                             else set(window.diplomacy_grids))
-            self.assertEqual(len(window.diplomacy_grids), 2)
+            self.assertEqual(set(window.diplomacy_grids), {"Rival Nations", "Natives"})
+            self.assertEqual(window.diplomacy_tabs.count(), 2)
         finally:
             window.close()
 
