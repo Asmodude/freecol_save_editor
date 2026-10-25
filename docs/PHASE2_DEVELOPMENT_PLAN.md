@@ -1,9 +1,9 @@
 # Phase 2 — Qt Editing: Consolidated Development and Acceptance Plan
 
-**Status:** PROPOSED — awaiting explicit user approval.  
+**Status:** ACCEPTED by user — 25 October 2026 (development plan and scope; individual implementation checkpoints still require testing and sign-off).  
 **Prepared:** 25 October 2026  
 **Baseline:** Accepted Phase 1, merged and tagged `v0.6.2.6.4-phase1`.  
-**Purpose:** Bring the Qt application to safe editing parity with the accepted Tk interface, extend deletion to rival European units and colonies, and independently investigate selected new capabilities. **This document authorises planning only, not implementation.**
+**Purpose:** Bring the Qt application to safe editing parity with the accepted Tk interface, extend deletion to rival European units and colonies, and independently investigate selected new capabilities. **The development plan is accepted; implementation proceeds under its staged checkpoints and branch safeguards, with no automatic authorisation to merge unaccepted work.**
 
 ## Priority definitions
 
@@ -125,7 +125,7 @@ Recommended branch: `feature/phase2-qt-editing`, created **only when implementat
 
 **Tk editor status during Phase 2.** The Tk editor is frozen: bug fixes only. Every new capability (cross-owner and colony deletion, 2E items) is implemented in Qt only, through the shared `EditSession` / `produce()` pipeline. Tk remains available until Phase 3 replaces its Map Editor.
 
-**CI enforcement.** Enable GitHub branch protection on `main`, requiring the "Headless regression tests" check to pass before merging, so the A9 green-CI gate is enforced automatically rather than remembered.
+**CI enforcement.** GitHub branch ruleset created for `main` on 25 October 2026, with pull requests, required `headless` GitHub Actions check, up-to-date branches, conversation resolution, and blocked force pushes. A direct documentation write to `main` was actually rejected by the ruleset with a required-PR / `headless` status message, confirming those protections are enforced.
 
 Phase 3 retains the integrated Qt map view, map geometry/visual refinement and native RoadPainter-style roads. Existing 0.6 terrain milestones, version 0.7 broader colony management, version 0.8 advanced world editing, and packaging/release stay on their established tracks unless the user separately revises scope.
 
@@ -138,10 +138,20 @@ Applied directly in this document:
 4. **O4 promoted to Must**; **A10** (no silent loss of staged changes) added as Must; **A6 (random seed)** moved to Could.
 5. **Checkpoint merges** after 2A and 2C; **Tk frozen** for new features; **branch protection** on `main`.
 
-**Decision requested:** Approve or adjust this amended matrix. This document records a **proposal**, not approved Phase 2 scope.
+**Decision recorded:** The user accepted the amended Phase 2 plan on 25 October 2026, including the scope decisions documented below. Intermediate checkpoints may be accepted and merged independently; this does not imply final Phase 2 completion.
 
 ## Scope decision — 25 October 2026 (user)
 
 - **European colony deletion remains a mandatory Phase 2 completion and sign-off requirement**, for both the human nation and rival European nations. It cannot be deferred to claim full Phase 2 acceptance.
 - **Cached-missionary deletion is explicitly non-blocking and out of scope for Phase 2.** Keep safe refusal and clear explanation. Reconsider a fix only after 1.0 if users request it; do not spend Phase 2 implementation effort on a fix.
 - These decisions supersede any earlier wording that suggests the cached-missionary bug should be fixed in Phase 2.
+
+## Final plan acceptance — 25 October 2026 (user)
+
+The user formally **ACCEPTED this Phase 2 development plan**, including these final clarifications:
+
+1. **Cached-missionary deletion is not a Phase 2 blocker.** Deferring the fix is intentional: the existing deletion engine refuses uncertain operations rather than risking save corruption. That safe refusal remains mandatory, with a clear, understandable explanation in the UI so users do not mistake a safe rejection for a broken editor. Reconsider the fix only after version 1.0 if users request it.
+2. **European colony deletion is mandatory before final Phase 2 sign-off**, for both the user's own European nation and rival European nations, with fully validated save outcomes. This is compatible with checkpoint merges: stages 2A and 2C can be separately accepted and merged as completed, but **neither early merge constitutes final Phase 2 acceptance**. The phase cannot receive final sign-off until European colony deletion works.
+3. **Protect `main` with repository branch rules.** The user created the ruleset with required pull requests and the `headless` CI check, among other protections. On 25 October, direct editing of `main` was rejected by GitHub rules, as intended.
+
+**Acceptance scope:** Approval is for the plan and its prioritisation, **not** acceptance of software not yet delivered. Each development checkpoint continues to require its documented tests and user approval.
