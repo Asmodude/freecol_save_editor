@@ -17,6 +17,12 @@ _Last revised: 2026-10-25. Planning document; targets are not deadlines._
 - **Integration status:** Phase 1 is integrated on `main`. The existing 0.6.x application version roadmap is unchanged; Phase 1 is an internal UI milestone, not version 0.7.
 - **Immediate next milestone — Phase 2 (editing in Qt):** begin the Qt model/view and component decomposition described in `docs/PHASE1_ASSESSMENT.md` before introducing Qt editing. Terrain work remains on the established 0.6.x roadmap; native RoadPainter-style roads remain deferred to Phase 3.
 
+## Phase 2 research-gated proposal — Reveal Entire Map
+- **Status: planned; not implemented.** Add a staged, player-specific **Reveal Entire Map** save edit that marks all authoritative tiles explored for the selected European player **without disabling or changing fog of war**.
+- Research and verify FreeCol's per-player `cachedTile` / `copied` serialization first. Preserve cached snapshots, restricted native-settlement information and every other player's knowledge.
+- Start with a read-only per-player exploration coverage report. Only after real-save validation should the operation become stageable, reversible and exportable through safe Save As. Verify no exploration rewards/events, normal visibility, original-file integrity and FreeCol load → advance turn → resave → reload.
+- **Detailed research and acceptance criteria:** `docs/PHASE2_REVEAL_ENTIRE_MAP.md`. This is not a prerequisite for the initial Phase 2 architecture/editing work and does not change the 0.6–1.0 version roadmap.
+
 ## Application startup and navigation — planned usability refinement (delivered in Phase 1 Qt explorer)
 - **Default post-load selection:** After an `.fsg` file is successfully loaded, open the **Players** view and automatically select the human-controlled player.
 - Determine the human player from authoritative savegame data rather than relying on player order or a hard-coded identifier.
