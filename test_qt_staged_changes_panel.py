@@ -2,7 +2,8 @@
 import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import unittest
-from PySide6.QtWidgets import QApplication
+from unittest.mock import patch
+from PySide6.QtWidgets import QApplication, QMessageBox
 from edit_session import EditSession
 from qt_staged_changes_panel import StagedChangesPanel
 
@@ -49,13 +50,22 @@ class StagedChangesPanelTests(unittest.TestCase):
         self.assertEqual(observed, [1])
         self.assertEqual(self.panel.tree.topLevelItemCount(), 1)
 
+    def test_unstage_all_cancel_preserves_session(self):
+        self.session.stage(("player:1", "gold"), 1, 2)
+        self.panel.refresh()
+        with patch("qt_staged_changes_panel.QMessageBox.question", return_value=QMessageBox.StandardButton.Cancel):
+            self.panel.unstage_all()
+        self.assertEqual(self.session.count, 1)
+        self.assertEqual(self.panel.tree.topLevelItemCount(), 1)
+
     def test_unstage_all_clears_session_and_emits_signal(self):
         self.session.stage(("player:1", "gold"), 1, 2)
         self.session.stage(("player:1", "tax"), 3, 4)
         self.panel.refresh()
         observed = []
         self.panel.changed.connect(lambda: observed.append(True))
-        self.panel.unstage_all()
+        with patch('qt_staged_changes_panel.QMessageBox.question', return_value=QMessageBox.StandardButton.Discard):
+            self.panel.unstage_all()
         self.assertFalse(self.session.edits)
         self.assertEqual(self.panel.heading.text(), "Pending changes: 0")
         self.assertEqual(observed, [True])
