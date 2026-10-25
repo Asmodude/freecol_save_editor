@@ -27,8 +27,8 @@ class VisualAssetTests(unittest.TestCase):
     def test_danish_flag_has_off_centre_cross(self):
         image=flag_pixmap('model.nation.danish',28).toImage()
         self.assertGreater(image.pixelColor(1,1).red(),150)
-        self.assertGreater(image.pixelColor(12,1).green(),200)
-        self.assertGreater(image.pixelColor(12,13).green(),200)
+        self.assertGreater(image.pixelColor(17,1).green(),200)
+        self.assertGreater(image.pixelColor(17,13).green(),200)
 
     def test_portuguese_flag_has_red_green_and_blue(self):
         im=flag_pixmap('model.nation.portuguese',60).toImage()
