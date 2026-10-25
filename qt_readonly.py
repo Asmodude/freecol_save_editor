@@ -334,6 +334,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return
         if 'gold' not in EditSession.editable_fields('Players', element):
             return
+        if not (element.get('gold') or '').isascii() or not (element.get('gold') or '').isdecimal():
+            return
         key = (element.get('id'), 'gold')
         self.gold_editor_key = key  # snapshot identity at editor creation
         self.gold_edit.setText(str(self.session.staged_value(key, int(element.get('gold')))))
@@ -736,9 +738,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         if self.document is None:
             return
         element = selected_source_record(self.model_view, self.record_model)
-        self.update_gold_editor(element)
         if element is None or not any(record is element for record in self.visible_rows):
+            self.update_gold_editor()
             return
+        self.update_gold_editor(element)
         if self.group == 'Founding Fathers':
             self.inspect_father_record(element)
             return
