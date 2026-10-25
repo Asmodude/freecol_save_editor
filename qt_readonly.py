@@ -490,6 +490,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
         self.grid.setRowCount(len(rows))
         self.grid.setIconSize(QSize(32, 30) if self.group == 'Colonies' else QSize(60, 65) if self.group == 'Founding Fathers' else QSize(60, 20) if self.group == 'Native settlements' else QSize(42, 42) if self.group == 'Units' else QSize(20, 20))
+        model_decorations = {}
+        model_tooltips = {}
         for row, (_, values) in enumerate(rows):
             for col, value in enumerate(values):
                 # Render simple, unformatted columns from the shared model.
@@ -562,7 +564,14 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                         if pixmap.loadFromData(data):
                             cell.setIcon(QIcon(pixmap))
                     self.grid.setRowHeight(row, 75)
+                # Mirror approved presentation metadata onto the model's original
+                # row identity, so QTableView can render it after proxy sorting.
+                if not cell.icon().isNull():
+                    model_decorations[(row, col)] = cell.icon()
+                if cell.toolTip():
+                    model_tooltips[(row, col)] = cell.toolTip()
                 self.grid.setItem(row, col, cell)
+        self.record_model.set_presentation(model_decorations, model_tooltips)
         if self.group in ('Colonies', 'Units'):
             height = 44 if self.group == 'Units' else 36
             for row in range(self.grid.rowCount()):
