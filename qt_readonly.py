@@ -494,7 +494,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             for col, value in enumerate(values):
                 # Render simple, unformatted columns from the shared model.
                 # Preserve Game properties' abbreviated saved-value display.
-                if (self.group == 'Game properties' and col in (0, 1)) or self.group == 'National Goods':
+                if (self.group == 'Game properties' and col in (0, 1)) or self.group in (
+                        'National Goods', 'Players', 'Colonies', 'Units'):
                     value = self.record_model.data(self.record_model.index(row, col))
                 displayed = (compact_property_value(value)
                              if self.group == 'Game properties' and col == 2 else value)
