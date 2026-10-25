@@ -54,6 +54,7 @@ class OverviewPanel(QWidget):
         self.goods_icons = GoodsIcons()
         self._text = ''
         self._record = None
+        self._document = None
         self._group = None
         self._render()
 
@@ -70,9 +71,10 @@ class OverviewPanel(QWidget):
         self._group = None
         self._render()
 
-    def set_record(self, group, record):
+    def set_record(self, group, record, document=None):
         self._group = group
         self._record = record
+        self._document = document
         self._render()
 
     @staticmethod
@@ -137,9 +139,15 @@ class OverviewPanel(QWidget):
                     value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
                     value.setWordWrap(True)
                     icon_label = QLabel()
-                    icon_label.setFixedSize(19, 19)
+                    icon_label.setFixedSize(26, 19)
+                    owner = (self._document.players.get(self._record.get('owner'))
+                             if key == 'Owner' and self._document is not None
+                             and self._record is not None else None)
+                    nation = (owner.get('nationId') or owner.get('nation')) if owner is not None else None
+                    owner_flag = flag_pixmap(nation, 15) if nation else QPixmap()
                     good = self.goods_icons.icon(key, 23) if goods_key(key) else None
-                    icon_label.setPixmap(good.pixmap(19, 19) if good is not None and not good.isNull()
+                    icon_label.setPixmap(owner_flag if not owner_flag.isNull() else
+                                         good.pixmap(19, 19) if good is not None and not good.isNull()
                                          else property_icon(key).pixmap(19, 19))
                     icon_label.setToolTip(key)
                     grid.addWidget(icon_label, row, 0, Qt.AlignmentFlag.AlignTop)
