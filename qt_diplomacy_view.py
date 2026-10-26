@@ -42,6 +42,13 @@ class DiplomacyViewMixin:
                         staged = self.session.is_changed((owner, field))
                         selected = self.session.staged_value((owner, field),
                                                              int(current) if col == 2 else current)
+                        # Stance is symmetric even though only one direction is
+                        # staged. Show the pending value from either perspective.
+                        if col == 1 and not staged:
+                            reverse = (other, 'stance|' + owner)
+                            if self.session.is_changed(reverse):
+                                selected = self.session.staged_value(reverse, current)
+                                staged = True
                         if staged:
                             layout.addWidget(QLabel('was ' + current, holder))
                         if col == 1:
@@ -87,6 +94,9 @@ class DiplomacyViewMixin:
         owner_id, other_id = element.get('owner'), element.get('other')
         stance = self.session.staged_value(
             (owner_id, 'stance|' + other_id), element.get('stance'))
+        if not self.session.is_changed((owner_id, 'stance|' + other_id)):
+            stance = self.session.staged_value(
+                (other_id, 'stance|' + owner_id), stance)
         tension = self.session.staged_value(
             (owner_id, 'tension|' + other_id), element.get('tension'))
         self.details.setPlainText(
