@@ -330,6 +330,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         group = 'Players' if player_field else 'Units'
         if element is None or field not in EditSession.editable_fields(group, element):
             return
+        if player_field and field == 'tax' and (element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648'):
+            return
         raw_original = element.get(field)
         if not raw_original or not raw_original.isascii() or not raw_original.isdecimal():
             return
@@ -356,10 +358,16 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.update_save_button()
         if self.document is not None:
             chosen = self.selected_element
+            active_tab = self.tabs.tabText(self.tabs.currentIndex()) if self.tabs.currentIndex() >= 0 else None
             self.populate()
             if chosen is not None:
                 select_record_in_view(self.model_view, self.record_model, chosen)
                 self.inspect()
+                if active_tab:
+                    for index in range(self.tabs.count()):
+                        if self.tabs.tabText(index) == active_tab:
+                            self.tabs.setCurrentIndex(index)
+                            break
 
     def update_save_button(self):
         self.save_button.setText(f'Save As ({self.session.count})')
@@ -795,7 +803,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             ('FreeCol identifier', element.get('id'))])
         elif self.group == 'Players':
             summary.extend([('Nation', presentation.short(element.get('nationId'))),
-                            ('Gold', str(self.session.staged_value((element.get('id'), 'gold'), element.get('gold')))), ('Tax', element.get('tax')),
+                            ('Gold', str(self.session.staged_value((element.get('id'), 'gold'), element.get('gold')))), ('Tax', None if element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648' else str(self.session.staged_value((element.get('id'), 'tax'), element.get('tax')))),
                             ('AI controlled', element.get('ai'))])
         elif self.group == 'Colonies':
             summary.extend([('Owner', doc.owner_name(element.get('owner'))),
