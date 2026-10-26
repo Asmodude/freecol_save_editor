@@ -1,5 +1,11 @@
 """Cross-field movement and equipment staging/undo invariants."""
 import unittest
+import os
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+from types import SimpleNamespace
+from unittest.mock import patch
+from PySide6.QtWidgets import QApplication
+from qt_staged_changes_panel import StagedChangesPanel
 from edit_session import EditSession
 from edit_preflight import stage_checked, unstage_checked, preflight
 
@@ -19,6 +25,27 @@ XML = (b'<save><specification>'
        b'role="model.role.soldier" roleCount="1" movesLeft="3"></unit></game></save>')
 
 class EquipmentMovementPreflightTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = QApplication.instance() or QApplication([])
+
+    def test_staged_panel_undo_refuses_invalid_remaining_move(self):
+        session = EditSession()
+        stage_checked(session, XML, (UNIT, 'equipment'), SOLDIER, DRAGOON)
+        stage_checked(session, XML, (UNIT, 'movesLeft'), 3, 12)
+        panel = StagedChangesPanel(session, document=SimpleNamespace(
+            xml_bytes=XML, players={}, colonies=[], native_settlements=[], units=[]))
+        try:
+            with patch('qt_staged_changes_panel.QMessageBox.warning') as alert:
+                panel.undo_key((UNIT, 'equipment'))
+            alert.assert_called_once()
+            self.assertEqual(session.count, 2)
+            panel.undo_key((UNIT, 'movesLeft'))
+            panel.undo_key((UNIT, 'equipment'))
+            self.assertEqual(session.count, 0)
+        finally:
+            panel.close()
+
     def test_increased_cap_allows_moves_and_refuses_undo_equipment(self):
         session = EditSession()
         stage_checked(session, XML, (UNIT, 'equipment'), SOLDIER, DRAGOON)
