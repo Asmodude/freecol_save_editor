@@ -460,7 +460,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                                dict(unit.attrib, role=role)))
             move_key = (unit_id, 'movesLeft')
             proposed = dict(self.session.edits)
-            if (unit_id, 'equipment') in proposed or (role, count) != original:
+            if (role, count) != original:
                 proposed[(unit_id, 'equipment')] = (original, (role, count))
             else:
                 proposed.pop((unit_id, 'equipment'), None)
