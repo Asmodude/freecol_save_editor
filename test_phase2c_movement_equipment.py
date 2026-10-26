@@ -138,9 +138,16 @@ class EquipmentMovementPreflightTests(unittest.TestCase):
             stage.click()
             self.assertEqual(requests, [(UNIT, 'movesLeft', '3')])
             stage_checked(session, XML, (UNIT, 'movesLeft'), 3, 3)
-            # A movement entry matching the source cannot override a staged
-            # equipment conversion; the UI must not claim it was committed.
+            self.assertEqual(session.edits[(UNIT, 'movesLeft')], (3, 3))
+            self.assertEqual(effective_unit_moves(unit, document, session), 3)
+            result = preflight(XML, session.edits)
+            self.assertIn(b'movesLeft="3"', result)
+            self.assertIn(b'role="model.role.dragoon"', result)
+            # Reverting to the projected Dragoon movement removes only the
+            # manual override, preserving the equipment edit.
+            stage_checked(session, XML, (UNIT, 'movesLeft'), 3, 12)
             self.assertNotIn((UNIT, 'movesLeft'), session.edits)
+            self.assertIn(b'movesLeft="12"', preflight(XML, session.edits))
         finally:
             panel.close()
 
