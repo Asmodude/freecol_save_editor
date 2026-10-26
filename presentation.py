@@ -62,4 +62,12 @@ def row_values(group, e, doc, session):
         maximum=movement_cap(doc.root,move_unit)
     except (UnknownMovement,TypeError):
         maximum='—'
-    return (a.get('id'),short(a.get('unitType')),owner_name(a.get('owner'),doc),loc_name(a.get('location'),doc),short(staged.get((a.get('id'),'equipment'),(None,(a.get('role','model.role.default'),1)))[1][0]),experience_towards(a),staged.get((a.get('id'),'experience'),(None,a.get('experience')))[1],staged.get((a.get('id'),'movesLeft'),(None,a.get('movesLeft')))[1],maximum,a.get('hitPoints'),a.get('state'))
+    displayed_moves = staged.get((a.get('id'), 'movesLeft'), (None, a.get('movesLeft')))[1]
+    if equipment and (a.get('id'), 'movesLeft') not in staged:
+        from edit_backend import proportional_movement
+        try:
+            source_cap = movement_cap(doc.root, e)
+            displayed_moves = proportional_movement(int(a.get('movesLeft')), source_cap, int(maximum))
+        except (UnknownMovement, ValueError, TypeError):
+            displayed_moves = '—'
+    return (a.get('id'),short(a.get('unitType')),owner_name(a.get('owner'),doc),loc_name(a.get('location'),doc),short(staged.get((a.get('id'),'equipment'),(None,(a.get('role','model.role.default'),1)))[1][0]),experience_towards(a),staged.get((a.get('id'),'experience'),(None,a.get('experience')))[1],displayed_moves,maximum,a.get('hitPoints'),a.get('state'))
