@@ -81,7 +81,7 @@ class Phase2BInspectorTests(unittest.TestCase):
                 players={"player:1": Element("player", {"id": "player:1"})},
                 unit_by_id=lambda uid: unit if uid == "unit:1" else None, xml_bytes=xml)
             explorer.group = "Units"
-            explorer.overview.setPlainText("Unit One\\nExperience: 7\\nMoves left: 2")
+            explorer.overview.setPlainText("Unit One\nExperience: 7\nMoves left: 2")
             explorer.overview.set_record("Units", unit, explorer.document, explorer.session)
             from PySide6.QtWidgets import QLineEdit
             experience = explorer.overview.findChild(QLineEdit, "inlineExperienceInput")
