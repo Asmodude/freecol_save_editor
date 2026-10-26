@@ -354,6 +354,32 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return
         self.refresh_staged_view()
 
+    def stage_colony_goods(self, colony_id, goods_type, raw_value):
+        """Edit a specific warehouse type identified by its full ruleset ID."""
+        if self.document is None:
+            return
+        colony = next((node for node in self.document.colonies
+                       if node.get('id') == colony_id), None)
+        if colony is None or goods_type not in self.document.goods_types:
+            return
+        stored = colony.find('./goodsContainer/storedGoods')
+        if stored is None:
+            QMessageBox.warning(self, 'Cannot stage goods', 'Colony has no storedGoods element')
+            return
+        found = [g for g in stored.findall('goods') if g.get('type') == goods_type]
+        if len(found) > 1:
+            QMessageBox.warning(self, 'Cannot stage goods', 'Duplicated goods type in colony')
+            return
+        original = int(found[0].get('amount')) if found else 0
+        key = (colony_id, goods_type)
+        try:
+            new = self.session.validate(key, raw_value, original=original)
+            stage_checked(self.session, self.document.xml_bytes, key, original, new)
+        except (ValueError, TypeError, EditValidationError) as exc:
+            QMessageBox.warning(self, 'Cannot stage goods', str(exc))
+            return
+        self.refresh_staged_view()
+
     def stage_unit_equipment(self, unit_id, role, count):
         """Stage composite equipment through the shared backend preflight."""
         if self.document is None:
