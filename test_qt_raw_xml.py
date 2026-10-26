@@ -14,6 +14,18 @@ class RawXmlTests(unittest.TestCase):
         self.assertIn('\n  <building',display)
         self.assertEqual(tostring(element),before)
 
+    def test_many_unit_attributes_are_multiline_and_source_unchanged(self):
+        element = fromstring(
+            '<unit id="unit:35385" unitType="model.unit.hardyPioneer" '
+            'movesLeft="3" role="model.role.pioneer" roleCount="3"/>')
+        before = tostring(element)
+        display = formatted_record_xml(element)
+        self.assertIn('<unit\n', display)
+        self.assertIn('\n  id="unit:35385"\n', display)
+        self.assertIn('\n  roleCount="3"\n', display)
+        self.assertIn('\n/>', display)
+        self.assertEqual(tostring(element), before)
+
     def test_escapes_special_characters(self):
         element=fromstring('<unit id="a&amp;b"/>')
         self.assertIn('a&amp;b',formatted_record_xml(element))
