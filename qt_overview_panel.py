@@ -193,13 +193,15 @@ class OverviewPanel(QWidget):
                     for row, (key, val) in enumerate(subset):
                         label = QLabel(key)
                         label.setStyleSheet('color: palette(mid);')
-                        numeric_field = {'Gold': 'gold', 'Tax': 'tax'}.get(key) if self._group == 'Players' else None
-                        editable_gold = (numeric_field is not None
+                        numeric_fields = ({'Gold': 'gold', 'Tax': 'tax'} if self._group == 'Players' else
+                                          {'Experience': 'experience', 'Moves left': 'movesLeft'} if self._group == 'Units' else {})
+                        numeric_field = numeric_fields.get(key)
+                        editable_numeric = (numeric_field is not None
                                          and self._record is not None and self._session is not None
                                          and (numeric_field != 'gold' or self._record.get('gold') != '-2147483648')
                                          and (self._record.get(numeric_field) or '').isascii()
                                          and (self._record.get(numeric_field) or '').isdecimal())
-                        if editable_gold:
+                        if editable_numeric:
                             record_id = self._record.get('id')
                             original = self._record.get(numeric_field)
                             value = QWidget()
