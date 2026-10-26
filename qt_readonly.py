@@ -459,6 +459,25 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.update_save_button()
         if self.document is not None:
             chosen = self.selected_element
+            if self.group == 'Diplomacy':
+                active_category = self.diplomacy_tabs.tabText(self.diplomacy_tabs.currentIndex())
+                self.populate()
+                for category, table in self.diplomacy_grids.items():
+                    if chosen is None:
+                        continue
+                    for row in range(table.rowCount()):
+                        item = table.item(row, 0)
+                        record = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+                        if record is not None and (record.get('owner'), record.get('other')) == (
+                                chosen.get('owner'), chosen.get('other')):
+                            table.selectRow(row)
+                            break
+                for index in range(self.diplomacy_tabs.count()):
+                    if self.diplomacy_tabs.tabText(index) == active_category:
+                        self.diplomacy_tabs.setCurrentIndex(index)
+                        break
+                self.inspect_diplomacy(active_category)
+                return
             active_tab = self.tabs.tabText(self.tabs.currentIndex()) if self.tabs.currentIndex() >= 0 else None
             self.populate()
             if chosen is not None:
