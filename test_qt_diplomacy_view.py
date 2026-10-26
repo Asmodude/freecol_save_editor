@@ -135,6 +135,21 @@ class DiplomacyViewTests(unittest.TestCase):
         finally:
             window.close()
 
+    def test_national_goods_projection_shows_staged_colony_delta(self):
+        from types import SimpleNamespace
+        from xml.etree.ElementTree import fromstring
+        window = QtExplorer()
+        try:
+            colony = fromstring('<colony id="colony:1" owner="player:1"/>')
+            record = fromstring('<nationalGoodsView id="model.goods.fish" owner="player:1" amount="50"/>')
+            window.document = SimpleNamespace(colonies=[colony])
+            self.assertEqual(window.national_goods_projection(record), (50,50,False))
+            window.session.stage(('colony:1','model.goods.fish'),0,100)
+            self.assertEqual(window.national_goods_projection(record), (50,150,True))
+        finally:
+            window.session.exported_snapshot = dict(window.session.edits)
+            window.close()
+
     def test_diplomacy_inspect_is_noop_outside_diplomacy(self):
         window = QtExplorer()
         try:
