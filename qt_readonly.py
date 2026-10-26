@@ -296,7 +296,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.unit_xml_button.clicked.connect(
             lambda: self.inspector_tabs.setCurrentWidget(self.raw_xml))
         inspector_layout.addWidget(self.unit_xml_button)
-        self.inspector_hint = QLabel('Player gold supports staged editing; other fields remain read-only')
+        self.inspector_hint = QLabel('Supported numeric values can be staged from Overview and colony Workers')
         inspector_layout.addWidget(self.inspector_hint)
         self.right_splitter = QSplitter(Qt.Orientation.Vertical)
         self.right_splitter.setObjectName('inspectorPendingSplitter')
