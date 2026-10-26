@@ -48,7 +48,7 @@ def row_values(group, e, doc, session):
     a=e.attrib
     staged=session.edits
     if group=='Players':
-        return (a.get('id'),a.get('username'),short(a.get('nationId')),a.get('playerType'),doc.colony_counts.get(a.get('id'),0),doc.native_counts.get(a.get('id'),0),'N/A' if a.get('gold')=='-2147483648' else staged.get((a.get('id'),'gold'),(None,a.get('gold')))[1],staged.get((a.get('id'),'tax'),(None,a.get('tax')))[1],a.get('score'),a.get('ai'),a.get('dead'))
+        return (a.get('id'),a.get('username'),short(a.get('nationId')),a.get('playerType'),doc.colony_counts.get(a.get('id'),0),doc.native_counts.get(a.get('id'),0),'N/A' if a.get('gold')=='-2147483648' else staged.get((a.get('id'),'gold'),(None,a.get('gold')))[1],('N/A' if a.get('playerType', '').lower() in ('native','indian') or a.get('gold')=='-2147483648' else staged.get((a.get('id'),'tax'),(None,a.get('tax')))[1]),a.get('score'),a.get('ai'),a.get('dead'))
     if group=='Colonies':
         return (a.get('id'),a.get('name'),owner_name(a.get('owner'),doc),loc_name(a.get('tile'),doc),a.get('established'),a.get('liberty'),staged.get((a.get('id'),'sonsOfLibertyTarget'),(None,a.get('sonsOfLiberty')))[1],a.get('productionBonus'))
     if group=='Native settlements':
