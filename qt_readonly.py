@@ -245,6 +245,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.tabs.addTab(self.overview, 'Overview')
         self.overview.edit_requested.connect(self.stage_overview_edit)
         self.overview.equipment_requested.connect(self.stage_unit_equipment)
+        self.overview.skill_requested.connect(self.stage_native_skill)
         self.colony_tables = {}
         for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'Alarm', 'By colony', 'In transit'):
             table = QTableWidget()
@@ -354,6 +355,24 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             stage_checked(self.session, self.document.xml_bytes, key, original, new)
         except (EditValidationError, ValueError) as exc:
             QMessageBox.warning(self, 'Cannot stage ' + field, str(exc))
+            return
+        self.refresh_staged_view()
+
+    def stage_native_skill(self, settlement_id, skill):
+        if self.document is None or skill not in self.document.professions:
+            return
+        settlement = next((item for item in self.document.native_settlements
+                           if item.get('id') == settlement_id), None)
+        if settlement is None or settlement.get('learnableSkill') is None:
+            return
+        key = (settlement_id, 'learnableSkill')
+        original = settlement.get('learnableSkill')
+        try:
+            proposed = self.session.validate(key, skill, original=original,
+                                             professions=self.document.professions)
+            stage_checked(self.session, self.document.xml_bytes, key, original, proposed)
+        except (ValueError, EditValidationError) as exc:
+            QMessageBox.warning(self, 'Cannot stage skill', str(exc))
             return
         self.refresh_staged_view()
 
