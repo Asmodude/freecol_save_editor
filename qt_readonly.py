@@ -68,7 +68,7 @@ HEADERS = {
     'Native settlements': ('ID','Name','Owner','Location','Learnable skill','Wanted goods'),
     'Units': ('ID','Type','Owner','Location','Role','Experience toward','Experience','Moves left','Max moves','Hit points','State'),
     'Founding Fathers': ('Founding Father', 'Status'),
-    'National Goods': ('Goods', 'Original total (staged excluded)', 'Colonies with source stock'),
+    'National Goods': ('Goods', 'Source → proposed total', 'Colonies with source stock'),
     'Game properties': ('Source', 'Property', 'Saved value'),
     'Diplomacy': ('Category', 'Other nation', 'Relationship', 'Saved value'),
 }
@@ -677,6 +677,17 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             self.overview._render()
             self.details._render()
 
+    def national_goods_projection(self, record):
+        """Source and proposed totals, without changing the original save."""
+        source = int(record.get('amount', '0'))
+        owner = record.get('owner')
+        kind = record.get('id')
+        ids = {col.get('id') for col in self.document.colonies if col.get('owner') == owner}
+        delta = sum(int(new_value) - int(old_value)
+                    for (record_id, field), (old_value, new_value) in self.session.edits.items()
+                    if record_id in ids and field == kind)
+        return source, source + delta, delta != 0
+
     def populate(self):
         self.update_workspace_header()
         # Apply category sizing even when no save is loaded and populate exits early.
@@ -746,7 +757,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                       if self.group == 'Game properties' else
                       (element.get('name'), element.get('status'))
                       if self.group == 'Founding Fathers' else
-                      (element.get('name'), element.get('amount'), element.get('colonies'))
+                      (element.get('name'),
+                       (f'{self.national_goods_projection(element)[0]} → {self.national_goods_projection(element)[1]}'
+                        if self.national_goods_projection(element)[2] else element.get('amount')),
+                       element.get('colonies'))
                       if self.group == 'National Goods' else
                       display_row(self.group, presentation.row_values(self.group, element, doc, self.session)))
             if query and query not in ' '.join(str(value) for value in values).casefold():
@@ -909,14 +923,17 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             amount = element.get('amount', '0')
             count = element.get('colonies', '0')
             self.inspector_label.setText(name)
+            source, projected, pending = self.national_goods_projection(element)
             self.details.setPlainText(
                 f'Goods: {name}\nSource warehouse total: {amount}\n'
+                + (f'Proposed total with staged edits: {projected}\n' if pending else '') +
                 f'Colonies with source stock: {count}\n'
                 'Staged warehouse edits are excluded until exported and reopened.')
             self.overview.setPlainText(
                 f'{name}\n\nOriginal save warehouse total: {amount}\n'
+                + (f'Proposed total with staged edits: {projected}\n' if pending else '') +
                 f'Colonies containing this good: {count}\n\n'
-                'SOURCE VALUES ONLY — staged colony Goods changes are not included.\n'
+                'Table shows source → proposed totals wherever warehouse edits are staged.\n'
                 'Read-only aggregate; cargo aboard units and ships is excluded.')
             self.raw_xml.setPlainText(
                 'Computed aggregate from owned colony goodsContainer/storedGoods/goods.\n'
