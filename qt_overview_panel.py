@@ -334,7 +334,7 @@ class OverviewPanel(QWidget):
                                 else:
                                     label.setText('')
                                     label.setToolTip('Original: ' + friendly(base))
-                                button.setEnabled(choice[0] is not None and choice != planned)
+                                button.setEnabled(choice[0] is not None)
                             selector.currentIndexChanged.connect(update_status)
                             count.valueChanged.connect(update_status)
                             sync_tools()
