@@ -5,6 +5,7 @@ Extracted unchanged from the accepted Qt Explorer during Phase 2A.
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel, QComboBox, QSpinBox
 from equipment_rules import ROLES, validate_equipment
+from qt_equipment_controls import WheelSafeComboBox, WheelSafeSpinBox
 from qt_colony_details import colony_sections, colony_detail_nodes, goods_catalog
 from qt_settlement_details import settlement_units
 from qt_diplomacy import settlement_alarm_rows
@@ -161,7 +162,7 @@ class DetailTabsMixin:
                             layout = QHBoxLayout(holder)
                             layout.setContentsMargins(2, 1, 2, 1)
                             layout.setSpacing(3)
-                            selector = QComboBox(holder)
+                            selector = WheelSafeComboBox(holder)
                             selector.setObjectName('stationedEquipmentRole')
                             selector.setProperty('unitId', uid)
                             names = {
@@ -177,7 +178,7 @@ class DetailTabsMixin:
                                 except (ValueError, TypeError):
                                     continue
                                 selector.addItem(names.get(candidate, candidate), candidate)
-                            count = QSpinBox(holder)
+                            count = WheelSafeSpinBox(holder)
                             count.setObjectName('stationedEquipmentTools')
                             def sync_role(_index, chooser=selector, amount=count, document=self.document):
                                 role = chooser.currentData()
