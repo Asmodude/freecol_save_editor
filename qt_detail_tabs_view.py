@@ -4,7 +4,7 @@ Extracted unchanged from the accepted Qt Explorer during Phase 2A.
 """
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel
-from qt_colony_details import colony_sections, colony_detail_nodes
+from qt_colony_details import colony_sections, colony_detail_nodes, goods_catalog
 from qt_settlement_details import settlement_units
 from qt_diplomacy import settlement_alarm_rows
 from qt_national_goods import colony_goods_breakdown, transported_goods_breakdown
@@ -75,6 +75,45 @@ class DetailTabsMixin:
                         if not icon.isNull():
                             item.setIcon(icon)
                     table.setItem(row, col, item)
+                    if name == 'Goods' and col == 1 and colony is not None:
+                        # Stable type IDs are taken from the catalog, never from
+                        # readable labels or post-sort table coordinates.
+                        goods_type, source = goods_catalog(colony, self.document)[row]
+                        original = int(source.get('amount')) if source is not None else 0
+                        edit_key = (colony.get('id'), goods_type)
+                        staged = self.session.is_changed(edit_key)
+                        holder = QWidget(table)
+                        line = QHBoxLayout(holder)
+                        line.setContentsMargins(2, 1, 2, 1)
+                        if staged:
+                            line.addWidget(QLabel('was ' + str(original), holder))
+                        edit = QLineEdit(str(self.session.staged_value(edit_key, original)), holder)
+                        edit.setObjectName('colonyGoodsAmountInput')
+                        edit.setProperty('goodsTypeId', goods_type)
+                        edit.setToolTip('Original stock: ' + str(original) + '; Enter to stage')
+                        edit.setStyleSheet('QLineEdit { border: 2px solid ' +
+                                           ('#26815A' if staged else '#76A9E8') +
+                                           '; border-radius: 3px; padding: 2px; background: ' +
+                                           ('#E5F5E9' if staged else '#EDF5FF') +
+                                           '; color: #172B45; }')
+                        button = QPushButton('✎', holder)
+                        button.setObjectName('stageColonyGoods')
+                        button.setFixedWidth(25)
+                        button.setToolTip('Stage this goods amount')
+                        valid_store = colony.find('./goodsContainer/storedGoods') is not None
+                        edit.setEnabled(valid_store)
+                        button.setEnabled(valid_store)
+                        if not valid_store:
+                            edit.setToolTip('Colony has no storedGoods element; editing unavailable')
+                        edit.returnPressed.connect(
+                            lambda cid=colony.get('id'), kind=goods_type, field=edit:
+                            self.stage_colony_goods(cid, kind, field.text()))
+                        button.clicked.connect(
+                            lambda checked=False, cid=colony.get('id'), kind=goods_type, field=edit:
+                            self.stage_colony_goods(cid, kind, field.text()))
+                        line.addWidget(edit, 1)
+                        line.addWidget(button)
+                        table.setCellWidget(row, col, holder)
                     # The worker's Experience belongs to the unit, not the colony.
                     # Capture the authoritative unit ID before the table is sorted.
                     if name == 'Workers' and col == 4:
