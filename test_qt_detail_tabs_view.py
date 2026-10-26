@@ -99,6 +99,31 @@ class DetailTabsViewTests(unittest.TestCase):
         finally:
             window.close()
 
+    def test_native_skill_staging_retains_original(self):
+        from xml.etree.ElementTree import fromstring
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        xml = b'<save><indianSettlement id="v:1" learnableSkill="skill:a"/></save>'
+        village = next(fromstring(xml).iter('indianSettlement'))
+        window = QtExplorer()
+        try:
+            window.document = SimpleNamespace(
+                xml_bytes=xml, professions=['skill:a','skill:b'],
+                native_settlements=[village])
+            window.overview.setPlainText('Village\nLearnable skill: Skill A')
+            window.overview.set_record('Native settlements', village, window.document, window.session)
+            from PySide6.QtWidgets import QComboBox, QPushButton
+            combo = window.overview.findChild(QComboBox, 'nativeLearnableSkill')
+            self.assertEqual(combo.count(), 2)
+            combo.setCurrentIndex(combo.findData('skill:b'))
+            with patch.object(window, 'refresh_staged_view'):
+                window.overview.findChild(QPushButton, 'stageNativeLearnableSkill').click()
+            self.assertEqual(window.session.edits[('v:1','learnableSkill')],('skill:a','skill:b'))
+            self.assertEqual(village.get('learnableSkill'), 'skill:a')
+        finally:
+            window.session.exported_snapshot = dict(window.session.edits)
+            window.close()
+
     def test_contextual_colony_button_disabled_outside_goods(self):
         window = QtExplorer()
         try:
