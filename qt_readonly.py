@@ -68,7 +68,7 @@ HEADERS = {
     'Native settlements': ('ID','Name','Owner','Location','Learnable skill','Wanted goods'),
     'Units': ('ID','Type','Owner','Location','Role','Experience toward','Experience','Moves left','Max moves','Hit points','State'),
     'Founding Fathers': ('Founding Father', 'Status'),
-    'National Goods': ('Goods', 'Total in colonies', 'Colonies with stock'),
+    'National Goods': ('Goods', 'Original total (staged excluded)', 'Colonies with source stock'),
     'Game properties': ('Source', 'Property', 'Saved value'),
     'Diplomacy': ('Category', 'Other nation', 'Relationship', 'Saved value'),
 }
