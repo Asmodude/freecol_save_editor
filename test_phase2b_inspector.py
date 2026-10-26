@@ -24,7 +24,7 @@ class Phase2BInspectorTests(unittest.TestCase):
         try:
             player_a = Element("player", {"id": "player:1", "gold": "7225", "username": "A"})
             player_b = Element("player", {"id": "player:2", "gold": "100", "username": "B"})
-            explorer.document = SimpleNamespace(players={"player:1": player_a, "player:2": player_b})
+            explorer.document = SimpleNamespace(players={"player:1": player_a, "player:2": player_b}, xml_bytes=b\'<save><game><player id="player:1" gold="7225"></player><player id="player:2" gold="100"></player></game></save>\')
             explorer.group = "Players"
             # The only production editor is the lower-middle Overview control.
             explorer.overview.setPlainText("Player A\nGold: 7225")
