@@ -43,6 +43,7 @@ class OverviewPanel(QWidget):
     """Overview with scoped inline editing of supported fields."""
     edit_requested = Signal(str, str, str)
     equipment_requested = Signal(str, str, int)
+    skill_requested = Signal(str, str)
     def __init__(self, parent=None):
         super().__init__(parent)
         frame = QVBoxLayout(self)
@@ -215,7 +216,33 @@ class OverviewPanel(QWidget):
                                          and eligible_colony_sol
                                          and (self._record.get(source_field) or '').isascii()
                                          and (self._record.get(source_field) or '').isdecimal())
-                        if (self._group == 'Units' and key == 'Role' and self._record is not None
+                        if (self._group == 'Native settlements' and key == 'Learnable skill'
+                                and self._record is not None and self._session is not None
+                                and self._document is not None):
+                            sid = self._record.get('id')
+                            current = self._record.get('learnableSkill')
+                            choices = list(getattr(self._document, 'professions', ()) or ())
+                            value = QWidget()
+                            layout = QHBoxLayout(value)
+                            layout.setContentsMargins(0, 0, 0, 0)
+                            selector = QComboBox(value)
+                            selector.setObjectName('nativeLearnableSkill')
+                            for skill in choices:
+                                selector.addItem(skill.rsplit('.', 1)[-1].replace('_', ' ').title(), skill)
+                            proposed = self._session.staged_value((sid, 'learnableSkill'), current)
+                            index = selector.findData(proposed)
+                            if index >= 0:
+                                selector.setCurrentIndex(index)
+                            button = QPushButton('✎', value)
+                            button.setObjectName('stageNativeLearnableSkill')
+                            button.setEnabled(index >= 0)
+                            button.setToolTip('Stage a skill actually taught in the opened save')
+                            button.clicked.connect(
+                                lambda checked=False, sid=sid, selector=selector:
+                                self.skill_requested.emit(sid, selector.currentData()))
+                            layout.addWidget(selector, 1)
+                            layout.addWidget(button)
+                        elif (self._group == 'Units' and key == 'Role' and self._record is not None
                                 and self._document is not None and self._session is not None):
                             uid = self._record.get('id')
                             original_role = self._record.get('role', 'model.role.default')
