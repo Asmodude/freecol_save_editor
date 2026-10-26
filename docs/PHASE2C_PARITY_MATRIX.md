@@ -1,13 +1,13 @@
 # Phase 2C — Tk → Qt Parity Matrix
 
-**Status:** C1 audit started; implementation evidence is recorded per operation, not inferred from plan acceptance.  
+**Status:** C1 audit established, numeric editing underway; implementation evidence is recorded per operation, not inferred from plan acceptance.  
 **Baseline:** Phase 2B merged on main. **Independent source audit:** Claude, [PHASE2C_PLAN_REVIEW.md](PHASE2C_PLAN_REVIEW.md), 26 October 2026 (confirmed complete non-destructive operation inventory against `freecol_explorer.py`, `EditSession` and `edit_backend.py`).  
 **Source of truth:** [Accepted implementation plan](PHASE2C_IMPLEMENTATION_PLAN.md), especially §12.
 
 | Field / operation | Authoritative edit key | Validation and notable behavior | Qt implementation | Automated | Windows | FreeCol |
 |---|---|---|---|---|---|---|
 | Gold | `(player_id, gold)` | 0–2,147,483,647; native sentinel excluded | Phase 2B; C1 preflight integration | Preflight tests added; full regression pending | 2B passed; C1 recheck pending | 2B passed |
-| Tax | `(player_id, tax)` | 0–100; present numeric source attribute | Not started | Pending | Pending | Pending |
+| Tax | `(player_id, tax)` | 0–100; present numeric source attribute | Inline shared player numeric control implemented on branch | Qt behavior and preflight tests pass in CI #451 | Pending | Pending |
 | Experience | `(unit_id, experience)` | 0–200; present numeric attribute; full unit Overview editing gives capability parity | Not started | Pending | Pending | Pending |
 | Moves left | `(unit_id, movesLeft)` | 0–movement cap with **staged role** | Not started | Pending | Pending | Pending |
 | Equipment | `(unit_id, equipment)` | Composite (role,roleCount); valid roles/abilities, native/naval, deletion conflict; may clamp moves | Not started | Pending | Pending | Pending |
@@ -23,3 +23,5 @@
 **Audit conclusion:** The independently reviewed inventory contains no additional accepted non-destructive Tk operations (Claude §1, §8). Stage-time backend preflight must refuse all unsupported combinations **before** modifying session, and remains supplemental to final producer validation.
 
 **Status policy:** Implementation, automated, Windows and FreeCol outcomes will be updated separately with evidence. No unchecked category is marked accepted.
+
+**C1 partial implementation (26 October 2026):** `edit_preflight.py` provides cloned in-memory backend validation and checked stage/undo APIs; Qt player Gold and Tax staging uses it. `RecordTableModel` exposes persistent bold/italic staged-value font roles, including selected rows. Draft PR #6 holds all development; CI #451 passed at `507129f`. Unit XP, movement and all C2 categories remain unimplemented; no Windows acceptance claimed.
