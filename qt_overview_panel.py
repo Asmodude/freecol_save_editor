@@ -260,7 +260,13 @@ class OverviewPanel(QWidget):
                                     validate_equipment(self._document.root, self._record, candidate, 1)
                                 except (ValueError, TypeError):
                                     continue
-                                selector.addItem(candidate.rsplit('.', 1)[-1].replace('_', ' ').title(), candidate)
+                                selector.addItem({
+                                    'model.role.default': 'Unequipped colonist',
+                                    'model.role.soldier': 'Arm as Soldier',
+                                    'model.role.dragoon': 'Equip as Dragoon',
+                                    'model.role.scout': 'Equip as Scout',
+                                    'model.role.pioneer': 'Equip with Tools (Pioneer)',
+                                }.get(candidate, candidate.rsplit('.', 1)[-1].title()), candidate)
                             count = QSpinBox(value)
                             count.setObjectName('unitEquipmentCount')
                             def sync_count(index, selector=selector, count=count, doc=self._document):
@@ -269,13 +275,20 @@ class OverviewPanel(QWidget):
                                 limit = int(roles[0].get('maximum-count', '1')) if len(roles) == 1 else 1
                                 count.setRange(1, max(1, limit))
                                 count.setEnabled(limit > 1)
+                                count.setVisible(role_id == 'model.role.pioneer')
                                 count.setToolTip('Pioneer: 1–5 means 20–100 tools' if role_id == 'model.role.pioneer'
                                                  else 'Equipment count defined by the save ruleset')
                             selector.currentIndexChanged.connect(sync_count)
                             tools_label = QLabel('', value)
                             tools_label.setObjectName('pioneerToolQuantity')
                             def sync_tools(*_args, selector=selector, count=count, label=tools_label):
-                                label.setText(f'{count.value() * 20} tools' if selector.currentData() == 'model.role.pioneer' else '')
+                                label.setText({
+                                    'model.role.default': 'No equipment',
+                                    'model.role.soldier': '50 muskets',
+                                    'model.role.dragoon': '50 muskets + 50 horses',
+                                    'model.role.scout': '50 horses',
+                                    'model.role.pioneer': f'{count.value() * 20} tools',
+                                }.get(selector.currentData(), ''))
                             selector.currentIndexChanged.connect(sync_tools)
                             count.valueChanged.connect(sync_tools)
                             chosen = selector.findData(staged_role)
@@ -296,7 +309,7 @@ class OverviewPanel(QWidget):
                                 selector.setToolTip('No eligible roles can be verified from the saved ruleset')
                             button = QPushButton('✎', value)
                             button.setObjectName('stageUnitEquipment')
-                            button.setToolTip('Stage role and equipment count together')
+                            button.setToolTip('Stage role and equipment together; warehouse stock is unchanged')
                             button.setEnabled(chosen >= 0)
                             button.clicked.connect(
                                 lambda checked=False, rid=uid, choose=selector, qty=count:
