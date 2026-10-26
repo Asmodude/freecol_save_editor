@@ -1,9 +1,9 @@
 # Phase 2C — Full Non-Destructive Qt Editing Parity
 
-**Status:** PROPOSED — awaiting independent Claude review and user acceptance. No coding authorised by this document alone.
+**Status:** ACCEPTED by user — 26 October 2026, incorporating Claude's independent PASS WITH CAVEATS review. Plan acceptance does not constitute implementation or merge acceptance.
 **Prepared:** 26 October 2026
 **Repository:** `Asmodude/freecol_save_editor`
-**Review branch:** `feature/phase2c-editing-parity` (based on merged Phase 2B `main`)
+**Development branch:** `feature/phase2c-editing-parity` (based on merged Phase 2B `main`)
 **Normative source:** [PHASE2_DEVELOPMENT_PLAN.md](PHASE2_DEVELOPMENT_PLAN.md), accepted 25 October 2026. See also [Phase 2B evidence](PHASE2B_ACCEPTANCE_EVIDENCE.md) and `ROADMAP.md`.
 
 ## 1. Objective, acceptance boundary and principles
@@ -14,7 +14,7 @@ Bring Lady Philippa Y. Side VI, the Qt editor, to **every accepted non-destructi
 
 Preserve the accepted three-pane UI: edits where values are displayed in the lower middle contextual Overview/tabs; right-side resizable Staged Changes below Inspector; visual staged-value indicators (original and current); the single identity-safe upper workspace; and automatic selection/inspection whenever the normal workspace displays exactly one visible record, including filtered singletons.
 
-No code implementation, acceptance or merge should occur solely because the proposal is filed. `main` stays protected.
+Implementation of C1 is authorised by this accepted plan; acceptance of checkpoints and merge remain separate. `main` stays protected.
 
 ## 2. Must / Should / Could: exact priority inheritance
 
@@ -97,7 +97,7 @@ The accepted overarching plan names these capabilities, but **this list must be 
 
 1. Add inline Sons of Liberty editing for the authoritative target specified by accepted Tk behavior.
 2. Add inline supported stored-goods quantity edits in colony Goods tab, tied to colony identity and actual goods record/key—not display row.
-3. Support accepted zero/absent goods semantics; do not invent new storage rules.
+3. Absent stored goods start at zero; create positive stock only if the colony has a storedGoods parent and the type exists in the save. Do not invent warehouse-capacity rules.
 4. Preserve other goods in warehouse; verify that aggregate colony/national summaries refresh correctly.
 5. Stage multiple goods and liberty edits, undo individually, keep source-original values and preserve unrelated data.
 6. Show human-readable review entries (`Christiansborg — Tools: 150 → 250`).
@@ -107,7 +107,7 @@ The accepted overarching plan names these capabilities, but **this list must be 
 
 1. Audit the **exact** supported Tk diplomacy values, including stance and any accepted tension/alarm semantics; avoid assuming unsupported choices.
 2. Preserve distinct **Rival Nations** and **Natives** diplomacy tables.
-3. Bind each editor to authoritative owning player and counterpart, preserving directionality; never infer from sorted visual row.
+3. Bind each editor to authoritative owning player and counterpart, not displayed text or sorted position. Stance changes are symmetric (write both reciprocal records); tension and alarm are directional.
 4. Use suitable value-type controls (choice selector versus numeric) and existing validation.
 5. Stage via accepted composite keys, display both participants in readable review, support undo/repeated stage.
 6. Test both European and native scenarios, reverse-direction protection, and game export.
@@ -115,7 +115,7 @@ The accepted overarching plan names these capabilities, but **this list must be 
 ### 2C.7 — Native Settlement Learnable Skill [MUST: O1/O2/O3]
 
 1. Show current learnable skill in native settlement lower Overview; provide a visibly editable dropdown of legitimate professions.
-2. Reuse existing ruleset choices and validation.
+2. Use SaveDocument.professions — skills currently taught by settlements in the opened save — not a ruleset-wide list.
 3. Bind to authoritative settlement ID, preserve owning native nation and other settlement attributes.
 4. Display readable original/new skill labels in Overview and Staged Changes, retaining internal identifiers underneath.
 5. Test navigation/selection identity, restage, undo, invalid choices and FreeCol roundtrip.
@@ -144,8 +144,8 @@ The accepted overarching plan names these capabilities, but **this list must be 
 
 | Checkpoint | Content | Required gate |
 |---|---|---|
-| **C1 — Audit and numeric editors** | 2C.1 inventory; Tax, Experience, Moves, Sons of Liberty; reusable numeric UI | Behavioural validation, origin/identity, stage/undo and CI green |
-| **C2 — Structured/composite editors** | Equipment, Goods, Diplomacy, Learnable Skill and any other accepted non-destructive Tk operation | Composite validation, realistic mixed edits, safe refusal and CI green |
+| **C1 — Audit and numeric editors** | 2C.1 inventory; backend preflight; Tax, Experience, Moves (including equipment-aware movement cap); reusable numeric UI | Behavioural validation, origin/identity, stage/undo and CI green |
+| **C2 — Structured/composite editors** | Equipment, Goods, Sons of Liberty, Diplomacy, Learnable Skill and any other accepted non-destructive Tk operation | Composite validation, realistic mixed edits, safe refusal and CI green |
 | **C3 — Integrated verification** | Complete UI synchronization, optional O6, full parity matrix, combined export, Windows checklist and FreeCol tests | Green CI on exact tested code; Windows and representative in-game roundtrips; original hash unchanged |
 | **C4 — Review and milestone acceptance** | Independent review, corrections, CHANGELOG/ROADMAP and evidence | User acceptance, **separate explicit merge approval**, protected PR merge/tag |
 
@@ -200,11 +200,82 @@ Read the accepted `docs/PHASE2_DEVELOPMENT_PLAN.md`, the actual Tk editing handl
 9. Identify omissions, regressions, scope creep, or missing mandatory acceptance gates.
 10. Return **PASS / PASS WITH CAVEATS / REVISE**, separating Must-level blockers from recommended improvements and optional polish.
 
-**Review does not equal acceptance.** User approves any amended detailed 2C plan before implementation starts; CI, Windows and FreeCol gates remain separate.
+**Review amendments and detailed plan ACCEPTED 26 October 2026.** CI, Windows, FreeCol and merge gates remain separate.
 
 ## 11. Decision record
 
 - Whole Phase 2 plan accepted 25 October 2026.
 - Phase 2B merged, tagged and branch deleted by user before this proposal.
-- This proposed Phase 2C breakdown is **not yet independently reviewed or user accepted**.
-- The branch and this document exist for independent review only. No implementation or PR merge authorized.
+- Claude reviewed the plan in docs/PHASE2C_PLAN_REVIEW.md (PASS WITH CAVEATS); user approved all amendments on 26 October 2026.
+- This amended plan is ACCEPTED for implementation. No checkpoint implementation or merge is accepted yet.
+
+## 12. Claude review amendments — mandatory accepted engineering contract
+
+Source: [PHASE2C_PLAN_REVIEW.md](PHASE2C_PLAN_REVIEW.md), independent code-grounded review (PASS WITH CAVEATS). This section takes precedence over less-specific guidance in the original proposal. The user approved these amendments on 26 October 2026.
+
+### 12.1 Stage-time backend preflight [MUST: A2, A10, O3]
+
+1. Dry-run the actual backend operation using edit_backend.change_field() on an in-memory XML clone derived from SaveDocument.xml_bytes. Never mutate loaded authoritative XML or write an export during preflight.
+2. For related staged edits, preflight the complete proposed staged set in the same ordering and semantics as produce(); the backend may refuse combinations even when standalone field validation passes.
+3. On any refusal, show the backend message immediately and leave EditSession unchanged. This applies to both stage and undo operations that could invalidate another edit. produce() remains the final export authority.
+4. Disable unsupported editors up front, with explanations: missing experience attribute, unknown movement cap, empty/nonstandard-SoL colony, missing relationship, missing storedGoods parent or unsupported skill.
+5. Test each refusal category, verifying no session mutation and no export-only surprise.
+
+### 12.2 Full authoritative edit identity and widget lifecycle [MUST: A2, O2]
+
+1. Carry the complete edit key (record ID, field, goods type or counterpart as appropriate) in Qt.UserRole/model metadata or captured immutable editor state; never derive it from readable labels or sorted row positions.
+2. Capture key and source original when an editor is created; stage only on Enter or explicit Stage, never focus loss. Rebuild from EditSession after stage, undo or navigation.
+3. Detach obsolete editor widgets before deferred Qt deletion, and flush deferred deletions in behavioral tests before searching for widgets.
+4. Staged indicators must remain visible even when the upper workspace row is selected: use durable FontRole or ForegroundRole in addition to background tint. Verify both selected and unselected cases and undo restoration.
+5. Retained QTableWidget Goods and Diplomacy tables may remain if authoritative item keys, staging markers and behavioral tests establish safety; migration to RecordTableModel is recommended where that is simpler, not mandatory.
+
+### 12.3 Equipment and movement dependency [MUST: A2]
+
+1. The unit's staged equipment role controls legal movesLeft via movement_cap(). produce() applies equipment before moves.
+2. Validate moves against the staged role, not just the opened-save role. Revalidate any staged moves whenever equipment is staged, restaged or undone.
+3. Refuse any change/undo that leaves an unexportable combination, requiring movement to be adjusted first as necessary.
+4. Test dragoon movement cap 12 versus soldier cap 3, both directions and both undo orders.
+
+### 12.4 Confirmed Tk/backend edit contracts [MUST: O1, A2]
+
+| Field | Authoritative key | Confirmed rules |
+|---|---|---|
+| Gold | (player_id, 'gold') | 0–2,147,483,647; native sentinel -2147483648 non-editable; delivered in 2B |
+| Tax | (player_id, 'tax') | 0–100; numeric source tax required |
+| Experience | (unit_id, 'experience') | 0–200; numeric source attribute required; editing via unit Overview reached through full unit record suffices for worker XP parity |
+| Moves left | (unit_id, 'movesLeft') | 0–movement_cap(root, unit), respecting staged role and unknown-cap refusal |
+| Equipment | (unit_id, 'equipment') | Original tuple (role or model.role.default, roleCount or 1); roles default/soldier/dragoon/scout/pioneer; validate_equipment checks maximum-count, canBeEquipped, abilities and naval/native refusals; refuse deletion conflicts |
+| Colony goods | (colony_id, 'model.goods.<type>') | 0–2,147,483,647; goods type exists in save; absent stock original 0; create if new >0 and storedGoods element present; no new warehouse-capacity rule |
+| Sons of Liberty | (colony_id, 'sonsOfLibertyTarget') | 0–100; population >0; current SoL must equal min(100, liberty*100 // (population*200)); otherwise refuse |
+| Stance | (player_id, 'stance|<other>') | peace, war, cease_fire, alliance; existing equal reciprocal required; one edit writes both directions; never stage both directions simultaneously |
+| Tension | (player_id, 'tension|<other>') | 0–2,147,483,647; existing relation; directional |
+| Settlement alarm | (settlement_id, 'alarm|<colonial player>') | 0–2,147,483,647; existing relation; directional; cannot add missing relation |
+| Learnable skill | (settlement_id, 'learnableSkill') | Only skills in SaveDocument.professions, i.e. those taught by authoritative settlements in this save |
+
+Equipment UI: Hardy Pioneer with default role should preselect Pioneer appropriately; roleCount 1–5 for Pioneer corresponds to 20/40/60/80/100 tools. No colony warehouse goods are consumed by equipment changes.
+
+Known Tk discrepancy: Tk may let a user stage an absent alarm entry from zero, but produce() refuses the export. Qt must show absent relationships as non-editable and explain why; document this limitation in the parity matrix rather than copying the broken behavior.
+
+### 12.5 Stance symmetry and honest derived-value display [MUST: O2, A2]
+
+1. Each Diplomacy navigation row carries owner, counterpart and relationship kind. Stance stages must visibly update both Danish→Swedish and Swedish→Danish views; reverse-side staging while the first direction is pending is refused.
+2. Staged Changes must explicitly say that stance affects both nations, for example 'Danish ⇄ Swedish: peace → war (both directions)'. Tension and alarm remain independent/directional.
+3. SoL export recalculates six attributes: liberty, sonsOfLiberty, oldSonsOfLiberty, tories, oldTories and productionBonus. The UI shows the staged target as proposed and explains downstream recalculation on export; optionally show explicitly labelled projections using pure colony_sol_values(). Do not suggest dependent fields are already modified in XML.
+4. National Goods summaries must either reflect staged goods or be clearly labelled as source values; choose one and test it.
+
+### 12.6 C1/C2 sequencing amendment
+
+**C1:** full parity audit, reusable numeric control, stage-time backend preflight, player Tax, unit Experience and Moves, equipment-aware movement cap foundation and selected-row visible staging markers.
+
+**C2:** equipment, colony goods **and Sons of Liberty**, Diplomacy stance/tension/alarm, settlement learnable skill. Moving SoL to C2 is mandatory because its population, formula and six-field update rules exceed basic numeric validation.
+
+### 12.7 Strengthened tests and acceptance [MUST]
+
+1. One combined export includes at least one of every accepted type: gold, tax, XP, moves, equipment, existing goods, newly created goods, SoL, stance, tension, alarm and learnable skill. Reload via SaveDocument.load(); inspect all intended attributes, all six SoL fields and both reciprocal stance records, and confirm non-target record attribute dictionaries unchanged.
+2. Stage-time refusal tests individually cover nonstandard/empty SoL, absent reciprocal stance, missing tension/alarm, unsupported taught skill, missing storedGoods, invalid equipment/movement combinations, missing XP and unknown movement cap.
+3. Representative real FreeCol roundtrips: numeric set (tax/XP/moves); colony set (created goods and SoL); diplomacy set (war then peace, tension/alarm); equipment set (soldier/dragoon and Pioneer tools). Each: load → advance a turn → save → reload, including observations of game-side reactions.
+4. Original FSG SHA-256 unchanged; refuse source/existing destination overwrite; CI green at final tested SHA; Windows check staged markers remain visible on selected rows.
+
+## 13. Formal plan acceptance — 26 October 2026
+
+Claude independently reviewed the initial plan in docs/PHASE2C_PLAN_REVIEW.md and returned PASS WITH CAVEATS. The user approved the amendments and explicitly requested that the plan be updated. These amended implementation requirements are ACCEPTED. This is authorization to proceed with development under branch and test safeguards, **not** acceptance of C1–C4, a PR merge or final Phase 2 completion.
