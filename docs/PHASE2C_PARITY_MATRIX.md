@@ -49,3 +49,18 @@
 **C2 native/diplomacy increment (26 October 2026):** Native settlement Overview now has a learnable-skill selector restricted to `SaveDocument.professions` (skills observed in the opened save), with stage-time backend preflight. Both existing separate diplomacy tables now offer stance and tension staging for source-backed relationships only; stance remains reciprocal and tension directional. Native settlement Alarm tab offers source-backed directional staging, refusing missing relations. CI #497 passed on `d7940ab`. A new direct Qt relation staging test was added subsequently at `86d1338` and needs its own CI confirmation. The new controls still require more end-to-end validation and Windows acceptance; C2 remains IN PROGRESS.
 
 **C2 regression consolidation (26 October 2026):** Diplomacy staging now preserves the active Rival Nations/Natives category and reselects the same source-backed relationship after rebuilding views; inspector Stance and Tension display their staged values. Automated tests confirm reciprocal Stance changes, directional Tension, refusal of duplicate opposite-direction Stance staging and safe undo (CI #502 passed). Native settlement Alarm test uses two colonial players with identical visible names, sorts the Alarm table, and verifies that only the source-backed player ID is edited and source XML stays immutable; CI #503 passed at commit `0f90731`. C2 Windows acceptance, game roundtrip, and any independent review remain pending. C1 acceptance remains unchanged.
+
+## C2 comprehensive Windows feedback and correction cycle — 26 October 2026
+
+User completed all 38 Windows C2 checks at `f594e3a`: **37 PASS, 1 FAIL, 0 N/A**. C2-14 failed because National Goods showed source-only warehouse totals without labelling exclusion of staged goods. C2-12's 900-unit goods test was valid (actual maximum 2,147,483,647); the true overlimit boundary was not exercised.
+
+The following changes were requested during acceptance and bundled after the run:
+
+- **C2-F01**: Player-facing equipment descriptions and stock quantities (50 muskets, 50 horses, or 20–100 tools), without changing conjured equipment / no colony stock consumption.
+- **C2-F02**: Equipment selection and staging directly in Colony → Stationed units → Role, retaining unit identity under sorting and existing validation.
+- **C2-F03**: Proportional conversion of remaining movement on role changes; half-up rounding. Dragoon 12→3, 9→2, 6→2, 3→1, 0→0 when downgrading to Soldier. Soldier at full movement 3→Dragoon 12. Explicit staged movement is converted atomically with the role change, and preflight/export use identical ordering.
+- **C2-F04**: Source cell text no longer paints behind Stance/Tension widgets; editor row/column sizing improved, source sort key retained.
+- **C2-F05**: National Goods table headings and Inspector/Overview now explicitly identify figures as **source-only** excluding staged colony warehouse edits. No staged quantities are falsely included in the aggregate.
+- **UX-XML**: Earlier formatting enhancement renders unit XML attributes on individual indented lines; user Windows retest outstanding.
+
+These changes require green final CI and **focused Windows retests**. The initial 37-pass run is not retrospectively converted into C2 acceptance. C1 remains previously accepted subject to non-regression.
