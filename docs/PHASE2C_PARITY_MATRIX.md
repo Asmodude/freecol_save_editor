@@ -1,6 +1,6 @@
 # Phase 2C — Tk → Qt Parity Matrix
 
-**Status:** C1 audit established, numeric editing underway; implementation evidence is recorded per operation, not inferred from plan acceptance.  
+**Status:** C1 Windows ACCEPTED on tested commit `deb5cec` (28 pass, 0 fail, 1 N/A plus 2/2 follow-up retests); C2 not yet accepted. implementation evidence is recorded per operation, not inferred from plan acceptance.  
 **Baseline:** Phase 2B merged on main. **Independent source audit:** Claude, [PHASE2C_PLAN_REVIEW.md](PHASE2C_PLAN_REVIEW.md), 26 October 2026 (confirmed complete non-destructive operation inventory against `freecol_explorer.py`, `EditSession` and `edit_backend.py`).  
 **Source of truth:** [Accepted implementation plan](PHASE2C_IMPLEMENTATION_PLAN.md), especially §12.
 
@@ -33,3 +33,9 @@
 **Windows finding — colony Workers inline XP (26 October 2026):** User found that unit `unit:34590` working silver at Charlotte Amalie could edit Experience via Units → Overview but not at its natural colony Workers location. C1 now embeds an inline Experience editor in each eligible colony Workers row, bound to the authoritative unit ID before sorting, routed through the existing stage-time preflight. It explicitly stages only on Enter or the pencil button. Offscreen identity-under-sort regression test added; Windows retest required on branch head before signing off C1.
 
 **C1 Windows test run (26 October 2026, commit `6603874`):** 28 PASS, 0 FAIL, 1 N/A (C1-11: no applicable unit found). User reported two accepted-test caveats: native tribe Tax wrongly editable/displayed (C1-08), and after colony Workers inline XP staging the active tab resets to Overview (C1-12; reproduced in Charlotte Amalie and Koralbugt). The subsequent branch revision hides native Tax in the UI and prevents staging, and restores the active contextual tab after staged refresh. Regression tests for both passed in GitHub CI #471 at `1bd8e99`. **Windows retest of both specific caveats is required; C1 is not yet accepted.**
+
+## C1 acceptance decision — 26 October 2026
+
+**Windows acceptance: PASSED, confirmed by user.** Initial comprehensive Windows run against `6603874`: 28 PASS, 0 FAIL, 1 N/A (C1-11 — no suitable unit encountered). Two issues were identified despite pass totals: native Tax was shown/editable, and staging worker XP from a colony reset the Workers tab to Overview. Both were fixed and tested on commit **`deb5cec4e3c79bd9f916f425209c54940cd5fd30`**. User explicitly confirmed on 26 October 2026 that both focused Windows retests **PASSED**. Headless GitHub Actions CI **#472 completed successfully** on the exact tested commit.
+
+**Checkpoint C1 Windows gate: ACCEPTED.** This does not constitute C2 acceptance, completed Phase 2 acceptance, or authorization to merge/tag/delete the branch. Development may continue on `feature/phase2c-editing-parity` under draft PR #6. Any future C1-affecting changes require appropriate regression evidence.
