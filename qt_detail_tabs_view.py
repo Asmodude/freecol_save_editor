@@ -204,8 +204,33 @@ class DetailTabsMixin:
                             button.clicked.connect(
                                 lambda checked=False, uid=uid, chooser=selector, amount=count:
                                 self.stage_unit_equipment(uid, chooser.currentData(), amount.value()))
+                            status = QLabel(holder)
+                            status.setObjectName('stationedEquipmentStatus')
+                            staged = self.session.is_changed((uid, 'equipment'))
+                            def update_status(_ignored=None, chooser=selector, qty=count, label=status,
+                                              planned=current_role, planned_count=current_count,
+                                              base=original_role, staged=staged):
+                                intended = chooser.currentData()
+                                candidate = (intended, qty.value())
+                                committed = (planned, planned_count)
+                                friendly = lambda role: role.rsplit('.', 1)[-1].title()
+                                if candidate != committed:
+                                    label.setText('Not staged')
+                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' +
+                                                     friendly(planned) + '; this selection is not staged')
+                                elif staged:
+                                    label.setText('Staged')
+                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' + friendly(planned))
+                                else:
+                                    label.setText('')
+                                    label.setToolTip('Original: ' + friendly(base))
+                                button.setEnabled(intended is not None and candidate != committed)
+                            selector.currentIndexChanged.connect(update_status)
+                            count.valueChanged.connect(update_status)
+                            update_status()
                             layout.addWidget(selector, 1)
                             layout.addWidget(count)
+                            layout.addWidget(status)
                             layout.addWidget(button)
                             item.setData(SortableItem.SourceSortRole, value)
                             item.setText('')
