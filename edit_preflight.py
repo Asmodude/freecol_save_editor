@@ -46,14 +46,10 @@ def stage_checked(session, xml_bytes, key, original, new):
         raise ValueError('Original value differs from opened save')
     equipment_key = (key[0], 'equipment')
     if key[1] == 'movesLeft' and equipment_key in proposed:
-        from edit_backend import _equipment_movement_old
-        import xml.etree.ElementTree as ET
-        root = ET.fromstring(xml_bytes)
-        equipment_moves = _equipment_movement_old(root, key[0], proposed[equipment_key])
-        if new == equipment_moves:
-            proposed.pop(key, None)
-        else:
-            proposed[key] = (original, new)
+        # Keep explicit movement edits even when they match the source value.
+        # Equipping first alters movement, and the later movement edit overrides
+        # that projection; undoing equipment must still validate dependency.
+        proposed[key] = (original, new)
     elif new == original:
         proposed.pop(key, None)
     else:
