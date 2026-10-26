@@ -77,6 +77,35 @@ class DiplomacyViewTests(unittest.TestCase):
             window.session.exported_snapshot = dict(window.session.edits)
             window.close()
 
+    def test_reciprocal_stance_visible_in_reverse_diplomacy_table(self):
+        from types import SimpleNamespace
+        from xml.etree.ElementTree import fromstring
+        from PySide6.QtWidgets import QComboBox
+        from qt_diplomacy import diplomacy_rows
+        xml = (b'<save><player id="player:1" playerType="colonial" username="Denmark">'
+               b'<stance player="player:2" value="peace"/></player>'
+               b'<player id="player:2" playerType="colonial" username="Sweden">'
+               b'<stance player="player:1" value="peace"/></player></save>')
+        root = fromstring(xml)
+        players = {p.get('id'): p for p in root.iter('player')}
+        window = QtExplorer()
+        try:
+            window.document = SimpleNamespace(players=players, xml_bytes=xml)
+            window.group = 'Diplomacy'
+            with patch('qt_diplomacy_view.rows_for_scope',
+                       side_effect=lambda doc, group, scope: diplomacy_rows(doc, 'player:2')):
+                with patch.object(window, 'refresh_staged_view'):
+                    window.stage_relation('player:1', 'stance|player:2', 'war')
+                window.populate_diplomacy('')
+            table = window.diplomacy_grids['Rival Nations']
+            combos = table.findChildren(QComboBox, 'diplomacyStance')
+            self.assertEqual(len(combos), 1)
+            self.assertEqual(combos[0].currentData(), 'war')
+            self.assertEqual(players['player:2'].find('stance').get('value'), 'peace')
+        finally:
+            window.session.exported_snapshot = dict(window.session.edits)
+            window.close()
+
     def test_diplomacy_inspect_is_noop_outside_diplomacy(self):
         window = QtExplorer()
         try:
