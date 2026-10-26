@@ -120,7 +120,7 @@ class EquipmentMovementPreflightTests(unittest.TestCase):
         stage_checked(session, XML, (UNIT, 'equipment'), SOLDIER, DRAGOON)
         panel = OverviewPanel()
         try:
-            panel.setPlainText('unit:1\\nMoves left: 3')
+            panel.setPlainText('unit:1\nMoves left: 3')
             panel.set_record('Units', unit, document, session)
             field = panel.findChild(QLineEdit, 'inlineMovesleftInput')
             status = panel.findChild(QLabel, 'inlineMovesLeftStageStatus')
