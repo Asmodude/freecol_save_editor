@@ -193,20 +193,21 @@ class OverviewPanel(QWidget):
                     for row, (key, val) in enumerate(subset):
                         label = QLabel(key)
                         label.setStyleSheet('color: palette(mid);')
-                        editable_gold = (self._group == 'Players' and key == 'Gold'
+                        numeric_field = {'Gold': 'gold', 'Tax': 'tax'}.get(key) if self._group == 'Players' else None
+                        editable_gold = (numeric_field is not None
                                          and self._record is not None and self._session is not None
-                                         and self._record.get('gold') not in (None, '-2147483648')
-                                         and (self._record.get('gold') or '').isascii()
-                                         and (self._record.get('gold') or '').isdecimal())
+                                         and (numeric_field != 'gold' or self._record.get('gold') != '-2147483648')
+                                         and (self._record.get(numeric_field) or '').isascii()
+                                         and (self._record.get(numeric_field) or '').isdecimal())
                         if editable_gold:
                             record_id = self._record.get('id')
-                            original = self._record.get('gold')
+                            original = self._record.get(numeric_field)
                             value = QWidget()
                             edit_layout = QHBoxLayout(value)
                             edit_layout.setContentsMargins(0, 0, 0, 0)
-                            field = QLineEdit(str(self._session.staged_value((record_id, 'gold'), int(original))))
-                            field.setObjectName('inlineGoldInput')
-                            staged = self._session.is_changed((record_id, 'gold'))
+                            field = QLineEdit(str(self._session.staged_value((record_id, numeric_field), int(original))))
+                            field.setObjectName('inline' + numeric_field.title() + 'Input')
+                            staged = self._session.is_changed((record_id, numeric_field))
                             field.setToolTip(f'Original save: {original}. Press Enter to stage.')
                             field.setStyleSheet('QLineEdit { border: 2px solid ' +
                                                 ('#26815A' if staged else '#76A9E8') + '; '
@@ -215,17 +216,17 @@ class OverviewPanel(QWidget):
                                                 '; color: #172B45; }')
                             if staged:
                                 original_label = QLabel('was ' + original)
-                                original_label.setObjectName('inlineGoldOriginal')
+                                original_label.setObjectName('inline' + numeric_field.title() + 'Original')
                                 original_label.setToolTip('Value in opened save')
                                 edit_layout.addWidget(original_label)
                             button = QPushButton('✎')
-                            button.setObjectName('stageInlineGold')
+                            button.setObjectName('stageInline' + numeric_field.title())
                             button.setFixedWidth(30)
                             button.setToolTip('Stage this value')
                             field.returnPressed.connect(
-                                lambda rid=record_id, edit=field: self.edit_requested.emit(rid, 'gold', edit.text()))
+                                lambda rid=record_id, field_id=numeric_field, edit=field: self.edit_requested.emit(rid, field_id, edit.text()))
                             button.clicked.connect(
-                                lambda checked=False, rid=record_id, edit=field: self.edit_requested.emit(rid, 'gold', edit.text()))
+                                lambda checked=False, rid=record_id, field_id=numeric_field, edit=field: self.edit_requested.emit(rid, field_id, edit.text()))
                             edit_layout.addWidget(field, 1)
                             edit_layout.addWidget(button)
                         else:
