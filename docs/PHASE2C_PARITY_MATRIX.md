@@ -66,3 +66,14 @@ The following changes were requested during acceptance and bundled after the run
 These changes require green final CI and **focused Windows retests**. The initial 37-pass run is not retrospectively converted into C2 acceptance. C1 remains previously accepted subject to non-regression.
 
 **C2 Windows end-of-test follow-up (26 October 2026):** User confirmed Soldier 3→Dragoon 12 shown consistently in Units and Unit Overview and verified 2/3→8 proportional conversion for Soldier to Dragoon. National Goods source → proposed projection accepted following Christiansborg Fish 0→100 staged change. Final C2-F06 discovered: mouse wheel while hovering Stationed units equipment combo could silently change selection in long scrollable table. Implemented wheel-safe equipment combo and tool spinbox in both Unit Overview and colony Stationed units. Original role, staged role and current unstaged selection are distinguished by Staged / Not staged status and explanatory tooltip; selectors remain bound to authoritative unit IDs. Wheel tests and role staging regressions passed on CI #544 (commit `eef35f2`); additional status-label assertion at `52b883d` awaiting CI. **Windows C2 sign-off is still pending the focused retest of C2-F06 and remaining corrections.** No merge authorized.
+
+## Formal C2 Windows acceptance — 26 October 2026
+
+**C2 WINDOWS ACCEPTED** by user on implementation commit `cd10b2ca5d916eb662055e90e03d31a92fc6048e`, after GitHub headless regression **#546 PASSED**.
+
+- Original 38-case C2 Windows run: 37 PASS, 1 FAIL (National Goods stage visibility), with C2-12 upper-bound subcase not exercised (900 is valid; limit is 2,147,483,647).
+- Subsequent consolidated corrections: equipment terminology, inline Stationed units roles, proportional movement staging and display, diplomacy overlap/sorting, proposed National Goods aggregates, XML formatting and wheel-safe controls/staged status.
+- National Goods projection and Soldier→Dragoon view consistency passed focused Windows checks; proportional movement separately verified.
+- **Final six-case Windows retest on `cd10b2c`: 6 PASS, 0 FAIL, 0 N/A.** Equipment scrolling PASS; role staging status PASS; equipment terminology PASS; diplomacy layout PASS; Raw XML PASS; Dragoon→Soldier movement downgrade PASS. User comments: **None**.
+
+**C2 Windows gate ACCEPTED.** No merge, tag, branch deletion or C3/game roundtrip acceptance is implied. Preserve all accepted C1/C2 behavior. Next: C3 safe export and actual FreeCol load → advance turn → save → reload validation.
