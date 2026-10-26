@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 from save_document import SaveDocument
 from edit_session import EditSession, EditValidationError
+from edit_preflight import stage_checked
 from qt_staged_changes_panel import StagedChangesPanel
 import presentation
 from qt_navigation import rows_for_scope, human_player_id
@@ -327,7 +328,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         key = (record_id, field)
         try:
             new = self.session.validate(key, raw_value, original=original)
-            self.session.stage(key, original, new)
+            stage_checked(self.session, self.document.xml_bytes, key, original, new)
         except (EditValidationError, ValueError) as exc:
             QMessageBox.warning(self, 'Cannot stage gold', str(exc))
             return
