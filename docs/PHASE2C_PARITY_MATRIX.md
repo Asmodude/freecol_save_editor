@@ -8,8 +8,8 @@
 |---|---|---|---|---|---|---|
 | Gold | `(player_id, gold)` | 0–2,147,483,647; native sentinel excluded | Phase 2B; C1 preflight integration | Preflight tests added; full regression pending | 2B passed; C1 recheck pending | 2B passed |
 | Tax | `(player_id, tax)` | 0–100; present numeric source attribute | Inline shared player numeric control implemented on branch | Qt behavior and preflight tests pass in CI #451 | Pending | Pending |
-| Experience | `(unit_id, experience)` | 0–200; present numeric attribute; full unit Overview editing gives capability parity | Not started | Pending | Pending | Pending |
-| Moves left | `(unit_id, movesLeft)` | 0–movement cap with **staged role** | Not started | Pending | Pending | Pending |
+| Experience | `(unit_id, experience)` | 0–200; present numeric attribute; full unit Overview editing gives capability parity | Shared inline numeric unit Overview editor implemented | Offscreen stage/source integrity test added; CI #456 passed | Pending | Pending |
+| Moves left | `(unit_id, movesLeft)` | 0–movement cap with **staged role** | Shared inline unit Overview editor and backend-preflight staging implemented | Offscreen cap rejection test added; equipment/undo combinations still pending | Pending | Pending |
 | Equipment | `(unit_id, equipment)` | Composite (role,roleCount); valid roles/abilities, native/naval, deletion conflict; may clamp moves | Not started | Pending | Pending | Pending |
 | Colony goods | `(colony_id, model.goods.<type>)` | Known type; 0 if absent; positive stock creation only with storedGoods | Not started | Pending | Pending | Pending |
 | Sons of Liberty | `(colony_id, sonsOfLibertyTarget)` | 0–100; population >0 and standard formula; changes six attributes | Not started (C2) | Pending | Pending | Pending |
@@ -25,3 +25,5 @@
 **Status policy:** Implementation, automated, Windows and FreeCol outcomes will be updated separately with evidence. No unchecked category is marked accepted.
 
 **C1 partial implementation (26 October 2026):** `edit_preflight.py` provides cloned in-memory backend validation and checked stage/undo APIs; Qt player Gold and Tax staging uses it. `RecordTableModel` exposes persistent bold/italic staged-value font roles, including selected rows. Draft PR #6 holds all development; CI #451 passed at `507129f`. Unit XP, movement and all C2 categories remain unimplemented; no Windows acceptance claimed.
+
+**C1 continued (26 October 2026):** Inline Unit Experience and Moves Left, identity-bound staging through backend preflight and workspace staged markers implemented; headless CI #456 green at `a104f36`. Selected-row staged FontRole has additional automated assertions (subsequent commit; requires CI). The dependency with staged equipment is mechanically evaluated by whole-set preflight, but dedicated dragoon/soldier staging/undo permutations are **not yet verified**. C1 is not signed off.
