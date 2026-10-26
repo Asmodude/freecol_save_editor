@@ -5,7 +5,7 @@ No save file is written and SaveDocument.xml_bytes is not mutated.
 """
 import xml.etree.ElementTree as ET
 
-from edit_backend import change_field
+from edit_backend import change_field, ordered_edits_for_application
 
 
 def preflight(xml_bytes, edits):
@@ -27,9 +27,7 @@ def preflight(xml_bytes, edits):
         if field == 'deleteUnit' and any(k != key and k[0] == obj for k in edits):
             raise ValueError('Do not edit and delete the same unit')
     xml = xml_bytes
-    order = lambda item: (0 if item[0][1] in ('deleteUnit', 'deleteNativeUnit')
-                          else 1 if item[0][1] == 'deleteSettlement' else 2, item[0])
-    for (obj, field), (old, new) in sorted(edits.items(), key=order):
+    for (obj, field), (old, new) in ordered_edits_for_application(xml_bytes, edits):
         xml = change_field(xml, obj, field, old, new)
     ET.fromstring(xml)
     return xml
