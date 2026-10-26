@@ -324,16 +324,19 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return
         player_field = field in ('gold', 'tax')
         unit_field = field in ('experience', 'movesLeft')
-        if not (player_field or unit_field):
+        colony_field = field == 'sonsOfLibertyTarget'
+        if not (player_field or unit_field or colony_field):
             return
         element = (self.document.players.get(record_id) if player_field
+                   else next((colony for colony in self.document.colonies
+                              if colony.get('id') == record_id), None) if colony_field
                    else self.document.unit_by_id(record_id))
-        group = 'Players' if player_field else 'Units'
-        if element is None or field not in EditSession.editable_fields(group, element):
+        group = 'Players' if player_field else 'Colonies' if colony_field else 'Units'
+        if element is None or (not colony_field and field not in EditSession.editable_fields(group, element)):
             return
         if player_field and field == 'tax' and (element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648'):
             return
-        raw_original = element.get(field)
+        raw_original = element.get('sonsOfLiberty' if colony_field else field)
         if not raw_original or not raw_original.isascii() or not raw_original.isdecimal():
             return
         original = int(raw_original)
