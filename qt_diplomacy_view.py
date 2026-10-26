@@ -68,8 +68,8 @@ class DiplomacyViewMixin:
             table.setSortingEnabled(True)
             table.resizeColumnsToContents()
             table.blockSignals(False)
-        self.overview.setPlainText('Read-only relationships. Each nation appears once per tab. '
-                                   'Missing saved values are marked (absent).')
+        self.overview.setPlainText('Editable saved relationships. Each nation appears once per tab. '
+                                   'Missing saved values remain unavailable for editing.')
 
     def inspect_diplomacy(self, category):
         if self.group != 'Diplomacy' or self.document is None:
@@ -84,9 +84,14 @@ class DiplomacyViewMixin:
             return
         self.selected_element = element
         self.inspector_label.setText(element.get('nation','Diplomacy'))
+        owner_id, other_id = element.get('owner'), element.get('other')
+        stance = self.session.staged_value(
+            (owner_id, 'stance|' + other_id), element.get('stance'))
+        tension = self.session.staged_value(
+            (owner_id, 'tension|' + other_id), element.get('tension'))
         self.details.setPlainText(
             f"Category: {category}\nOther nation: {element.get('nation')}\n"
-            f"Stance: {element.get('stance')}\nTension: {element.get('tension')}")
+            f"Stance: {stance}\nTension: {tension}")
         owner = self.document.players.get(element.get('owner'))
         self.raw_xml.setPlainText(formatted_record_xml(owner) if owner is not None
                                   else 'No saved source player available.')
