@@ -234,6 +234,12 @@ class OverviewPanel(QWidget):
                                 count.setToolTip('Pioneer: 1–5 means 20–100 tools' if role_id == 'model.role.pioneer'
                                                  else 'Equipment count defined by the save ruleset')
                             selector.currentIndexChanged.connect(sync_count)
+                            tools_label = QLabel('', value)
+                            tools_label.setObjectName('pioneerToolQuantity')
+                            def sync_tools(*_args, selector=selector, count=count, label=tools_label):
+                                label.setText(f'{count.value() * 20} tools' if selector.currentData() == 'model.role.pioneer' else '')
+                            selector.currentIndexChanged.connect(sync_tools)
+                            count.valueChanged.connect(sync_tools)
                             chosen = selector.findData(staged_role)
                             # Hardy Pioneer default equipment naturally suggests Pioneer.
                             if chosen < 0 and 'hardyPioneer' in (self._record.get('unitType') or ''):
@@ -254,7 +260,9 @@ class OverviewPanel(QWidget):
                                 lambda checked=False, rid=uid, choose=selector, qty=count:
                                 self.equipment_requested.emit(rid, choose.currentData(), qty.value()))
                             edit_layout.addWidget(selector, 2)
+                            sync_tools()
                             edit_layout.addWidget(count, 1)
+                            edit_layout.addWidget(tools_label)
                             edit_layout.addWidget(button)
                         elif editable_numeric:
                             record_id = self._record.get('id')
