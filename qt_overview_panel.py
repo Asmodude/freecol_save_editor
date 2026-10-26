@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPixmap
 from PySide6.QtWidgets import (
     QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QLineEdit, QPushButton,
-    QSizePolicy, QVBoxLayout, QWidget,
+    QSizePolicy, QVBoxLayout, QWidget, QComboBox, QSpinBox,
 )
 from colony_graphics import resolve_colony_graphic
 from qt_property_icons import property_icon
@@ -14,6 +14,7 @@ from qt_goods_icons import GoodsIcons, goods_key
 from qt_flag_icons import flag_pixmap
 from qt_unit_icons import UnitIcons
 from qt_overview_sections import overview_sections
+from equipment_rules import ROLES, validate_equipment
 
 
 def summary_parts(text):
@@ -41,6 +42,7 @@ def summary_parts(text):
 class OverviewPanel(QWidget):
     """Overview with scoped inline editing of supported fields."""
     edit_requested = Signal(str, str, str)
+    equipment_requested = Signal(str, str, int)
     def __init__(self, parent=None):
         super().__init__(parent)
         frame = QVBoxLayout(self)
@@ -202,7 +204,59 @@ class OverviewPanel(QWidget):
                                          and (numeric_field != 'tax' or not (self._record.get('playerType', '').lower() in ('native', 'indian') or self._record.get('gold') == '-2147483648'))
                                          and (self._record.get(numeric_field) or '').isascii()
                                          and (self._record.get(numeric_field) or '').isdecimal())
-                        if editable_numeric:
+                        if (self._group == 'Units' and key == 'Role' and self._record is not None
+                                and self._document is not None and self._session is not None):
+                            uid = self._record.get('id')
+                            original_role = self._record.get('role', 'model.role.default')
+                            original_count = int(self._record.get('roleCount', '1'))
+                            staged_role, staged_count = self._session.staged_value(
+                                (uid, 'equipment'), (original_role, original_count))
+                            value = QWidget()
+                            edit_layout = QHBoxLayout(value)
+                            edit_layout.setContentsMargins(0, 0, 0, 0)
+                            selector = QComboBox(value)
+                            selector.setObjectName('unitEquipmentRole')
+                            for candidate in ROLES:
+                                # Validate against the opened-save unit and ruleset.
+                                try:
+                                    validate_equipment(self._document.root, self._record, candidate, 1)
+                                except (ValueError, TypeError):
+                                    continue
+                                selector.addItem(candidate.rsplit('.', 1)[-1].replace('_', ' ').title(), candidate)
+                            count = QSpinBox(value)
+                            count.setObjectName('unitEquipmentCount')
+                            def sync_count(index, selector=selector, count=count, doc=self._document):
+                                role_id = selector.itemData(index)
+                                roles = [r for r in doc.root.iter('role') if r.get('id') == role_id]
+                                limit = int(roles[0].get('maximum-count', '1')) if len(roles) == 1 else 1
+                                count.setRange(1, max(1, limit))
+                                count.setEnabled(limit > 1)
+                                count.setToolTip('Pioneer: 1–5 means 20–100 tools' if role_id == 'model.role.pioneer'
+                                                 else 'Equipment count defined by the save ruleset')
+                            selector.currentIndexChanged.connect(sync_count)
+                            chosen = selector.findData(staged_role)
+                            # Hardy Pioneer default equipment naturally suggests Pioneer.
+                            if chosen < 0 and 'hardyPioneer' in (self._record.get('unitType') or ''):
+                                chosen = selector.findData('model.role.pioneer')
+                            if chosen >= 0:
+                                selector.setCurrentIndex(chosen)
+                                sync_count(chosen)
+                                count.setValue(staged_count if staged_role == selector.currentData() else 1)
+                            else:
+                                selector.setEnabled(False)
+                                count.setEnabled(False)
+                                selector.setToolTip('No eligible roles can be verified from the saved ruleset')
+                            button = QPushButton('✎', value)
+                            button.setObjectName('stageUnitEquipment')
+                            button.setToolTip('Stage role and equipment count together')
+                            button.setEnabled(chosen >= 0)
+                            button.clicked.connect(
+                                lambda checked=False, rid=uid, choose=selector, qty=count:
+                                self.equipment_requested.emit(rid, choose.currentData(), qty.value()))
+                            edit_layout.addWidget(selector, 2)
+                            edit_layout.addWidget(count, 1)
+                            edit_layout.addWidget(button)
+                        elif editable_numeric:
                             record_id = self._record.get('id')
                             original = self._record.get(numeric_field)
                             value = QWidget()
