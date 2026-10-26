@@ -66,7 +66,8 @@ class StagedChangesPanel(QWidget):
         if field.startswith(('stance|', 'tension|', 'alarm|')):
             topic, other = field.split('|', 1)
             counterpart = doc.owner_name(other) if doc is not None else other
-            label = presentation.readable(topic) + ' — ' + counterpart
+            label = (f'Stance ⇄ {counterpart} (both directions)' if topic == 'stance'
+                     else presentation.readable(topic) + ' → ' + counterpart)
         elif field == 'sonsOfLibertyTarget':
             label = 'Sons of Liberty'
         else:
