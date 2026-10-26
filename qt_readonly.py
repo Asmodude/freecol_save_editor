@@ -358,6 +358,36 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             return
         self.refresh_staged_view()
 
+    def stage_relation(self, owner_id, field, raw_value):
+        """Validate real saved relationship before stage; never create missing edges."""
+        if self.document is None or '|' not in field:
+            return
+        kind, other_id = field.split('|', 1)
+        if kind not in ('stance', 'tension', 'alarm'):
+            return
+        if kind == 'alarm':
+            owner = next((s for s in self.document.native_settlements if s.get('id') == owner_id), None)
+        else:
+            owner = self.document.players.get(owner_id)
+        if owner is None or other_id not in self.document.players:
+            return
+        relations = [r for r in owner.findall(kind) if r.get('player') == other_id]
+        if len(relations) != 1:
+            QMessageBox.warning(self, 'Cannot stage relationship', 'Relationship absent or not unique in original save')
+            return
+        previous = relations[0].get('value')
+        if previous is None:
+            return
+        key = (owner_id, field)
+        try:
+            original = previous if kind == 'stance' else int(previous)
+            new = self.session.validate(key, str(raw_value), original=original)
+            stage_checked(self.session, self.document.xml_bytes, key, original, new)
+        except (ValueError, EditValidationError) as exc:
+            QMessageBox.warning(self, 'Cannot stage relationship', str(exc))
+            return
+        self.refresh_staged_view()
+
     def stage_native_skill(self, settlement_id, skill):
         if self.document is None or skill not in self.document.professions:
             return
