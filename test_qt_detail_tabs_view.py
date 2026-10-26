@@ -103,7 +103,8 @@ class DetailTabsViewTests(unittest.TestCase):
         from xml.etree.ElementTree import fromstring
         from types import SimpleNamespace
         from unittest.mock import patch
-        xml = b'<save><indianSettlement id="v:1" learnableSkill="skill:a"/></save>'
+        xml = (b'<save><indianSettlement id="indianSettlement:1" lastTribute="0" convertProgress="0" learnableSkill="skill:a"/>'
+               b'<indianSettlement id="indianSettlement:2" lastTribute="0" convertProgress="0" learnableSkill="skill:b"/></save>')
         village = next(fromstring(xml).iter('indianSettlement'))
         window = QtExplorer()
         try:
@@ -116,9 +117,10 @@ class DetailTabsViewTests(unittest.TestCase):
             combo = window.overview.findChild(QComboBox, 'nativeLearnableSkill')
             self.assertEqual(combo.count(), 2)
             combo.setCurrentIndex(combo.findData('skill:b'))
-            with patch.object(window, 'refresh_staged_view'):
+            with patch.object(window, 'refresh_staged_view'), patch('qt_readonly.QMessageBox.warning') as warning:
                 window.overview.findChild(QPushButton, 'stageNativeLearnableSkill').click()
-            self.assertEqual(window.session.edits[('v:1','learnableSkill')],('skill:a','skill:b'))
+            warning.assert_not_called()
+            self.assertEqual(window.session.edits[('indianSettlement:1','learnableSkill')],('skill:a','skill:b'))
             self.assertEqual(village.get('learnableSkill'), 'skill:a')
         finally:
             window.session.exported_snapshot = dict(window.session.edits)
