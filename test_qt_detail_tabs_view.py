@@ -126,6 +126,44 @@ class DetailTabsViewTests(unittest.TestCase):
             window.session.exported_snapshot = dict(window.session.edits)
             window.close()
 
+    def test_alarm_edit_binds_real_player_and_skips_absent_record(self):
+        from PySide6.QtWidgets import QLineEdit
+        from PySide6.QtCore import Qt
+        xml = (b'<save><game><player id="player:1" playerType="colonial" username="Same"/>'
+               b'<player id="player:2" playerType="colonial" username="Same"/>'
+               b'<map><tile><indianSettlement id="indianSettlement:1" lastTribute="0" '
+               b'convertProgress="0"><alarm player="player:2" value="13"/></indianSettlement>'
+               b'</tile></map></game></save>')
+        root = fromstring(xml)
+        village = next(root.iter('indianSettlement'))
+        players = {p.get('id'): p for p in root.iter('player')}
+        window = QtExplorer()
+        try:
+            window.document = SimpleNamespace(
+                xml_bytes=xml, players=players, native_settlements=[village],
+                units=[], unit_by_id=lambda uid: None,
+                owner_name=lambda uid: uid, location_name=lambda tile: tile)
+            window.group = 'Native settlements'
+            window.update_detail_tabs(village)
+            table = window.colony_tables['Alarm']
+            self.assertEqual(table.rowCount(), 2)
+            table.sortItems(0, Qt.SortOrder.DescendingOrder)
+            editors = table.findChildren(QLineEdit, 'nativeSettlementAlarm')
+            self.assertEqual(len(editors), 1)
+            editor = editors[0]
+            self.assertEqual(editor.property('relationshipKey'),
+                             ('indianSettlement:1','alarm|player:2'))
+            with patch.object(window, 'refresh_staged_view'), patch('qt_readonly.QMessageBox.warning') as warn:
+                editor.setText('21')
+                editor.returnPressed.emit()
+            warn.assert_not_called()
+            self.assertEqual(window.session.edits[
+                ('indianSettlement:1','alarm|player:2')], (13,21))
+            self.assertEqual(village.find('alarm').get('value'), '13')
+        finally:
+            window.session.exported_snapshot = dict(window.session.edits)
+            window.close()
+
     def test_contextual_colony_button_disabled_outside_goods(self):
         window = QtExplorer()
         try:
