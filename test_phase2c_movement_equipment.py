@@ -108,6 +108,42 @@ class EquipmentMovementPreflightTests(unittest.TestCase):
             window.session.exported_snapshot = dict(window.session.edits)
             window.close()
 
+    def test_movement_input_requires_explicit_stage_and_updates_after_stage(self):
+        from xml.etree.ElementTree import fromstring
+        from PySide6.QtWidgets import QLineEdit, QLabel, QPushButton
+        from qt_overview_panel import OverviewPanel
+        from presentation import effective_unit_moves
+        root = fromstring(XML)
+        unit = next(root.iter('unit'))
+        document = SimpleNamespace(root=root)
+        session = EditSession()
+        stage_checked(session, XML, (UNIT, 'equipment'), SOLDIER, DRAGOON)
+        panel = OverviewPanel()
+        try:
+            panel.setPlainText('unit:1\\nMoves left: 3')
+            panel.set_record('Units', unit, document, session)
+            field = panel.findChild(QLineEdit, 'inlineMovesleftInput')
+            status = panel.findChild(QLabel, 'inlineMovesLeftStageStatus')
+            stage = panel.findChild(QPushButton, 'stageInlineMovesleft')
+            self.assertIsNotNone(field)
+            self.assertIsNotNone(status)
+            self.assertIsNotNone(stage)
+            self.assertEqual(field.text(), '12')
+            field.setText('3')
+            self.assertEqual(status.text(), 'Not staged')
+            self.assertNotIn((UNIT, 'movesLeft'), session.edits)
+            self.assertIn(b'movesLeft="12"', preflight(XML, session.edits))
+            requests = []
+            panel.edit_requested.connect(lambda *args: requests.append(args))
+            stage.click()
+            self.assertEqual(requests, [(UNIT, 'movesLeft', '3')])
+            stage_checked(session, XML, (UNIT, 'movesLeft'), 3, 3)
+            # A movement entry matching the source cannot override a staged
+            # equipment conversion; the UI must not claim it was committed.
+            self.assertNotIn((UNIT, 'movesLeft'), session.edits)
+        finally:
+            panel.close()
+
     def test_movement_above_source_cap_refused_before_equipment(self):
         session = EditSession()
         with self.assertRaisesRegex(ValueError, 'Movement allowed range'):
