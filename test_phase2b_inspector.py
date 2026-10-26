@@ -126,6 +126,45 @@ class Phase2BInspectorTests(unittest.TestCase):
         finally:
             explorer.close()
 
+    def test_equipment_editor_stages_composite_and_rejects_bad_move(self):
+        explorer = QtExplorer()
+        try:
+            from xml.etree.ElementTree import fromstring
+            xml = (b'<save><specification>'
+                   b'<unit-type id="model.unit.freeColonist" movement="3">'
+                   b'<ability id="model.ability.canBeEquipped" value="true"></ability>'
+                   b'</unit-type>'
+                   b'<role id="model.role.default" maximum-count="1"></role>'
+                   b'<role id="model.role.soldier" maximum-count="1"></role>'
+                   b'<role id="model.role.dragoon" maximum-count="1">'
+                   b'<modifier id="model.modifier.movementBonus" type="additive" value="9"></modifier>'
+                   b'</role></specification><game><player id="player:1"></player>'
+                   b'<unit id="unit:1" unitType="model.unit.freeColonist" owner="player:1" '
+                   b'role="model.role.soldier" roleCount="1" movesLeft="3" experience="12"></unit>'
+                   b'</game></save>')
+            root = fromstring(xml)
+            unit = next(root.iter('unit'))
+            explorer.document = SimpleNamespace(
+                root=root, xml_bytes=xml, players={'player:1': next(root.iter('player'))},
+                unit_by_id=lambda uid: unit if uid == 'unit:1' else None)
+            explorer.group = 'Units'
+            explorer.overview.setPlainText('Unit One\nRole: Soldier\nExperience: 12')
+            explorer.overview.set_record('Units', unit, explorer.document, explorer.session)
+            from PySide6.QtWidgets import QComboBox, QPushButton
+            select = explorer.overview.findChild(QComboBox, 'unitEquipmentRole')
+            self.assertIsNotNone(select)
+            choose = select.findData('model.role.dragoon')
+            self.assertGreaterEqual(choose, 0)
+            select.setCurrentIndex(choose)
+            with patch.object(explorer, 'refresh_staged_view'):
+                explorer.overview.findChild(QPushButton, 'stageUnitEquipment').click()
+            self.assertEqual(explorer.session.edits[('unit:1', 'equipment')],
+                             (('model.role.soldier', 1), ('model.role.dragoon', 1)))
+            self.assertEqual(unit.get('role'), 'model.role.soldier')
+        finally:
+            explorer.session.exported_snapshot = dict(explorer.session.edits)
+            explorer.close()
+
     def test_native_sentinel_does_not_offer_live_overview_editor(self):
         explorer = QtExplorer()
         try:
