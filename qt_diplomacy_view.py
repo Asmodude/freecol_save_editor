@@ -71,9 +71,14 @@ class DiplomacyViewMixin:
                                                 else inp.text()))
                         layout.addWidget(editor, 1)
                         layout.addWidget(button)
+                        cell.setText('')  # Only the QWidget editor paints this cell.
                         table.setCellWidget(row, col, holder)
             table.setSortingEnabled(True)
+            for displayed_row in range(table.rowCount()):
+                table.setRowHeight(displayed_row, max(table.rowHeight(displayed_row), 40))
             table.resizeColumnsToContents()
+            table.setColumnWidth(1, max(table.columnWidth(1), 265))
+            table.setColumnWidth(2, max(table.columnWidth(2), 185))
             table.blockSignals(False)
         self.overview.setPlainText('Editable saved relationships. Each nation appears once per tab. '
                                    'Missing saved values remain unavailable for editing.')
