@@ -34,16 +34,34 @@ def preflight(xml_bytes, edits):
 
 
 def stage_checked(session, xml_bytes, key, original, new):
-    """Preflight the proposed complete state before committing an edit."""
+    """Preflight the proposed complete state before committing an edit.
+
+    An explicit movement override equal to the source value is still meaningful
+    when equipment staging has changed the *effective* movement.  For example,
+    a colonist's source movesLeft=3, equipping as Dragoon projects 12, and
+    manually requesting 3 must create a (3, 3) dependent edit, not vanish.
+    """
     proposed = dict(session.edits)
     if key in proposed and proposed[key][0] != original:
         raise ValueError('Original value differs from opened save')
-    if new == original:
+    equipment_key = (key[0], 'equipment')
+    if key[1] == 'movesLeft' and equipment_key in proposed:
+        from edit_backend import _equipment_movement_old
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(xml_bytes)
+        equipment_moves = _equipment_movement_old(root, key[0], proposed[equipment_key])
+        if new == equipment_moves:
+            proposed.pop(key, None)
+        else:
+            proposed[key] = (original, new)
+    elif new == original:
         proposed.pop(key, None)
     else:
         proposed[key] = (original, new)
     preflight(xml_bytes, proposed)
-    return session.stage(key, original, new)
+    session.edits.clear()
+    session.edits.update(proposed)
+    return new
 
 
 def unstage_checked(session, xml_bytes, key):
