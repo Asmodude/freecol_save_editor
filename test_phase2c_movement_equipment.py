@@ -143,10 +143,10 @@ class EquipmentMovementPreflightTests(unittest.TestCase):
             result = preflight(XML, session.edits)
             self.assertIn(b'movesLeft="3"', result)
             self.assertIn(b'role="model.role.dragoon"', result)
-            # Reverting to the projected Dragoon movement removes only the
-            # manual override, preserving the equipment edit.
+            # An explicit 12-point edit remains staged for existing
+            # dependent-undo safety, even though equipment projects 12.
             stage_checked(session, XML, (UNIT, 'movesLeft'), 3, 12)
-            self.assertNotIn((UNIT, 'movesLeft'), session.edits)
+            self.assertEqual(session.edits[(UNIT, 'movesLeft')], (3, 12))
             self.assertIn(b'movesLeft="12"', preflight(XML, session.edits))
         finally:
             panel.close()
