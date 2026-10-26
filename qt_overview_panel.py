@@ -373,7 +373,22 @@ class OverviewPanel(QWidget):
                             button = QPushButton('✎')
                             button.setObjectName('stageInline' + numeric_field.title())
                             button.setFixedWidth(30)
-                            button.setToolTip('Stage this value')
+                            button.setToolTip('Stage this value (or press Enter)')
+                            if numeric_field == 'movesLeft':
+                                # A typed value is only a candidate until Enter/Stage is pressed.
+                                # Explicitly flag it so the Overview cannot look committed
+                                # while the table and exported XML still contain the staged value.
+                                button.setText('Stage')
+                                button.setFixedWidth(54)
+                                status = QLabel('')
+                                status.setObjectName('inlineMovesLeftStageStatus')
+                                committed = str(displayed)
+                                def movement_stage_status(text, label=status, saved=committed):
+                                    dirty = text != saved
+                                    label.setText('Not staged' if dirty else '')
+                                    label.setToolTip('Press Enter or Stage to include this movement value in the export' if dirty else '')
+                                field.textChanged.connect(movement_stage_status)
+                                edit_layout.addWidget(status)
                             field.returnPressed.connect(
                                 lambda rid=record_id, field_id=numeric_field, edit=field: self.edit_requested.emit(rid, field_id, edit.text()))
                             button.clicked.connect(
