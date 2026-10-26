@@ -147,7 +147,7 @@ class DetailTabsMixin:
                             layout.addWidget(edit, 1)
                             layout.addWidget(button)
                             table.setCellWidget(row, col, holder)
-                    if name == 'Stationed units' and col == 1 and colony is not None:
+                    if name == 'Stationed units' and col == 3 and colony is not None:
                         # The displayed role is owned by this unit, not the colony.
                         # Capture its unique ID before the table is sorted.
                         uid = values[0]
@@ -206,6 +206,7 @@ class DetailTabsMixin:
                             layout.addWidget(selector, 1)
                             layout.addWidget(count)
                             layout.addWidget(button)
+                            item.setText('')
                             table.setCellWidget(row, col, holder)
                     # The worker's Experience belongs to the unit, not the colony.
                     # Capture the authoritative unit ID before the table is sorted.
@@ -252,6 +253,8 @@ class DetailTabsMixin:
                     table.setRowHeight(row, 44)
             table.setSortingEnabled(True)
             table.resizeColumnsToContents()
+            if name == 'Stationed units' and table.columnCount() > 3:
+                table.setColumnWidth(3, max(320, table.columnWidth(3)))
             table.blockSignals(False)
 
     def refresh_breakdown_action(self, _index):
