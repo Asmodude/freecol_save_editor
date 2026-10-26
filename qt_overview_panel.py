@@ -196,14 +196,25 @@ class OverviewPanel(QWidget):
                         label = QLabel(key)
                         label.setStyleSheet('color: palette(mid);')
                         numeric_fields = ({'Gold': 'gold', 'Tax': 'tax'} if self._group == 'Players' else
-                                          {'Experience': 'experience', 'Moves left': 'movesLeft'} if self._group == 'Units' else {})
+                                          {'Experience': 'experience', 'Moves left': 'movesLeft'} if self._group == 'Units' else
+                                          {'Sons of Liberty': 'sonsOfLibertyTarget'} if self._group == 'Colonies' else {})
                         numeric_field = numeric_fields.get(key)
+                        source_field = 'sonsOfLiberty' if numeric_field == 'sonsOfLibertyTarget' else numeric_field
+                        eligible_colony_sol = True
+                        if numeric_field == 'sonsOfLibertyTarget':
+                            members = sum(1 for member in self._record.iter('unit') if member.get('id')) if self._record is not None else 0
+                            try:
+                                expected = min(100, int(self._record.get('liberty')) * 100 // (members * 200))
+                                eligible_colony_sol = int(self._record.get('sonsOfLiberty')) == expected
+                            except (ValueError, TypeError, ZeroDivisionError):
+                                eligible_colony_sol = False
                         editable_numeric = (numeric_field is not None
                                          and self._record is not None and self._session is not None
                                          and (numeric_field != 'gold' or self._record.get('gold') != '-2147483648')
                                          and (numeric_field != 'tax' or not (self._record.get('playerType', '').lower() in ('native', 'indian') or self._record.get('gold') == '-2147483648'))
-                                         and (self._record.get(numeric_field) or '').isascii()
-                                         and (self._record.get(numeric_field) or '').isdecimal())
+                                         and eligible_colony_sol
+                                         and (self._record.get(source_field) or '').isascii()
+                                         and (self._record.get(source_field) or '').isdecimal())
                         if (self._group == 'Units' and key == 'Role' and self._record is not None
                                 and self._document is not None and self._session is not None):
                             uid = self._record.get('id')
@@ -270,14 +281,16 @@ class OverviewPanel(QWidget):
                             edit_layout.addWidget(button)
                         elif editable_numeric:
                             record_id = self._record.get('id')
-                            original = self._record.get(numeric_field)
+                            original = self._record.get(source_field)
                             value = QWidget()
                             edit_layout = QHBoxLayout(value)
                             edit_layout.setContentsMargins(0, 0, 0, 0)
                             field = QLineEdit(str(self._session.staged_value((record_id, numeric_field), int(original))))
                             field.setObjectName('inline' + numeric_field.title() + 'Input')
                             staged = self._session.is_changed((record_id, numeric_field))
-                            field.setToolTip(f'Original save: {original}. Press Enter to stage.')
+                            field.setToolTip(f'Original save: {original}. Press Enter to stage.' +
+                                             (' Liberty, rebels/tories and production bonus recalculate on export.'
+                                              if numeric_field == 'sonsOfLibertyTarget' else ''))
                             field.setStyleSheet('QLineEdit { border: 2px solid ' +
                                                 ('#26815A' if staged else '#76A9E8') + '; '
                                                 'border-radius: 3px; padding: 3px; '
