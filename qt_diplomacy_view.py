@@ -71,6 +71,7 @@ class DiplomacyViewMixin:
                                                 else inp.text()))
                         layout.addWidget(editor, 1)
                         layout.addWidget(button)
+                        cell.setData(SortableItem.SourceSortRole, value)
                         cell.setText('')  # Only the QWidget editor paints this cell.
                         table.setCellWidget(row, col, holder)
             table.setSortingEnabled(True)
