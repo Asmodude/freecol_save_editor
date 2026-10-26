@@ -885,11 +885,13 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             count = element.get('colonies', '0')
             self.inspector_label.setText(name)
             self.details.setPlainText(
-                f'Goods: {name}\nTotal in colonies: {amount}\n'
-                f'Colonies with stock: {count}')
+                f'Goods: {name}\nSource warehouse total: {amount}\n'
+                f'Colonies with source stock: {count}\n'
+                'Staged warehouse edits are excluded until exported and reopened.')
             self.overview.setPlainText(
-                f'{name}\n\nNation-wide colony warehouse total: {amount}\n'
+                f'{name}\n\nOriginal save warehouse total: {amount}\n'
                 f'Colonies containing this good: {count}\n\n'
+                'SOURCE VALUES ONLY — staged colony Goods changes are not included.\n'
                 'Read-only aggregate; cargo aboard units and ships is excluded.')
             self.raw_xml.setPlainText(
                 'Computed aggregate from owned colony goodsContainer/storedGoods/goods.\n'
