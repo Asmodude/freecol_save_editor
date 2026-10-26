@@ -28,6 +28,51 @@ class DetailTabsViewTests(unittest.TestCase):
         finally:
             window.close()
 
+    def test_stationed_equipment_stages_by_identity_after_sorting(self):
+        from PySide6.QtWidgets import QComboBox, QPushButton
+        from PySide6.QtCore import Qt
+        from xml.etree.ElementTree import tostring
+        xml = (b'<save><specification><unit-type id="model.unit.freeColonist" movement="3">'
+               b'<ability id="model.ability.canBeEquipped" value="true"/></unit-type>'
+               b'<role id="model.role.default" maximum-count="1"/>'
+               b'<role id="model.role.soldier" maximum-count="1"/>'
+               b'<role id="model.role.dragoon" maximum-count="1">'
+               b'<modifier id="model.modifier.movementBonus" type="additive" value="9"/>'
+               b'</role></specification><game><player id="player:1"/>'
+               b'<colony id="colony:1" owner="player:1" tile="tile:1">'
+               b'<unit id="unit:1" unitType="model.unit.freeColonist" '
+               b'owner="player:1" role="model.role.soldier" roleCount="1" movesLeft="3"/>'
+               b'<unit id="unit:2" unitType="model.unit.freeColonist" '
+               b'owner="player:1" role="model.role.default" roleCount="1" movesLeft="3"/>'
+               b'</colony></game></save>')
+        root = fromstring(xml)
+        colony = next(root.iter('colony'))
+        units = list(colony.iter('unit'))
+        window = QtExplorer()
+        try:
+            window.document = SimpleNamespace(
+                root=root, xml_bytes=xml, goods_types=[], units=units,
+                unit_by_id=lambda uid: next((u for u in units if u.get('id') == uid), None),
+                location_name=lambda key: str(key))
+            window.group = 'Colonies'
+            window.update_detail_tabs(colony)
+            table = window.colony_tables['Stationed units']
+            table.sortItems(0, Qt.SortOrder.DescendingOrder)
+            combos = table.findChildren(QComboBox, 'stationedEquipmentRole')
+            self.assertEqual(len(combos), 2)
+            combo = next(e for e in combos if e.property('unitId') == 'unit:1')
+            combo.setCurrentIndex(combo.findData('model.role.dragoon'))
+            with patch.object(window, 'refresh_staged_view'):
+                button = combo.parentWidget().findChild(QPushButton, 'stageStationedEquipment')
+                button.click()
+            self.assertEqual(window.session.edits[('unit:1','equipment')],
+                             (('model.role.soldier',1),('model.role.dragoon',1)))
+            self.assertNotIn(('unit:2','equipment'), window.session.edits)
+            self.assertEqual(units[0].get('role'),'model.role.soldier')
+        finally:
+            window.session.exported_snapshot = dict(window.session.edits)
+            window.close()
+
     def test_colony_worker_experience_can_be_staged_inline_by_unit_identity(self):
         window = QtExplorer()
         try:
