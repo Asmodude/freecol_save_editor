@@ -3,6 +3,7 @@
 Extracted unchanged from the accepted Qt Explorer during Phase 2A.
 """
 from PySide6.QtCore import Qt, QSize
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_diplomacy import settlement_alarm_rows
@@ -74,6 +75,44 @@ class DetailTabsMixin:
                         if not icon.isNull():
                             item.setIcon(icon)
                     table.setItem(row, col, item)
+                    # The worker's Experience belongs to the unit, not the colony.
+                    # Capture the authoritative unit ID before the table is sorted.
+                    if name == 'Workers' and col == 4:
+                        uid = values[0]
+                        unit = self.document.unit_by_id(uid)
+                        original = unit.get('experience') if unit is not None else None
+                        if (original is not None and original.isascii() and original.isdecimal()):
+                            edit_key = (uid, 'experience')
+                            staged = self.session.is_changed(edit_key)
+                            holder = QWidget(table)
+                            line = QHBoxLayout(holder)
+                            line.setContentsMargins(2, 1, 2, 1)
+                            line.setSpacing(3)
+                            if staged:
+                                old = QLabel('was ' + original, holder)
+                                old.setToolTip('Experience in the opened save')
+                                line.addWidget(old)
+                            edit = QLineEdit(str(self.session.staged_value(edit_key, int(original))), holder)
+                            edit.setObjectName('workerExperienceInput')
+                            edit.setToolTip('Edit worker experience (0–200); Enter to stage. Original: ' + original)
+                            edit.setStyleSheet(
+                                'QLineEdit { border: 2px solid ' +
+                                ('#26815A' if staged else '#76A9E8') +
+                                '; border-radius: 3px; padding: 2px; background: ' +
+                                ('#E5F5E9' if staged else '#EDF5FF') +
+                                '; color: #172B45; }')
+                            button = QPushButton('✎', holder)
+                            button.setObjectName('stageWorkerExperience')
+                            button.setFixedWidth(25)
+                            button.setToolTip('Stage this worker experience')
+                            edit.returnPressed.connect(
+                                lambda uid=uid, editor=edit: self.stage_overview_edit(uid, 'experience', editor.text()))
+                            button.clicked.connect(
+                                lambda checked=False, uid=uid, editor=edit:
+                                self.stage_overview_edit(uid, 'experience', editor.text()))
+                            line.addWidget(edit, 1)
+                            line.addWidget(button)
+                            table.setCellWidget(row, col, holder)
             if name in ('Workers', 'Stationed units'):
                 # Match the main Units list: taller rows preserve full unit artwork.
                 table.setIconSize(QSize(42, 42))
