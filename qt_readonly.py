@@ -244,6 +244,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.overview = OverviewPanel()
         self.tabs.addTab(self.overview, 'Overview')
         self.overview.edit_requested.connect(self.stage_overview_edit)
+        self.overview.equipment_requested.connect(self.stage_unit_equipment)
         self.colony_tables = {}
         for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'Alarm', 'By colony', 'In transit'):
             table = QTableWidget()
@@ -350,6 +351,28 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             stage_checked(self.session, self.document.xml_bytes, key, original, new)
         except (EditValidationError, ValueError) as exc:
             QMessageBox.warning(self, 'Cannot stage ' + field, str(exc))
+            return
+        self.refresh_staged_view()
+
+    def stage_unit_equipment(self, unit_id, role, count):
+        """Stage composite equipment through the shared backend preflight."""
+        if self.document is None:
+            return
+        unit = self.document.unit_by_id(unit_id)
+        if unit is None or role is None:
+            return
+        from equipment_rules import validate_equipment
+        original = (unit.get('role', 'model.role.default'), int(unit.get('roleCount', '1')))
+        try:
+            if (unit_id, 'deleteUnit') in self.session.edits or any(
+                    k[1] == 'deleteNativeUnit' and k[0].split('|')[0] == unit_id
+                    for k in self.session.edits):
+                raise ValueError('Unit already staged for deletion')
+            validate_equipment(self.document.root, unit, role, count)
+            stage_checked(self.session, self.document.xml_bytes,
+                          (unit_id, 'equipment'), original, (role, count))
+        except (ValueError, TypeError) as exc:
+            QMessageBox.warning(self, 'Cannot stage equipment', str(exc))
             return
         self.refresh_staged_view()
 
