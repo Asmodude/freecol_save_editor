@@ -319,17 +319,32 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.install_navigation()
 
     def stage_overview_edit(self, record_id, field, raw_value):
-        if field not in ('gold', 'tax') or self.document is None:
+        if self.document is None:
             return
-        element = self.document.players.get(record_id)
-        if element is None or field not in EditSession.editable_fields('Players', element):
+        player_field = field in ('gold', 'tax')
+        unit_field = field in ('experience', 'movesLeft')
+        if not (player_field or unit_field):
             return
-        if not (element.get(field) or '').isascii() or not (element.get(field) or '').isdecimal():
+        element = (self.document.players.get(record_id) if player_field
+                   else self.document.unit_by_id(record_id))
+        group = 'Players' if player_field else 'Units'
+        if element is None or field not in EditSession.editable_fields(group, element):
             return
-        original = int(element.get(field))
+        raw_original = element.get(field)
+        if not raw_original or not raw_original.isascii() or not raw_original.isdecimal():
+            return
+        original = int(raw_original)
         key = (record_id, field)
         try:
-            new = self.session.validate(key, raw_value, original=original)
+            # Backend preflight evaluates movesLeft against any staged role,
+            # whereas the existing EditSession numeric check uses source role.
+            if field == 'movesLeft':
+                raw = raw_value.strip()
+                if not raw.isascii() or not raw.isdecimal():
+                    raise EditValidationError('Invalid movement: enter a non-negative whole number.')
+                new = int(raw)
+            else:
+                new = self.session.validate(key, raw_value, original=original)
             stage_checked(self.session, self.document.xml_bytes, key, original, new)
         except (EditValidationError, ValueError) as exc:
             QMessageBox.warning(self, 'Cannot stage ' + field, str(exc))
@@ -595,12 +610,13 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             for col, value in enumerate(values):
                 icon = QIcon()
                 tooltip = None
-                if self.group == 'Players' and col in (6, 7):
-                    field_id = 'gold' if col == 6 else 'tax'
-                    if self.session.is_changed((record.get('id'), field_id)):
-                        staged_cells.add((row, col))
-                        tooltip = ('STAGED ' + field_id + ': ' + str(value) +
-                                   ' (original save: ' + str(record.get(field_id)) + ')')
+                field_id = ({6: 'gold', 7: 'tax'}.get(col) if self.group == 'Players'
+                            else {6: 'experience', 7: 'movesLeft'}.get(col) if self.group == 'Units'
+                            else None)
+                if field_id and self.session.is_changed((record.get('id'), field_id)):
+                    staged_cells.add((row, col))
+                    tooltip = ('STAGED ' + field_id + ': ' + str(value) +
+                               ' (original save: ' + str(record.get(field_id)) + ')')
                 if col == 0 and self.group != 'Founding Fathers':
                     row_kinds = {
                         'Players': 'nation', 'Colonies': 'colony',
