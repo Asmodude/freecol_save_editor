@@ -25,6 +25,46 @@ class DetailTabsViewTests(unittest.TestCase):
         finally:
             window.close()
 
+    def test_colony_worker_experience_can_be_staged_inline_by_unit_identity(self):
+        window = QtExplorer()
+        try:
+            colony = fromstring(
+                '<colony id="colony:1" owner="player:1" tile="tile:4">'
+                '<building buildingType="model.building.townHall">'
+                '<unit id="unit:7" unitType="model.unit.freeColonist" '
+                'owner="player:1" experience="99" movesLeft="3"></unit>'
+                '<unit id="unit:8" unitType="model.unit.freeColonist" '
+                'owner="player:1" experience="12" movesLeft="3"></unit>'
+                '</building></colony>')
+            units = list(colony.findall('.//unit'))
+            xml = (b'<save><game><player id="player:1"></player>' +
+                   __import__('xml.etree.ElementTree', fromlist=['tostring']).tostring(colony) +
+                   b'</game></save>')
+            document = SimpleNamespace(
+                units=units, goods_types=[], xml_bytes=xml,
+                unit_by_id=lambda uid: next((u for u in units if u.get('id') == uid), None),
+                location_name=lambda key: str(key))
+            window.document = document
+            window.group = 'Colonies'
+            window.update_detail_tabs(colony)
+            table = window.colony_tables['Workers']
+            self.assertEqual(table.rowCount(), 2)
+            from PySide6.QtWidgets import QLineEdit
+            # Sort in reverse order; the callback must still bind unit:7.
+            table.sortItems(4, __import__('PySide6.QtCore', fromlist=['Qt']).Qt.SortOrder.DescendingOrder)
+            edit = next((e for e in table.findChildren(QLineEdit, 'workerExperienceInput')
+                         if e.text() == '99'), None)
+            self.assertIsNotNone(edit)
+            edit.setText('120')
+            with patch.object(window, 'refresh_staged_view'):
+                edit.returnPressed.emit()
+            self.assertEqual(window.session.edits[('unit:7', 'experience')], (99, 120))
+            self.assertNotIn(('unit:8', 'experience'), window.session.edits)
+            self.assertEqual(units[0].get('experience'), '99')
+        finally:
+            window.session.exported_snapshot = dict(window.session.edits)
+            window.close()
+
     def test_contextual_colony_button_disabled_outside_goods(self):
         window = QtExplorer()
         try:
