@@ -15,6 +15,7 @@ from qt_flag_icons import flag_pixmap
 from qt_unit_icons import UnitIcons
 from qt_overview_sections import overview_sections
 from equipment_rules import ROLES, validate_equipment
+from qt_equipment_controls import WheelSafeComboBox, WheelSafeSpinBox
 from presentation import effective_unit_moves
 
 
@@ -253,7 +254,7 @@ class OverviewPanel(QWidget):
                             value = QWidget()
                             edit_layout = QHBoxLayout(value)
                             edit_layout.setContentsMargins(0, 0, 0, 0)
-                            selector = QComboBox(value)
+                            selector = WheelSafeComboBox(value)
                             selector.setObjectName('unitEquipmentRole')
                             for candidate in ROLES:
                                 # Validate against the opened-save unit and ruleset.
@@ -268,7 +269,7 @@ class OverviewPanel(QWidget):
                                     'model.role.scout': 'Equip as Scout',
                                     'model.role.pioneer': 'Equip with Tools (Pioneer)',
                                 }.get(candidate, candidate.rsplit('.', 1)[-1].title()), candidate)
-                            count = QSpinBox(value)
+                            count = WheelSafeSpinBox(value)
                             count.setObjectName('unitEquipmentCount')
                             def sync_count(index, selector=selector, count=count, doc=self._document):
                                 role_id = selector.itemData(index)
