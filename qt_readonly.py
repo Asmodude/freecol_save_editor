@@ -319,18 +319,20 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.install_navigation()
 
     def stage_overview_edit(self, record_id, field, raw_value):
-        if field != 'gold' or self.document is None:
+        if field not in ('gold', 'tax') or self.document is None:
             return
         element = self.document.players.get(record_id)
-        if element is None or 'gold' not in EditSession.editable_fields('Players', element):
+        if element is None or field not in EditSession.editable_fields('Players', element):
             return
-        original = int(element.get('gold'))
+        if not (element.get(field) or '').isascii() or not (element.get(field) or '').isdecimal():
+            return
+        original = int(element.get(field))
         key = (record_id, field)
         try:
             new = self.session.validate(key, raw_value, original=original)
             stage_checked(self.session, self.document.xml_bytes, key, original, new)
         except (EditValidationError, ValueError) as exc:
-            QMessageBox.warning(self, 'Cannot stage gold', str(exc))
+            QMessageBox.warning(self, 'Cannot stage ' + field, str(exc))
             return
         self.refresh_staged_view()
 
@@ -593,11 +595,12 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             for col, value in enumerate(values):
                 icon = QIcon()
                 tooltip = None
-                if (self.group == 'Players' and col == 6
-                        and self.session.is_changed((record.get('id'), 'gold'))):
-                    staged_cells.add((row, col))
-                    tooltip = ('STAGED gold: ' + str(value) +
-                               ' (original save: ' + str(record.get('gold')) + ')')
+                if self.group == 'Players' and col in (6, 7):
+                    field_id = 'gold' if col == 6 else 'tax'
+                    if self.session.is_changed((record.get('id'), field_id)):
+                        staged_cells.add((row, col))
+                        tooltip = ('STAGED ' + field_id + ': ' + str(value) +
+                                   ' (original save: ' + str(record.get(field_id)) + ')')
                 if col == 0 and self.group != 'Founding Fathers':
                     row_kinds = {
                         'Players': 'nation', 'Colonies': 'colony',
