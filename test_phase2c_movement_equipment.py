@@ -73,6 +73,41 @@ class EquipmentMovementPreflightTests(unittest.TestCase):
         self.assertNotIn((UNIT, 'equipment'), session.edits)
         self.assertEqual(session.edits[(UNIT, 'movesLeft')], (3, 2))
 
+    def test_proportional_dragoon_to_soldier_movement_table(self):
+        from xml.etree.ElementTree import fromstring, tostring
+        from edit_backend import change_equipment
+        for prior, expected in [(12, 3), (9, 2), (6, 2), (3, 1), (0, 0)]:
+            source = XML.replace(b'role="model.role.soldier"', b'role="model.role.dragoon"')
+            source = source.replace(b'movesLeft="3"', ('movesLeft="%d"' % prior).encode())
+            with self.subTest(prior=prior):
+                updated = change_equipment(source, UNIT, DRAGOON, SOLDIER)
+                unit = next(fromstring(updated).iter('unit'))
+                self.assertEqual(int(unit.get('movesLeft')), expected)
+                self.assertEqual(unit.get('role'), 'model.role.soldier')
+
+    def test_full_movement_upgrade_and_role_reversal_with_staged_movement(self):
+        from xml.etree.ElementTree import fromstring
+        from qt_readonly import QtExplorer
+        window = QtExplorer()
+        try:
+            root = fromstring(XML)
+            unit = next(root.iter('unit'))
+            window.document = SimpleNamespace(
+                root=root, xml_bytes=XML,
+                unit_by_id=lambda uid: unit if uid == UNIT else None)
+            with patch.object(window, 'refresh_staged_view'):
+                window.stage_unit_equipment(UNIT, 'model.role.dragoon', 1)
+            self.assertEqual(next(fromstring(preflight(XML, window.session.edits)).iter('unit')).get('movesLeft'), '12')
+            stage_checked(window.session, XML, (UNIT, 'movesLeft'), 3, 9)
+            with patch.object(window, 'refresh_staged_view'):
+                window.stage_unit_equipment(UNIT, 'model.role.soldier', 1)
+            self.assertEqual(window.session.edits[(UNIT, 'movesLeft')], (3, 2))
+            self.assertNotIn((UNIT, 'equipment'), window.session.edits)
+            self.assertEqual(next(fromstring(preflight(XML, window.session.edits)).iter('unit')).get('movesLeft'), '2')
+        finally:
+            window.session.exported_snapshot = dict(window.session.edits)
+            window.close()
+
     def test_movement_above_source_cap_refused_before_equipment(self):
         session = EditSession()
         with self.assertRaisesRegex(ValueError, 'Movement allowed range'):
@@ -86,7 +121,7 @@ class EquipmentMovementPreflightTests(unittest.TestCase):
         self.assertIn(b'movesLeft="7"', preflight(XML, session.edits))
         unstage_checked(session, XML, (UNIT, 'movesLeft'))
         self.assertEqual(session.count, 1)
-        self.assertIn(b'movesLeft="3"', preflight(XML, session.edits))
+        self.assertIn(b'movesLeft="12"', preflight(XML, session.edits))
 
 if __name__ == '__main__':
     unittest.main()
