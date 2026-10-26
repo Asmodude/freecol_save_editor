@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QComboBox, QSpinBox
 
 class WheelSafeComboBox(QComboBox):
     def wheelEvent(self, event):
-        if self.view().isVisible() or self.hasFocus():
+        if self.view().isVisible():
             super().wheelEvent(event)
         else:
             event.ignore()
@@ -13,7 +13,4 @@ class WheelSafeComboBox(QComboBox):
 
 class WheelSafeSpinBox(QSpinBox):
     def wheelEvent(self, event):
-        if self.hasFocus():
-            super().wheelEvent(event)
-        else:
-            event.ignore()
+        event.ignore()
