@@ -104,6 +104,28 @@ class Phase2BInspectorTests(unittest.TestCase):
             explorer.session.exported_snapshot = dict(explorer.session.edits)
             explorer.close()
 
+    def test_native_tax_absent_and_uneditable(self):
+        explorer = QtExplorer()
+        try:
+            native = Element("player", {"id": "player:3", "playerType": "native",
+                                        "gold": "-2147483648", "tax": "50"})
+            explorer.document = SimpleNamespace(players={"player:3": native},
+                xml_bytes=b'<save><game><player id="player:3" playerType="native" gold="-2147483648" tax="50"></player></game></save>')
+            explorer.overview.setPlainText("Native\nGold: -2147483648\nTax: 50")
+            explorer.overview.set_record("Players", native, explorer.document, explorer.session)
+            from PySide6.QtWidgets import QLineEdit
+            self.assertIsNone(explorer.overview.findChild(QLineEdit, "inlineTaxInput"))
+            explorer.stage_overview_edit("player:3", "tax", "55")
+            self.assertEqual(explorer.session.count, 0)
+            from qt_overview import record_overview
+            doc = SimpleNamespace(colony_counts={},native_counts={})
+            self.assertNotIn("Tax:", record_overview("Players", native, doc))
+            import presentation
+            doc.colony_counts, doc.native_counts = {}, {}
+            self.assertEqual(presentation.row_values("Players", native, doc, explorer.session)[7], "N/A")
+        finally:
+            explorer.close()
+
     def test_native_sentinel_does_not_offer_live_overview_editor(self):
         explorer = QtExplorer()
         try:
