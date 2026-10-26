@@ -1,6 +1,9 @@
 """Behavioral coverage for extracted read-only detail tab view."""
 import os
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
+from xml.etree.ElementTree import fromstring
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication
