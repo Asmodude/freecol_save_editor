@@ -447,8 +447,33 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                     for k in self.session.edits):
                 raise ValueError('Unit already staged for deletion')
             validate_equipment(self.document.root, unit, role, count)
-            stage_checked(self.session, self.document.xml_bytes,
-                          (unit_id, 'equipment'), original, (role, count))
+            from edit_backend import proportional_movement
+            from edit_preflight import preflight
+            from movement_rules import movement_cap
+            from xml.etree.ElementTree import Element
+            old_cap = movement_cap(self.document.root, Element('unit',
+                               dict(unit.attrib, role=original[0], roleCount=str(original[1]))))
+            prior_role = self.session.staged_value((unit_id, 'equipment'), original)[0]
+            prior_cap = movement_cap(self.document.root, Element('unit',
+                               dict(unit.attrib, role=prior_role)))
+            new_cap = movement_cap(self.document.root, Element('unit',
+                               dict(unit.attrib, role=role)))
+            move_key = (unit_id, 'movesLeft')
+            proposed = dict(self.session.edits)
+            if (unit_id, 'equipment') in proposed or (role, count) != original:
+                proposed[(unit_id, 'equipment')] = (original, (role, count))
+            else:
+                proposed.pop((unit_id, 'equipment'), None)
+            if move_key in proposed:
+                move_original, move_current = proposed[move_key]
+                recalculated = proportional_movement(move_current, prior_cap, new_cap)
+                if recalculated == move_original and (role, count) == original:
+                    proposed.pop(move_key)
+                else:
+                    proposed[move_key] = (move_original, recalculated)
+            preflight(self.document.xml_bytes, proposed)
+            self.session.edits.clear()
+            self.session.edits.update(proposed)
         except (ValueError, TypeError) as exc:
             QMessageBox.warning(self, 'Cannot stage equipment', str(exc))
             return
