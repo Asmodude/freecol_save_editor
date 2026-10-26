@@ -224,7 +224,7 @@ class DetailTabsMixin:
                                 else:
                                     label.setText('')
                                     label.setToolTip('Original: ' + friendly(base))
-                                button.setEnabled(intended is not None and candidate != committed)
+                                button.setEnabled(intended is not None)
                             selector.currentIndexChanged.connect(update_status)
                             count.valueChanged.connect(update_status)
                             update_status()
