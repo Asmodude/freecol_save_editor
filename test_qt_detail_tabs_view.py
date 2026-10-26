@@ -62,6 +62,9 @@ class DetailTabsViewTests(unittest.TestCase):
             self.assertEqual(len(combos), 2)
             combo = next(e for e in combos if e.property('unitId') == 'unit:1')
             combo.setCurrentIndex(combo.findData('model.role.dragoon'))
+            from PySide6.QtWidgets import QLabel
+            status = combo.parentWidget().findChild(QLabel, 'stationedEquipmentStatus')
+            self.assertEqual(status.text(), 'Not staged')
             with patch.object(window, 'refresh_staged_view'):
                 button = combo.parentWidget().findChild(QPushButton, 'stageStationedEquipment')
                 button.click()
