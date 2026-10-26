@@ -103,8 +103,8 @@ class DetailTabsViewTests(unittest.TestCase):
         from xml.etree.ElementTree import fromstring
         from types import SimpleNamespace
         from unittest.mock import patch
-        xml = (b'<save><indianSettlement id="indianSettlement:1" lastTribute="0" convertProgress="0" learnableSkill="skill:a"/>'
-               b'<indianSettlement id="indianSettlement:2" lastTribute="0" convertProgress="0" learnableSkill="skill:b"/></save>')
+        xml = (b'<save><game><map><tile><indianSettlement id="indianSettlement:1" lastTribute="0" convertProgress="0" learnableSkill="skill:a"/>'
+               b'<indianSettlement id="indianSettlement:2" lastTribute="0" convertProgress="0" learnableSkill="skill:b"/></tile></map></game></save>')
         village = next(fromstring(xml).iter('indianSettlement'))
         window = QtExplorer()
         try:
