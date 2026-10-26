@@ -41,9 +41,9 @@ class DetailTabsViewTests(unittest.TestCase):
                b'</role></specification><game><player id="player:1"/>'
                b'<colony id="colony:1" owner="player:1" tile="tile:1">'
                b'<unit id="unit:1" unitType="model.unit.freeColonist" '
-               b'owner="player:1" role="model.role.soldier" roleCount="1" movesLeft="3"/>'
+               b'owner="player:1" role="model.role.soldier" roleCount="1" movesLeft="3" location="tile:1"/>'
                b'<unit id="unit:2" unitType="model.unit.freeColonist" '
-               b'owner="player:1" role="model.role.default" roleCount="1" movesLeft="3"/>'
+               b'owner="player:1" role="model.role.default" roleCount="1" movesLeft="3" location="tile:1"/>'
                b'</colony></game></save>')
         root = fromstring(xml)
         colony = next(root.iter('colony'))
