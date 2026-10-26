@@ -23,8 +23,13 @@ class RecordModelTests(unittest.TestCase):
         model.set_presentation(staged_cells={(0, 1)})
         self.assertIsNone(model.data(model.index(0, 0), Qt.ItemDataRole.BackgroundRole))
         self.assertIsNotNone(model.data(model.index(0, 1), Qt.ItemDataRole.BackgroundRole))
+        staged_font = model.data(model.index(0, 1), Qt.ItemDataRole.FontRole)
+        self.assertTrue(staged_font.bold())
+        self.assertTrue(staged_font.italic())
+        self.assertIsNone(model.data(model.index(0, 0), Qt.ItemDataRole.FontRole))
         model.replace_rows(((record, ('Morten', '7225')),), ('Name', 'Gold'))
         self.assertIsNone(model.data(model.index(0, 1), Qt.ItemDataRole.BackgroundRole))
+        self.assertIsNone(model.data(model.index(0, 1), Qt.ItemDataRole.FontRole))
 
     def test_record_identity_survives_proxy_sort(self):
         first = Element("unit", id="unit:2")
