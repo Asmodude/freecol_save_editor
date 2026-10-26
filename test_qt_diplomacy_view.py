@@ -106,6 +106,35 @@ class DiplomacyViewTests(unittest.TestCase):
             window.session.exported_snapshot = dict(window.session.edits)
             window.close()
 
+    def test_diplomacy_editor_replaces_cell_text_without_overlap(self):
+        from types import SimpleNamespace
+        from xml.etree.ElementTree import fromstring
+        from qt_diplomacy import diplomacy_rows
+        from PySide6.QtWidgets import QComboBox, QLineEdit
+        xml = (b'<save><player id="player:1" playerType="colonial" username="Denmark">'
+               b'<stance player="player:2" value="peace"/><tension player="player:2" value="0"/></player>'
+               b'<player id="player:2" playerType="colonial" username="Sweden">'
+               b'<stance player="player:1" value="peace"/></player></save>')
+        root = fromstring(xml)
+        window = QtExplorer()
+        try:
+            window.document = SimpleNamespace(players={p.get('id'):p for p in root.iter('player')},
+                                               xml_bytes=xml)
+            window.group = 'Diplomacy'
+            with patch('qt_diplomacy_view.rows_for_scope',
+                       side_effect=lambda doc, group, scope: diplomacy_rows(doc, 'player:1')):
+                window.populate_diplomacy('')
+            table = window.diplomacy_grids['Rival Nations']
+            self.assertEqual(table.rowCount(), 1)
+            self.assertEqual(table.item(0, 1).text(), '')
+            self.assertEqual(table.item(0, 2).text(), '')
+            self.assertIsNotNone(table.findChild(QComboBox, 'diplomacyStance'))
+            self.assertIsNotNone(table.findChild(QLineEdit, 'diplomacyTension'))
+            self.assertGreaterEqual(table.rowHeight(0), 40)
+            self.assertGreaterEqual(table.columnWidth(1), 265)
+        finally:
+            window.close()
+
     def test_diplomacy_inspect_is_noop_outside_diplomacy(self):
         window = QtExplorer()
         try:
