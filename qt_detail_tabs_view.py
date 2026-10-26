@@ -115,12 +115,11 @@ class DetailTabsMixin:
                         line.addWidget(button)
                         table.setCellWidget(row, col, holder)
                     if name == 'Alarm' and col == 1 and settlement is not None:
-                        # Row identity is the colonial player, resolved from the saved
-                        # nation name while the table is still in source order.
+                        # Match the same colonial-player source order as settlement_alarm_rows;
+                        # never reverse-map a potentially duplicate display name.
                         colonial = [p for p in self.document.players.values()
                                     if p.get('playerType') == 'colonial']
-                        counterpart = next((p for p in colonial
-                                           if (p.get('username') or p.get('id')) == values[0]), None)
+                        counterpart = colonial[row] if row < len(colonial) else None
                         node = next((a for a in settlement.findall('alarm')
                                      if counterpart is not None and a.get('player') == counterpart.get('id')), None)
                         if node is not None and node.get('value', '').isascii() and node.get('value', '').isdecimal():
