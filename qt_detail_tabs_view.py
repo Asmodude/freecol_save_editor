@@ -3,7 +3,8 @@
 Extracted unchanged from the accepted Qt Explorer during Phase 2A.
 """
 from PySide6.QtCore import Qt, QSize
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel, QComboBox, QSpinBox
+from equipment_rules import ROLES, validate_equipment
 from qt_colony_details import colony_sections, colony_detail_nodes, goods_catalog
 from qt_settlement_details import settlement_units
 from qt_diplomacy import settlement_alarm_rows
@@ -144,6 +145,66 @@ class DetailTabsMixin:
                                 lambda checked=False, sid=sid, field=field, edit=edit:
                                 self.stage_relation(sid, field, edit.text()))
                             layout.addWidget(edit, 1)
+                            layout.addWidget(button)
+                            table.setCellWidget(row, col, holder)
+                    if name == 'Stationed units' and col == 1 and colony is not None:
+                        # The displayed role is owned by this unit, not the colony.
+                        # Capture its unique ID before the table is sorted.
+                        uid = values[0]
+                        unit = self.document.unit_by_id(uid)
+                        if unit is not None and hasattr(self.document, 'root'):
+                            original_role = unit.get('role', 'model.role.default')
+                            original_count = int(unit.get('roleCount', '1'))
+                            current_role, current_count = self.session.staged_value(
+                                (uid, 'equipment'), (original_role, original_count))
+                            holder = QWidget(table)
+                            layout = QHBoxLayout(holder)
+                            layout.setContentsMargins(2, 1, 2, 1)
+                            layout.setSpacing(3)
+                            selector = QComboBox(holder)
+                            selector.setObjectName('stationedEquipmentRole')
+                            selector.setProperty('unitId', uid)
+                            names = {
+                                'model.role.default': 'Unequipped',
+                                'model.role.soldier': 'Soldier (50 muskets)',
+                                'model.role.dragoon': 'Dragoon (50 muskets, 50 horses)',
+                                'model.role.scout': 'Scout (50 horses)',
+                                'model.role.pioneer': 'Pioneer (tools)',
+                            }
+                            for candidate in ROLES:
+                                try:
+                                    validate_equipment(self.document.root, unit, candidate, 1)
+                                except (ValueError, TypeError):
+                                    continue
+                                selector.addItem(names.get(candidate, candidate), candidate)
+                            count = QSpinBox(holder)
+                            count.setObjectName('stationedEquipmentTools')
+                            def sync_role(_index, chooser=selector, amount=count, document=self.document):
+                                role = chooser.currentData()
+                                matches = [r for r in document.root.iter('role') if r.get('id') == role]
+                                limit = int(matches[0].get('maximum-count', '1')) if len(matches) == 1 else 1
+                                amount.setRange(1, max(1, limit))
+                                amount.setVisible(role == 'model.role.pioneer')
+                                amount.setEnabled(limit > 1)
+                                amount.setSuffix(' × 20 tools' if role == 'model.role.pioneer' else '')
+                            selector.currentIndexChanged.connect(sync_role)
+                            index = selector.findData(current_role)
+                            if index >= 0:
+                                selector.setCurrentIndex(index)
+                                sync_role(index)
+                                count.setValue(current_count)
+                            else:
+                                selector.setEnabled(False)
+                            button = QPushButton('✎', holder)
+                            button.setObjectName('stageStationedEquipment')
+                            button.setFixedWidth(25)
+                            button.setEnabled(index >= 0)
+                            button.setToolTip('Stage this unit equipment; no warehouse stock is consumed')
+                            button.clicked.connect(
+                                lambda checked=False, uid=uid, chooser=selector, amount=count:
+                                self.stage_unit_equipment(uid, chooser.currentData(), amount.value()))
+                            layout.addWidget(selector, 1)
+                            layout.addWidget(count)
                             layout.addWidget(button)
                             table.setCellWidget(row, col, holder)
                     # The worker's Experience belongs to the unit, not the colony.
