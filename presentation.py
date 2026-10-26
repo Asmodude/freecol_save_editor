@@ -44,6 +44,24 @@ def loc_name(key, doc):
     return location_label(key, doc.locations, doc.tiles, doc.colony_tile_names, doc.unit_locations)
 
 
+def effective_unit_moves(unit, doc, session):
+    key = (unit.get('id'), 'movesLeft')
+    if session.is_changed(key):
+        return session.staged_value(key, unit.get('movesLeft'))
+    equip = session.edits.get((unit.get('id'), 'equipment'))
+    if not equip:
+        return unit.get('movesLeft')
+    from edit_backend import proportional_movement
+    try:
+        prior = movement_cap(doc.root, unit)
+        role, count = equip[1]
+        projected = ET.Element('unit', dict(unit.attrib, role=role, roleCount=str(count)))
+        next_cap = movement_cap(doc.root, projected)
+        return proportional_movement(int(unit.get('movesLeft')), prior, next_cap)
+    except (UnknownMovement, ValueError, TypeError):
+        return unit.get('movesLeft')
+
+
 def row_values(group, e, doc, session):
     a=e.attrib
     staged=session.edits
