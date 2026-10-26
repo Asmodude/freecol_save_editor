@@ -114,6 +114,39 @@ class DetailTabsMixin:
                         line.addWidget(edit, 1)
                         line.addWidget(button)
                         table.setCellWidget(row, col, holder)
+                    if name == 'Alarm' and col == 1 and settlement is not None:
+                        # Row identity is the colonial player, resolved from the saved
+                        # nation name while the table is still in source order.
+                        colonial = [p for p in self.document.players.values()
+                                    if p.get('playerType') == 'colonial']
+                        counterpart = next((p for p in colonial
+                                           if (p.get('username') or p.get('id')) == values[0]), None)
+                        node = next((a for a in settlement.findall('alarm')
+                                     if counterpart is not None and a.get('player') == counterpart.get('id')), None)
+                        if node is not None and node.get('value', '').isascii() and node.get('value', '').isdecimal():
+                            sid = settlement.get('id')
+                            target = counterpart.get('id')
+                            field = 'alarm|' + target
+                            original = int(node.get('value'))
+                            holder = QWidget(table)
+                            layout = QHBoxLayout(holder)
+                            layout.setContentsMargins(2, 1, 2, 1)
+                            edit = QLineEdit(str(self.session.staged_value((sid, field), original)), holder)
+                            edit.setObjectName('nativeSettlementAlarm')
+                            edit.setProperty('relationshipKey', (sid, field))
+                            edit.setToolTip('Directional alarm for ' + target)
+                            button = QPushButton('✎', holder)
+                            button.setObjectName('stageSettlementAlarm')
+                            button.setFixedWidth(25)
+                            edit.returnPressed.connect(
+                                lambda sid=sid, field=field, edit=edit:
+                                self.stage_relation(sid, field, edit.text()))
+                            button.clicked.connect(
+                                lambda checked=False, sid=sid, field=field, edit=edit:
+                                self.stage_relation(sid, field, edit.text()))
+                            layout.addWidget(edit, 1)
+                            layout.addWidget(button)
+                            table.setCellWidget(row, col, holder)
                     # The worker's Experience belongs to the unit, not the colony.
                     # Capture the authoritative unit ID before the table is sorted.
                     if name == 'Workers' and col == 4:
