@@ -316,10 +316,33 @@ class OverviewPanel(QWidget):
                             button.clicked.connect(
                                 lambda checked=False, rid=uid, choose=selector, qty=count:
                                 self.equipment_requested.emit(rid, choose.currentData(), qty.value()))
-                            edit_layout.addWidget(selector, 2)
+                            status = QLabel(value)
+                            status.setObjectName('unitEquipmentStatus')
+                            pending = self._session.is_changed((uid, 'equipment'))
+                            def update_status(_ignored=None, chooser=selector, amount=count, label=status,
+                                              planned=(staged_role, staged_count), base=original_role,
+                                              pending=pending):
+                                choice = (chooser.currentData(), amount.value())
+                                friendly = lambda role: role.rsplit('.', 1)[-1].title()
+                                if choice != planned:
+                                    label.setText('Not staged')
+                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' +
+                                                     friendly(planned[0]) + '; current choice not staged')
+                                elif pending:
+                                    label.setText('Staged')
+                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' + friendly(planned[0]))
+                                else:
+                                    label.setText('')
+                                    label.setToolTip('Original: ' + friendly(base))
+                                button.setEnabled(choice[0] is not None and choice != planned)
+                            selector.currentIndexChanged.connect(update_status)
+                            count.valueChanged.connect(update_status)
                             sync_tools()
+                            update_status()
+                            edit_layout.addWidget(selector, 2)
                             edit_layout.addWidget(count, 1)
                             edit_layout.addWidget(tools_label)
+                            edit_layout.addWidget(status)
                             edit_layout.addWidget(button)
                         elif editable_numeric:
                             record_id = self._record.get('id')
