@@ -15,6 +15,7 @@ from qt_flag_icons import flag_pixmap
 from qt_unit_icons import UnitIcons
 from qt_overview_sections import overview_sections
 from equipment_rules import ROLES, validate_equipment
+from presentation import effective_unit_moves
 
 
 def summary_parts(text):
@@ -325,9 +326,13 @@ class OverviewPanel(QWidget):
                             value = QWidget()
                             edit_layout = QHBoxLayout(value)
                             edit_layout.setContentsMargins(0, 0, 0, 0)
-                            field = QLineEdit(str(self._session.staged_value((record_id, numeric_field), int(original))))
+                            displayed = (effective_unit_moves(self._record, self._document, self._session)
+                                         if numeric_field == 'movesLeft' else
+                                         self._session.staged_value((record_id, numeric_field), int(original)))
+                            field = QLineEdit(str(displayed))
                             field.setObjectName('inline' + numeric_field.title() + 'Input')
-                            staged = self._session.is_changed((record_id, numeric_field))
+                            staged = (self._session.is_changed((record_id, numeric_field)) or
+                                      (numeric_field == 'movesLeft' and str(displayed) != original))
                             field.setToolTip(f'Original save: {original}. Press Enter to stage.' +
                                              (' Liberty, rebels/tories and production bonus recalculate on export.'
                                               if numeric_field == 'sonsOfLibertyTarget' else ''))
