@@ -242,8 +242,12 @@ class OverviewPanel(QWidget):
                             count.valueChanged.connect(sync_tools)
                             chosen = selector.findData(staged_role)
                             # Hardy Pioneer default equipment naturally suggests Pioneer.
-                            if chosen < 0 and 'hardyPioneer' in (self._record.get('unitType') or ''):
-                                chosen = selector.findData('model.role.pioneer')
+                            if (not self._session.is_changed((uid, 'equipment'))
+                                    and original_role == 'model.role.default'
+                                    and 'hardypioneer' in (self._record.get('unitType') or '').lower()):
+                                pioneer = selector.findData('model.role.pioneer')
+                                if pioneer >= 0:
+                                    chosen = pioneer
                             if chosen >= 0:
                                 selector.setCurrentIndex(chosen)
                                 sync_count(chosen)
