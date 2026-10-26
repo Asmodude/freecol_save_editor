@@ -44,6 +44,27 @@ class Phase2BInspectorTests(unittest.TestCase):
             explorer.session.exported_snapshot = dict(explorer.session.edits)
             explorer.close()
 
+    def test_player_tax_uses_same_live_editor_and_backend_limits(self):
+        explorer = QtExplorer()
+        try:
+            player = Element("player", {"id": "player:1", "gold": "7225", "tax": "20"})
+            xml = b'<save><game><player id="player:1" gold="7225" tax="20"></player></game></save>'
+            explorer.document = SimpleNamespace(players={"player:1": player}, xml_bytes=xml)
+            explorer.group = "Players"
+            explorer.overview.setPlainText("Player A\nGold: 7225\nTax: 20")
+            explorer.overview.set_record("Players", player, explorer.document, explorer.session)
+            from PySide6.QtWidgets import QLineEdit
+            field = explorer.overview.findChild(QLineEdit, "inlineTaxInput")
+            self.assertIsNotNone(field)
+            field.setText("45")
+            with patch.object(explorer, "refresh_staged_view"):
+                field.returnPressed.emit()
+            self.assertEqual(explorer.session.edits[("player:1", "tax")], (20, 45))
+            self.assertEqual(player.get("tax"), "20")
+        finally:
+            explorer.session.exported_snapshot = dict(explorer.session.edits)
+            explorer.close()
+
     def test_native_sentinel_does_not_offer_live_overview_editor(self):
         explorer = QtExplorer()
         try:
