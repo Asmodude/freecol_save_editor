@@ -206,6 +206,7 @@ class DetailTabsMixin:
                             layout.addWidget(selector, 1)
                             layout.addWidget(count)
                             layout.addWidget(button)
+                            item.setData(SortableItem.SourceSortRole, value)
                             item.setText('')
                             table.setCellWidget(row, col, holder)
                     # The worker's Experience belongs to the unit, not the colony.
