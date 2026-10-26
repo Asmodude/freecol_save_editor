@@ -65,6 +65,45 @@ class Phase2BInspectorTests(unittest.TestCase):
             explorer.session.exported_snapshot = dict(explorer.session.edits)
             explorer.close()
 
+    def test_unit_experience_and_movement_inline_editors(self):
+        explorer = QtExplorer()
+        try:
+            unit = Element("unit", {"id": "unit:1", "unitType": "model.unit.freeColonist",
+                                  "owner": "player:1", "role": "model.role.default",
+                                  "experience": "7", "movesLeft": "2"})
+            xml = (b'<save><unit-type id="model.unit.freeColonist" movement="3"></unit-type>'
+                   b'<role id="model.role.default"></role><game>'
+                   b'<player id="player:1"></player>'
+                   b'<unit id="unit:1" unitType="model.unit.freeColonist" '
+                   b'owner="player:1" role="model.role.default" experience="7" movesLeft="2"></unit>'
+                   b'</game></save>')
+            explorer.document = SimpleNamespace(
+                players={"player:1": Element("player", {"id": "player:1"})},
+                unit_by_id=lambda uid: unit if uid == "unit:1" else None, xml_bytes=xml)
+            explorer.group = "Units"
+            explorer.overview.setPlainText("Unit One\\nExperience: 7\\nMoves left: 2")
+            explorer.overview.set_record("Units", unit, explorer.document, explorer.session)
+            from PySide6.QtWidgets import QLineEdit
+            experience = explorer.overview.findChild(QLineEdit, "inlineExperienceInput")
+            movement = explorer.overview.findChild(QLineEdit, "inlineMovesleftInput")
+            self.assertIsNotNone(experience)
+            self.assertIsNotNone(movement)
+            with patch.object(explorer, "refresh_staged_view"):
+                experience.setText("24")
+                experience.returnPressed.emit()
+                movement.setText("3")
+                movement.returnPressed.emit()
+            self.assertEqual(explorer.session.edits[("unit:1", "experience")], (7, 24))
+            self.assertEqual(explorer.session.edits[("unit:1", "movesLeft")], (2, 3))
+            self.assertEqual(unit.get("movesLeft"), "2")
+            with patch("qt_readonly.QMessageBox.warning") as warning:
+                explorer.stage_overview_edit("unit:1", "movesLeft", "4")
+            warning.assert_called_once()
+            self.assertEqual(explorer.session.edits[("unit:1", "movesLeft")], (2, 3))
+        finally:
+            explorer.session.exported_snapshot = dict(explorer.session.edits)
+            explorer.close()
+
     def test_native_sentinel_does_not_offer_live_overview_editor(self):
         explorer = QtExplorer()
         try:
