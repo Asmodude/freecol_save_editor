@@ -6,6 +6,7 @@ types receive an unmistakably neutral fallback instead of fabricated sprites.
 from PySide6.QtCore import Qt, QRectF, QPointF
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap, QPolygonF
 from pathlib import Path
+import re
 import zipfile
 from freecol_art_source import discover, installation_roots
 
@@ -76,25 +77,76 @@ class UnitIcons:
                 pass
         return paths
 
+    def _resource_map(self):
+        """Parse the installed FreeCol artwork manifest; never guess by filename."""
+        if hasattr(self, '_manifest'):
+            return self._manifest
+        base, archive, prefix, _ = self.source
+        data = None
+        if base is not None:
+            # base is normally .../resources/images
+            base = Path(base)
+            for candidate in (base.parent.parent / 'resources.properties',
+                              base.parent / 'resources.properties'):
+                if candidate.is_file():
+                    data = candidate.read_bytes()
+                    break
+        if data is None and archive:
+            try:
+                with zipfile.ZipFile(archive) as zf:
+                    for candidate in (prefix + 'resources.properties',
+                                      prefix.removesuffix('resources/') + 'resources.properties',
+                                      'data/default/resources.properties'):
+                        if candidate in zf.namelist():
+                            data = zf.read(candidate)
+                            break
+            except (OSError, zipfile.BadZipFile):
+                pass
+        mapping = {}
+        if data:
+            for line in data.decode('utf-8-sig', errors='replace').splitlines():
+                line = line.strip()
+                if not line or line.startswith(('#', '!')) or '=' not in line:
+                    continue
+                key, value = line.split('=', 1)
+                mapping[key.strip()] = value.strip()
+        self._manifest = mapping
+        return mapping
+
     def effective_icon(self, unit_type, role, size=23):
-        """Prefer genuine role artwork, falling back to original unit-type artwork."""
-        role_key = unit_key(role)
-        # Hardy Pioneer has its own expert artwork; the generic pioneer role
-        # sprite must never mask its specialist unit identity.
-        if unit_key(unit_type) == 'hardyPioneer' and role_key == 'pioneer':
-            return self.icon(unit_type, size=size)
-        if role_key and role_key != 'default':
-            if role_key == 'dragoon':
-                # FreeCol supplies some mounted variants beneath units/dragoon/.
-                return self.icon(unit_type, size=size, role=role)
-            # Standalone role artwork is only used if the installed FreeCol
-            # distribution actually contains it, never synthesised.
-            data = self._local_image(role_key)
+        """Follow FreeCol's image.unit.* mappings; never substitute generic role art."""
+        manifest = self._resource_map()
+        unit_id = str(unit_type or '')
+        role_id = str(role or 'model.role.default').removeprefix('model.role.')
+        keys = (f'image.unit.{unit_id}.{role_id}', f'image.unit.{unit_id}')
+        base, archive, prefix, _ = self.source
+        for key in keys:
+            entry = manifest.get(key)
+            if not entry:
+                continue
+            # Properties paths can contain optional image selectors after a comma.
+            candidate = entry.split(',', 1)[0].strip().removeprefix('resource:')
+            candidate = candidate.removeprefix('images/')
+            if not candidate.startswith('units/'):
+                continue
+            data = None
+            if base:
+                file_path = Path(base) / candidate
+                if file_path.is_file():
+                    data = file_path.read_bytes()
+            elif archive:
+                try:
+                    with zipfile.ZipFile(archive) as zf:
+                        data = zf.read(prefix + candidate)
+                except (OSError, KeyError, zipfile.BadZipFile):
+                    pass
             if data:
                 pix = QPixmap()
                 if pix.loadFromData(data) and not pix.isNull():
                     return QIcon(pix)
-        return self.icon(unit_type, size=size, role=role)
+        # No authoritative mapping available: retain the unit's own exact
+        # type art rather than guessing a role from a coincidentally named file.
+        return self.icon(unit_type, size=size)
 
     def icon(self, value, size=23, role=None):
         key = unit_key(value)
