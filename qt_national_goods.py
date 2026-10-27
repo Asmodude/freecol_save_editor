@@ -2,6 +2,7 @@
 from collections import Counter
 import xml.etree.ElementTree as ET
 import presentation
+from qt_special_resources import is_warehouse_good
 
 
 def national_goods(document, player_id):
@@ -9,14 +10,15 @@ def national_goods(document, player_id):
         return []
     totals=Counter()
     colonies=Counter()
-    catalog=set(getattr(document,'goods_types',()) or ())
+    catalog={kind for kind in (getattr(document,'goods_types',()) or ())
+             if is_warehouse_good(kind)}
     for colony in document.colonies:
         if colony.get('owner')!=player_id:
             continue
         present=set()
         for good in colony.findall('./goodsContainer/storedGoods/goods'):
             kind=good.get('type')
-            if not kind:
+            if not is_warehouse_good(kind):
                 continue
             catalog.add(kind)
             raw=good.get('amount','0')
@@ -37,7 +39,7 @@ def national_goods(document, player_id):
 
 def transported_goods_breakdown(document, player_id, goods_id):
     """Cargo in authoritative owned units only; never count colony warehouses."""
-    if not player_id or player_id not in document.players or not goods_id:
+    if not player_id or player_id not in document.players or not is_warehouse_good(goods_id):
         return []
     rows=[]
     for unit in document.units:
