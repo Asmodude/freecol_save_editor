@@ -1,6 +1,6 @@
 # Phase 2C — Tk → Qt Parity Matrix
 
-**Final C1–C3 Windows status: ACCEPTED by user on 27 October 2026.** C1 accepted 26 October (`deb5cec`, CI #472), C2 accepted 26 October (`cd10b2c`, CI #546), C3 accepted 27 October (movement override, representative FreeCol Save As/load/reload, editing non-regression). Claude's independent review (`docs/PHASE2C3_INDEPENDENT_REVIEW.md`) was **PASS WITH CAVEATS** at `068a0cd`. Post-review fixes and CI/Windows verification are **not yet signed off**; PR #6 remains unmerged.
+**Final C1–C3 Windows status: ACCEPTED by user on 27 October 2026.** C1 accepted 26 October (`deb5cec`, CI #472), C2 accepted 26 October (`cd10b2c`, CI #546), C3 accepted 27 October (movement override, representative FreeCol Save As/load/reload, editing non-regression). Claude's independent review (`docs/PHASE2C3_INDEPENDENT_REVIEW.md`) was **PASS WITH CAVEATS** at `068a0cd`. Post-review fixes and focused Windows verification were subsequently **accepted by user on 27 October 2026**, including default-role/roleCount=0, Soldier→Dragoon→Soldier restored movement, and approval of proportional movement in both Qt and Tk. PR #6 remains unmerged pending integration decision.
 
 **Scope:** Phase 2C delivers non-destructive parity. Destructive deletion parity is Phase 2D. Source-of-truth details: `docs/PHASE2C_IMPLEMENTATION_PLAN.md` and `docs/PHASE2_DEVELOPMENT_PLAN.md`.
 
@@ -10,7 +10,7 @@
 | Tax | `(player_id,tax)` | Inline 0–100; native tax refused | CI #451 onward, independent §1 | C1 PASS incl. focused native-tax retest | C3 representative roundtrip |
 | Experience | `(unit_id,experience)` | Inline 0–200 in Units Overview and colony Workers | CI #456 and Workers identity tests; independent §1 | C1 PASS incl. Workers-tab retest | C3 representative roundtrip |
 | Moves left | `(unit_id,movesLeft)` | Cap from effective staged equipment; explicit override preserved | C3 fix; independent §2 live export | C1, C2, C3 PASS | C3 PASS |
-| Equipment | `(unit_id,equipment)` | Role/count composite, ruleset validation, proportional moves; Unit Overview and Stationed | CI #476, #544; independent §1–3 | C2 PASS; post-review default/0 fix requires retest | C3 PASS; post-review retest pending |
+| Equipment | `(unit_id,equipment)` | Role/count composite, ruleset validation, proportional moves; Unit Overview and Stationed | CI #476, #544; independent §1–3 | C2 PASS; post-review default/0 retest PASS | C3 PASS; post-review retest PASS |
 | Colony goods | `(colony_id,model.goods.<type>)` | Eligible existing and absent stock, validation and proposed national projection | CI #483; independent §1 | C2 PASS incl. projection correction | C3 representative roundtrip |
 | Sons of Liberty | `(colony_id,sonsOfLibertyTarget)` | Eligible colony; dependent fields calculated on export | CI #487; independent §1 | C2 PASS | C3 representative roundtrip |
 | Stance | `(player_id,stance|other)` | Reciprocal source-backed, valid options, reject opposite-direction duplicate | CI #502; independent §1 | C2 PASS | C3 representative roundtrip |
@@ -86,10 +86,19 @@ The tester reported **PASS** for all three closing criteria:
 
 Headless CI before the independent review: **303 tests, 1 expected skip** (run #554 on `c86ab48`); Claude independently executed the same suite and a synthetic real-Qt offscreen full-operation export at commit `068a0cd`, finding **no unintended attribute changes** and issuing **PASS WITH CAVEATS**.
 
-### Post-review corrections (not yet accepted)
+### Post-review corrections (Windows accepted 27 October 2026)
 
-Claude found default-role units could stage `roleCount=1` instead of FreeCol's required 0, and equipment undo could leave a no-op dependent movement edit `3→3`. Both defects have code corrections on the branch, requiring a final green CI and a focused Windows check. Shared Tk backend proportional movement semantics differ from earlier Tk clamp behavior and are documented in CHANGELOG. See `docs/PHASE2C3_INDEPENDENT_REVIEW.md`.
+Claude found default-role units could stage `roleCount=1` instead of FreeCol's required 0, and equipment undo could leave a no-op dependent movement edit `3→3`. Both defects were corrected. The user passed focused Windows checks of default-role/roleCount=0 and the Soldier→Dragoon→Soldier movement return; shared proportional Tk movement was explicitly approved. Shared Tk backend proportional movement semantics differ from earlier Tk clamp behavior and are documented in CHANGELOG. See `docs/PHASE2C3_INDEPENDENT_REVIEW.md`.
 
 The intermittent FreeCol automatic movement/Lumberjack anomaly is documented separately in `docs/FREECOL_MOVEMENT_DIAGNOSTIC.md`, with root cause unconfirmed. It is not silently attributed to the editor or treated as proof of FreeCol-only causation.
 
-**Merge gate:** post-review tests + Windows verification + explicit user approval; no merge/tag/branch deletion authorized by this document.
+**Merge gate:** final CI and independent integration review; merge/tag/branch deletion require separate explicit authorization.
+
+
+## Final user acceptance and integration review preparation — 27 October 2026
+
+- User accepted all closing C3 tests, post-review default-role count, and shared Qt/Tk proportional movement behaviour; subsequent Soldier→Dragoon→Soldier explicit movement regression also passed Windows.
+- Pioneer newly selected tool quantity defaults to five bundles (100 tools); covered by updated headless test.
+- CI #580: 309 tests passed (1 expected skip) after the movement regression; CI #581: green on subsequent roadmap-only branch head `274bb74`.
+- The Inspector/source-XML clarification and explicit Stage Change button text are scheduled for early Phase 2D, not part of the Phase 2C merge.
+- No 2C feature-branch merge, tag or deletion performed by this document.
