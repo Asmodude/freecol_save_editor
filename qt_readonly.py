@@ -785,7 +785,17 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.record_model.replace_rows(rows, HEADERS[self.group])
         self.visible_rows = [element for element, _ in rows]
         if self.group == 'Founding Fathers':
-            self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
+            # National Father progress is the owning player's liberty points,
+            # not summed Bells in any warehouse.
+            from qt_navigation import human_player_id
+            pid = (human_player_id(doc) if self.scope == 'mine'
+                   else self.scope[len('player:'):] if self.scope.startswith('player:') else None)
+            congress = 'Continental Congress — ' + str(len(rows)) + ' recruited'
+            player = doc.players.get(pid) if pid else None
+            if player is not None and (player.get('liberty') or '').isascii() and (player.get('liberty') or '').isdecimal():
+                progress = self.session.staged_value((pid, 'liberty'), int(player.get('liberty')))
+                congress += f' · Liberty points: {progress:,}'
+            self.congress_heading.setText(congress)
         model_decorations = {}
         model_tooltips = {}
         staged_cells = set()
