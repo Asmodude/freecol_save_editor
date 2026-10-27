@@ -20,7 +20,7 @@ class PioneerUiTests(unittest.TestCase):
                    b'<role id="model.role.pioneer" maximum-count="5"></role>'
                    b'<player id="player:1"></player>'
                    b'<unit id="unit:9" unitType="model.unit.hardyPioneer" owner="player:1" '
-                   b'role="model.role.default" roleCount="1" movesLeft="3"></unit></save>')
+                   b'role="model.role.default" roleCount="0" movesLeft="3"></unit></save>')
             root = fromstring(xml)
             unit = next(root.iter('unit'))
             explorer.document = SimpleNamespace(root=root, xml_bytes=xml, unit_by_id=lambda uid: unit)
@@ -31,14 +31,15 @@ class PioneerUiTests(unittest.TestCase):
             tools = explorer.overview.findChild(QLabel, 'pioneerToolQuantity')
             self.assertEqual(selector.currentData(), 'model.role.pioneer')
             self.assertEqual(amount.maximum(), 5)
-            self.assertEqual(tools.text(), '20 tools')
+            self.assertEqual(tools.text(), '100 tools')
+            self.assertEqual(amount.value(), 5)
             self.assertEqual(explorer.session.count, 0)
             amount.setValue(4)
             self.assertEqual(tools.text(), '80 tools')
             with patch.object(explorer, 'refresh_staged_view'):
                 explorer.overview.findChild(QPushButton, 'stageUnitEquipment').click()
             self.assertEqual(explorer.session.edits[('unit:9','equipment')],
-                             (('model.role.default',1),('model.role.pioneer',4)))
+                             (('model.role.default',0),('model.role.pioneer',4)))
             self.assertEqual(unit.get('role'), 'model.role.default')
         finally:
             explorer.session.exported_snapshot = dict(explorer.session.edits)
