@@ -314,7 +314,11 @@ class OverviewPanel(QWidget):
                         nation = (owner.get('nationId') or owner.get('nation')) if owner is not None else None
                         owner_flag = flag_pixmap(nation, 15) if nation else QPixmap()
                         good = self.goods_icons.icon(key, 23) if goods_key(key) else None
-                        unit_image = (self.unit_icons.icon(self._record.get('unitType'), 19)
+                        unit_image = (self.unit_icons.effective_icon(
+                            self._record.get('unitType'),
+                            self._session.staged_value((self._record.get('id'), 'equipment'),
+                                (self._record.get('role', 'model.role.default'), 0))[0]
+                            if self._session is not None else self._record.get('role'), 19)
                                       if key == 'Type' and self._group == 'Units'
                                       and self._record is not None else None)
                         icon_label.setPixmap(unit_image.pixmap(19, 19) if unit_image is not None and not unit_image.isNull() else
