@@ -54,3 +54,12 @@ Before marking a phase accepted, proposing integration, or producing the next Wi
 - Identify every unresolved blocker in the release/Windows checklist (do not quietly move it to generic "later" scope).
 - Mark a commitment DONE **only** after evidence: implementation reference, green CI, required Windows/FreeCol verification and explicit acceptance.
 - Changes to committed order/scope need an explicit Project Director decision and an entry here.
+
+## OC-005 — Windows findings from Phase 2D-1.5 (27 October)
+
+**Status: OPEN; reported while A1–A9 and B1–B6 passed, C1–C2 passed, C3 pending.**
+
+- **A7 layout clipping:** In Native Settlement Alarm editor, the staged-source label `was 1100` overlaps adjacent text. Treat as a Qt cell-width/layout defect; reproduce with a four-digit original value and fix without losing record identity, stage indicators or sorting.
+- **Equipment eligibility — potentially invalid role choices:** Project Director reports Treasure Trains, Wagon Trains, ships and artillery can be offered roles disallowed by FreeCol. Inspect saved unit-type inheritance and Java game rules, especially whether `canBeEquipped` reflects final inherited abilities and whether default-role checks bypass necessary restrictions. Enforce conservative fail-closed eligibility; add representative regression fixtures and Windows retest. Do not consider B2 functional PASS as acceptance of this new defect.
+- **Measured performance:** Real 7,855,956-byte XML: load 206.6 ms, lazy rules index 12.7 ms, 15 editor construction uncached 645.4 ms vs indexed 13.4 ms (48.20x warm); first indexed pass + index 26.1 ms. Benchmark PASS, subjective C3 pending.
+- **Acceptance gate:** Fix both observations on PR #8, automated CI and focused Windows retest, before proposing 2D-1.5 acceptance or Claude final review. Continue to respect OC-001 and OC-002 for deferred C3 FreeCol roundtrip.
