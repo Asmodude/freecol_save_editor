@@ -6,7 +6,7 @@ import collections
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import zipfile
-from location_names import colony_tile_names, unit_locations, location_label
+from location_names import colony_tile_names, colony_building_names, unit_locations, location_label
 from unit_records import authoritative_units
 
 
@@ -41,6 +41,7 @@ class SaveDocument:
         self.locations={e.get('id'):e.get('name','') for e in colonies+natives}
         self.tiles={e.get('id'):(e.get('x'),e.get('y')) for e in game.iter('tile') if 'x' in e.attrib}
         self.colony_tile_names=colony_tile_names(game)
+        self.colony_building_names=colony_building_names(game)
         self.unit_locations=unit_locations(units)
         self.colony_counts=collections.Counter(e.get('owner') for e in colonies)
         self.native_counts=collections.Counter(e.get('owner') for e in natives)
@@ -57,7 +58,8 @@ class SaveDocument:
 
     def location_name(self, key):
         return location_label(key, self.locations, self.tiles,
-                              self.colony_tile_names, self.unit_locations)
+                              self.colony_tile_names, self.unit_locations,
+                              buildings=self.colony_building_names)
 
     def unit_by_id(self, key):
         return next((u for u in self.units if u.get('id') == key), None)

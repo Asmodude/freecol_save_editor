@@ -40,6 +40,7 @@ from qt_overview_panel import OverviewPanel
 from qt_inspector_details import InspectorDetails
 from qt_final_visual_format import established_turn, colony_inspector_location
 from qt_unit_icons import UnitIcons
+from qt_role_markers import equipment_marker
 from colony_graphics import resolve_colony_graphic
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
@@ -144,6 +145,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         toolbar.addWidget(self.map_button)
         toolbar.addWidget(self.heading, 1)
         layout.addWidget(toolbar_widget, 0)
+        self.editing_instructions = QLabel('To make edits: Edit data one at a time followed by clicking "Stage Change" next to that edit.')
+        self.editing_instructions.setObjectName('editingInstructions')
+        self.editing_instructions.setWordWrap(True)
+        layout.addWidget(self.editing_instructions, 0)
 
 
         panes = QSplitter(Qt.Orientation.Horizontal)
@@ -272,16 +277,20 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
 
         inspector = QWidget()
         inspector_layout = QVBoxLayout(inspector)
-        inspector_layout.addWidget(QLabel('Inspector — current selection'))
+        inspector_layout.addWidget(QLabel('Inspector — original/source save values'))
+        self.inspector_source_notice = QLabel('Details and Raw XML show the opened save, excluding staged changes. For example, a unit staged as Pioneer with 100 tools may still show source role=model.role.default and roleCount=0. Proposed values are listed in Staged Changes and written only by Save As.')
+        self.inspector_source_notice.setObjectName('inspectorSourceNotice')
+        self.inspector_source_notice.setWordWrap(True)
+        inspector_layout.addWidget(self.inspector_source_notice)
         self.inspector_label = QLabel('Select an individual row to inspect its attributes.')
         self.inspector_label.setWordWrap(True)
         inspector_layout.addWidget(self.inspector_label)
         self.details = InspectorDetails()
         self.inspector_tabs = QTabWidget()
-        self.inspector_tabs.addTab(self.details, 'Details')
+        self.inspector_tabs.addTab(self.details, 'Details (source)')
         self.raw_xml = QPlainTextEdit()
         self.raw_xml.setReadOnly(True)
-        self.inspector_tabs.addTab(self.raw_xml, 'Raw XML')
+        self.inspector_tabs.addTab(self.raw_xml, 'Raw XML (source)')
         inspector_layout.addWidget(self.inspector_tabs, 1)
         self.jump_colony_button = QPushButton('Open colony Goods →')
         self.jump_colony_button.setEnabled(False)
@@ -780,6 +789,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         model_decorations = {}
         model_tooltips = {}
         staged_cells = set()
+        role_cells = set()
         for row, (record, values) in enumerate(rows):
             for col, value in enumerate(values):
                 icon = QIcon()
@@ -806,7 +816,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             icon = flag if not flag.isNull() else self.navigation_icons.icon(
                                 kind, nation_id=nation_id, native=native, size=20)
                         elif self.group == 'Units':
-                            icon = self.unit_icons.icon(record.get('unitType'), role=record.get('role'))
+                            effective_role = self.session.staged_value(
+                                (record.get('id'), 'equipment'),
+                                (record.get('role', 'model.role.default'), 0))[0]
+                            icon = self.unit_icons.effective_icon(record.get('unitType'), effective_role)
                             if icon.isNull():
                                 icon = self.navigation_icons.icon('units', size=20)
                         elif self.group == 'National Goods':
@@ -822,6 +835,22 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                                 if not image.isNull() else self.navigation_icons.icon('colony', size=22))
                         else:
                             icon = self.navigation_icons.icon(kind, size=20)
+                if self.group == 'Units' and col == 4:
+                    actual_role = record.get('role', 'model.role.default')
+                    equipment_key = (record.get('id'), 'equipment')
+                    pending_equipment = self.session.is_changed(equipment_key)
+                    effective_role = self.session.staged_value(
+                        equipment_key, (actual_role, 0))[0]
+                    marker = equipment_marker(actual_role, pending_equipment)
+                    if marker == 'staged':
+                        staged_cells.add((row, col))
+                        tooltip = ('STAGED equipment role: ' + str(effective_role) +
+                                   ' | Source role: ' + str(actual_role) +
+                                   ' | Unit type: ' + str(record.get('unitType')))
+                    elif marker == 'equipped':
+                        role_cells.add((row, col))
+                        tooltip = ('Equipped role: ' + str(actual_role) +
+                                   ' | Unit type: ' + str(record.get('unitType')))
                 if self.group == 'Native settlements' and col == 5:
                     from qt_goods_icons import goods_key
                     names = [part.strip() for part in str(value or '').split(',')]
@@ -850,7 +879,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                     model_decorations[(row, col)] = icon
                 if tooltip:
                     model_tooltips[(row, col)] = tooltip
-        self.record_model.set_presentation(model_decorations, model_tooltips, staged_cells)
+        self.record_model.set_presentation(model_decorations, model_tooltips, staged_cells, role_cells)
         apply_record_view_sizing(self.model_view, self.group)
         self.model_view.resizeColumnsToContents()
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
@@ -974,7 +1003,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             ('FreeCol identifier', element.get('id'))])
         elif self.group == 'Players':
             summary.extend([('Nation', presentation.short(element.get('nationId'))),
-                            ('Gold', str(self.session.staged_value((element.get('id'), 'gold'), element.get('gold')))), ('Tax', None if element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648' else str(self.session.staged_value((element.get('id'), 'tax'), element.get('tax')))),
+                            ('Gold', str(element.get('gold'))), ('Tax', None if element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648' else str(element.get('tax'))),
                             ('AI controlled', element.get('ai'))])
         elif self.group == 'Colonies':
             summary.extend([('Owner', doc.owner_name(element.get('owner'))),

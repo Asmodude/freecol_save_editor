@@ -2,6 +2,8 @@
 
 The source summary remains authoritative; this widget changes presentation only.
 """
+from qt_stage_controls import StageChangeButton, style_stage_choice
+from qt_equipment_editor import EquipmentEditor
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPixmap
 from PySide6.QtWidgets import (
@@ -235,7 +237,8 @@ class OverviewPanel(QWidget):
                             index = selector.findData(proposed)
                             if index >= 0:
                                 selector.setCurrentIndex(index)
-                            button = QPushButton('✎', value)
+                            style_stage_choice(selector, self._session.is_changed((sid, 'learnableSkill')))
+                            button = StageChangeButton(value)
                             button.setObjectName('stageNativeLearnableSkill')
                             button.setEnabled(index >= 0)
                             button.setToolTip('Stage a skill actually taught in the opened save')
@@ -246,111 +249,8 @@ class OverviewPanel(QWidget):
                             layout.addWidget(button)
                         elif (self._group == 'Units' and key == 'Role' and self._record is not None
                                 and self._document is not None and self._session is not None):
-                            uid = self._record.get('id')
-                            original_role = self._record.get('role', 'model.role.default')
-                            original_count = int(self._record.get('roleCount', '1'))
-                            staged_role, staged_count = self._session.staged_value(
-                                (uid, 'equipment'), (original_role, original_count))
-                            value = QWidget()
-                            edit_layout = QHBoxLayout(value)
-                            edit_layout.setContentsMargins(0, 0, 0, 0)
-                            selector = WheelSafeComboBox(value)
-                            selector.setObjectName('unitEquipmentRole')
-                            for candidate in ROLES:
-                                # Validate against the opened-save unit and ruleset.
-                                try:
-                                    validate_equipment(self._document.root, self._record, candidate,
-                                                       0 if candidate == 'model.role.default' else 1)
-                                except (ValueError, TypeError):
-                                    continue
-                                selector.addItem({
-                                    'model.role.default': 'Unequipped colonist',
-                                    'model.role.soldier': 'Arm as Soldier',
-                                    'model.role.dragoon': 'Equip as Dragoon',
-                                    'model.role.scout': 'Equip as Scout',
-                                    'model.role.pioneer': 'Equip with Tools (Pioneer)',
-                                }.get(candidate, candidate.rsplit('.', 1)[-1].title()), candidate)
-                            count = WheelSafeSpinBox(value)
-                            count.setObjectName('unitEquipmentCount')
-                            def sync_count(index, selector=selector, count=count, doc=self._document):
-                                role_id = selector.itemData(index)
-                                roles = [r for r in doc.root.iter('role') if r.get('id') == role_id]
-                                limit = int(roles[0].get('maximum-count', '1')) if len(roles) == 1 else 1
-                                if role_id == 'model.role.default':
-                                    count.setRange(0, 0)
-                                else:
-                                    count.setRange(1, max(1, limit))
-                                if role_id == 'model.role.pioneer':
-                                    count.setValue(min(5, max(1, limit)))
-                                count.setEnabled(limit > 1)
-                                count.setVisible(role_id == 'model.role.pioneer')
-                                count.setToolTip('Pioneer: 1–5 means 20–100 tools' if role_id == 'model.role.pioneer'
-                                                 else 'Equipment count defined by the save ruleset')
-                            selector.currentIndexChanged.connect(sync_count)
-                            tools_label = QLabel('', value)
-                            tools_label.setObjectName('pioneerToolQuantity')
-                            def sync_tools(*_args, selector=selector, count=count, label=tools_label):
-                                label.setText({
-                                    'model.role.default': 'No equipment',
-                                    'model.role.soldier': '50 muskets',
-                                    'model.role.dragoon': '50 muskets + 50 horses',
-                                    'model.role.scout': '50 horses',
-                                    'model.role.pioneer': f'{count.value() * 20} tools',
-                                }.get(selector.currentData(), ''))
-                            selector.currentIndexChanged.connect(sync_tools)
-                            count.valueChanged.connect(sync_tools)
-                            chosen = selector.findData(staged_role)
-                            # Hardy Pioneer default equipment naturally suggests Pioneer.
-                            if (not self._session.is_changed((uid, 'equipment'))
-                                    and original_role == 'model.role.default'
-                                    and 'hardypioneer' in (self._record.get('unitType') or '').lower()):
-                                pioneer = selector.findData('model.role.pioneer')
-                                if pioneer >= 0:
-                                    chosen = pioneer
-                            if chosen >= 0:
-                                selector.setCurrentIndex(chosen)
-                                sync_count(chosen)
-                                count.setValue(staged_count if staged_role == selector.currentData() else
-                                               min(5, count.maximum()) if selector.currentData() == 'model.role.pioneer' else 1)
-                            else:
-                                selector.setEnabled(False)
-                                count.setEnabled(False)
-                                selector.setToolTip('No eligible roles can be verified from the saved ruleset')
-                            button = QPushButton('✎', value)
-                            button.setObjectName('stageUnitEquipment')
-                            button.setToolTip('Stage role and equipment together; warehouse stock is unchanged')
-                            button.setEnabled(chosen >= 0)
-                            button.clicked.connect(
-                                lambda checked=False, rid=uid, choose=selector, qty=count:
-                                self.equipment_requested.emit(rid, choose.currentData(), qty.value()))
-                            status = QLabel(value)
-                            status.setObjectName('unitEquipmentStatus')
-                            pending = self._session.is_changed((uid, 'equipment'))
-                            def update_status(_ignored=None, chooser=selector, amount=count, label=status,
-                                              planned=(staged_role, staged_count), base=original_role,
-                                              pending=pending):
-                                choice = (chooser.currentData(), amount.value())
-                                friendly = lambda role: role.rsplit('.', 1)[-1].title()
-                                if choice != planned:
-                                    label.setText('Not staged')
-                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' +
-                                                     friendly(planned[0]) + '; current choice not staged')
-                                elif pending:
-                                    label.setText('Staged')
-                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' + friendly(planned[0]))
-                                else:
-                                    label.setText('')
-                                    label.setToolTip('Original: ' + friendly(base))
-                                button.setEnabled(choice[0] is not None)
-                            selector.currentIndexChanged.connect(update_status)
-                            count.valueChanged.connect(update_status)
-                            sync_tools()
-                            update_status()
-                            edit_layout.addWidget(selector, 2)
-                            edit_layout.addWidget(count, 1)
-                            edit_layout.addWidget(tools_label)
-                            edit_layout.addWidget(status)
-                            edit_layout.addWidget(button)
+                            value = EquipmentEditor(self._document, self._record, self._session, context='overview')
+                            value.stage_requested.connect(self.equipment_requested.emit)
                         elif editable_numeric:
                             record_id = self._record.get('id')
                             original = self._record.get(source_field)
@@ -377,23 +277,23 @@ class OverviewPanel(QWidget):
                                 original_label.setObjectName('inline' + numeric_field.title() + 'Original')
                                 original_label.setToolTip('Value in opened save')
                                 edit_layout.addWidget(original_label)
-                            button = QPushButton('✎')
+                            button = StageChangeButton()
                             button.setObjectName('stageInline' + numeric_field.title())
-                            button.setFixedWidth(30)
+                            button.setMinimumWidth(button.sizeHint().width())
                             button.setToolTip('Stage this value (or press Enter)')
                             if numeric_field == 'movesLeft':
                                 # A typed value is only a candidate until Enter/Stage is pressed.
                                 # Explicitly flag it so the Overview cannot look committed
                                 # while the table and exported XML still contain the staged value.
-                                button.setText('Stage')
-                                button.setFixedWidth(54)
+                                button.setText('Stage Change')
+                                button.setMinimumWidth(button.sizeHint().width())
                                 status = QLabel('')
                                 status.setObjectName('inlineMovesLeftStageStatus')
                                 committed = str(displayed)
                                 def movement_stage_status(text, label=status, saved=committed):
                                     dirty = text != saved
                                     label.setText('Not staged' if dirty else '')
-                                    label.setToolTip('Press Enter or Stage to include this movement value in the export' if dirty else '')
+                                    label.setToolTip('Press Enter or Stage Change to include this movement value in the export' if dirty else '')
                                 field.textChanged.connect(movement_stage_status)
                                 edit_layout.addWidget(status)
                             field.returnPressed.connect(
@@ -414,7 +314,11 @@ class OverviewPanel(QWidget):
                         nation = (owner.get('nationId') or owner.get('nation')) if owner is not None else None
                         owner_flag = flag_pixmap(nation, 15) if nation else QPixmap()
                         good = self.goods_icons.icon(key, 23) if goods_key(key) else None
-                        unit_image = (self.unit_icons.icon(self._record.get('unitType'), 19)
+                        unit_image = (self.unit_icons.effective_icon(
+                            self._record.get('unitType'),
+                            self._session.staged_value((self._record.get('id'), 'equipment'),
+                                (self._record.get('role', 'model.role.default'), 0))[0]
+                            if self._session is not None else self._record.get('role'), 19)
                                       if key == 'Type' and self._group == 'Units'
                                       and self._record is not None else None)
                         icon_label.setPixmap(unit_image.pixmap(19, 19) if unit_image is not None and not unit_image.isNull() else

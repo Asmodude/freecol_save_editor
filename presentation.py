@@ -19,6 +19,22 @@ def readable(value):
     return re.sub(r'(?<!^)(?=[A-Z])',' ',value).replace('_',' ').title()
 
 
+ROLE_LABELS = {
+    'model.role.default': 'Unequipped colonist',
+    'model.role.soldier': 'Soldier (50 muskets)',
+    'model.role.dragoon': 'Dragoon (50 muskets, 50 horses)',
+    'model.role.scout': 'Scout (50 horses)',
+    'model.role.pioneer': 'Pioneer (tools)',
+}
+
+def equipment_description(role, count):
+    """Human-readable equipment quantity without exposing internal tuples."""
+    label = readable(role)
+    if role == 'model.role.pioneer':
+        return f'{label} — {int(count) * 20} tools (roleCount: {count})'
+    return f'{label} (roleCount: {count})'
+
+
 def experience_towards(attrs):
     goods=(attrs.get('experienceType') or '')
     if not goods:
@@ -41,7 +57,8 @@ def owner_name(key, doc):
 
 
 def loc_name(key, doc):
-    return location_label(key, doc.locations, doc.tiles, doc.colony_tile_names, doc.unit_locations)
+    return location_label(key, doc.locations, doc.tiles, doc.colony_tile_names, doc.unit_locations,
+                          buildings=getattr(doc, 'colony_building_names', {}))
 
 
 def effective_unit_moves(unit, doc, session):

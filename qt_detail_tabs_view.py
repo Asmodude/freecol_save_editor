@@ -2,6 +2,8 @@
 
 Extracted unchanged from the accepted Qt Explorer during Phase 2A.
 """
+from qt_stage_controls import StageChangeButton
+from qt_equipment_editor import EquipmentEditor
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel, QComboBox, QSpinBox
 from equipment_rules import ROLES, validate_equipment
@@ -11,6 +13,7 @@ from qt_settlement_details import settlement_units
 from qt_diplomacy import settlement_alarm_rows
 from qt_national_goods import colony_goods_breakdown, transported_goods_breakdown
 from qt_sortable_item import SortableItem
+from qt_unit_icons import authoritative_unit_type
 from qt_sorting import NUMERIC_DETAIL_COLUMNS
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
@@ -68,8 +71,13 @@ class DetailTabsMixin:
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     if col == 1 and name in ('Workers', 'Stationed units', 'Affiliated units', 'In transit'):
                         unit = self.document.unit_by_id(values[0]) if name in ('Workers', 'Stationed units') else None
-                        role = unit.get('role') if unit is not None else None
-                        icon = self.unit_icons.icon(value, role=role)
+                        role = (self.session.staged_value((unit.get('id'), 'equipment'),
+                                (unit.get('role', 'model.role.default'), 0))[0]
+                                if unit is not None else None)
+                        # The table cell is a human-readable label. Manifest keys require
+                        # the authoritative model.unit.* identifier instead.
+                        unit_type = authoritative_unit_type(unit, value)
+                        icon = self.unit_icons.effective_icon(unit_type, role)
                         if not icon.isNull():
                             item.setIcon(icon)
                     if col == 0 and name == 'Goods':
@@ -98,9 +106,9 @@ class DetailTabsMixin:
                                            '; border-radius: 3px; padding: 2px; background: ' +
                                            ('#E5F5E9' if staged else '#EDF5FF') +
                                            '; color: #172B45; }')
-                        button = QPushButton('✎', holder)
+                        button = StageChangeButton(holder)
                         button.setObjectName('stageColonyGoods')
-                        button.setFixedWidth(25)
+                        button.setMinimumWidth(button.sizeHint().width())
                         button.setToolTip('Stage this goods amount')
                         valid_store = colony.find('./goodsContainer/storedGoods') is not None
                         edit.setEnabled(valid_store)
@@ -136,9 +144,9 @@ class DetailTabsMixin:
                             edit.setObjectName('nativeSettlementAlarm')
                             edit.setProperty('relationshipKey', (sid, field))
                             edit.setToolTip('Directional alarm for ' + target)
-                            button = QPushButton('✎', holder)
+                            button = StageChangeButton(holder)
                             button.setObjectName('stageSettlementAlarm')
-                            button.setFixedWidth(25)
+                            button.setMinimumWidth(button.sizeHint().width())
                             edit.returnPressed.connect(
                                 lambda sid=sid, field=field, edit=edit:
                                 self.stage_relation(sid, field, edit.text()))
@@ -154,90 +162,9 @@ class DetailTabsMixin:
                         uid = values[0]
                         unit = self.document.unit_by_id(uid)
                         if unit is not None and hasattr(self.document, 'root'):
-                            original_role = unit.get('role', 'model.role.default')
-                            original_count = int(unit.get('roleCount', '1'))
-                            current_role, current_count = self.session.staged_value(
-                                (uid, 'equipment'), (original_role, original_count))
-                            holder = QWidget(table)
-                            layout = QHBoxLayout(holder)
-                            layout.setContentsMargins(2, 1, 2, 1)
-                            layout.setSpacing(3)
-                            selector = WheelSafeComboBox(holder)
-                            selector.setObjectName('stationedEquipmentRole')
-                            selector.setProperty('unitId', uid)
-                            names = {
-                                'model.role.default': 'Unequipped',
-                                'model.role.soldier': 'Soldier (50 muskets)',
-                                'model.role.dragoon': 'Dragoon (50 muskets, 50 horses)',
-                                'model.role.scout': 'Scout (50 horses)',
-                                'model.role.pioneer': 'Pioneer (tools)',
-                            }
-                            for candidate in ROLES:
-                                try:
-                                    validate_equipment(self.document.root, unit, candidate,
-                                                       0 if candidate == 'model.role.default' else 1)
-                                except (ValueError, TypeError):
-                                    continue
-                                selector.addItem(names.get(candidate, candidate), candidate)
-                            count = WheelSafeSpinBox(holder)
-                            count.setObjectName('stationedEquipmentTools')
-                            def sync_role(_index, chooser=selector, amount=count, document=self.document):
-                                role = chooser.currentData()
-                                matches = [r for r in document.root.iter('role') if r.get('id') == role]
-                                limit = int(matches[0].get('maximum-count', '1')) if len(matches) == 1 else 1
-                                if role == 'model.role.default':
-                                    amount.setRange(0, 0)
-                                else:
-                                    amount.setRange(1, max(1, limit))
-                                if role == 'model.role.pioneer':
-                                    amount.setValue(min(5, max(1, limit)))
-                                amount.setVisible(role == 'model.role.pioneer')
-                                amount.setEnabled(limit > 1)
-                                amount.setSuffix(' × 20 tools' if role == 'model.role.pioneer' else '')
-                            selector.currentIndexChanged.connect(sync_role)
-                            index = selector.findData(current_role)
-                            if index >= 0:
-                                selector.setCurrentIndex(index)
-                                sync_role(index)
-                                count.setValue(current_count)
-                            else:
-                                selector.setEnabled(False)
-                            button = QPushButton('✎', holder)
-                            button.setObjectName('stageStationedEquipment')
-                            button.setFixedWidth(25)
-                            button.setEnabled(index >= 0)
-                            button.setToolTip('Stage this unit equipment; no warehouse stock is consumed')
-                            button.clicked.connect(
-                                lambda checked=False, uid=uid, chooser=selector, amount=count:
-                                self.stage_unit_equipment(uid, chooser.currentData(), amount.value()))
-                            status = QLabel(holder)
-                            status.setObjectName('stationedEquipmentStatus')
-                            staged = self.session.is_changed((uid, 'equipment'))
-                            def update_status(_ignored=None, chooser=selector, qty=count, label=status,
-                                              planned=current_role, planned_count=current_count,
-                                              base=original_role, staged=staged):
-                                intended = chooser.currentData()
-                                candidate = (intended, qty.value())
-                                committed = (planned, planned_count)
-                                friendly = lambda role: role.rsplit('.', 1)[-1].title()
-                                if candidate != committed:
-                                    label.setText('Not staged')
-                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' +
-                                                     friendly(planned) + '; this selection is not staged')
-                                elif staged:
-                                    label.setText('Staged')
-                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' + friendly(planned))
-                                else:
-                                    label.setText('')
-                                    label.setToolTip('Original: ' + friendly(base))
-                                button.setEnabled(intended is not None)
-                            selector.currentIndexChanged.connect(update_status)
-                            count.valueChanged.connect(update_status)
-                            update_status()
-                            layout.addWidget(selector, 1)
-                            layout.addWidget(count)
-                            layout.addWidget(status)
-                            layout.addWidget(button)
+                            holder = EquipmentEditor(self.document, unit, self.session,
+                                                     context='stationed', parent=table)
+                            holder.stage_requested.connect(self.stage_unit_equipment)
                             item.setData(SortableItem.SourceSortRole, value)
                             item.setText('')
                             table.setCellWidget(row, col, holder)
@@ -267,9 +194,9 @@ class DetailTabsMixin:
                                 '; border-radius: 3px; padding: 2px; background: ' +
                                 ('#E5F5E9' if staged else '#EDF5FF') +
                                 '; color: #172B45; }')
-                            button = QPushButton('✎', holder)
+                            button = StageChangeButton(holder)
                             button.setObjectName('stageWorkerExperience')
-                            button.setFixedWidth(25)
+                            button.setMinimumWidth(button.sizeHint().width())
                             button.setToolTip('Stage this worker experience')
                             edit.returnPressed.connect(
                                 lambda uid=uid, editor=edit: self.stage_overview_edit(uid, 'experience', editor.text()))

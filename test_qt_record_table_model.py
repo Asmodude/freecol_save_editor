@@ -14,6 +14,20 @@ class RecordModelTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
+    def test_equipped_role_has_distinct_visual_state_from_staged_edit(self):
+        unit = Element('unit', {'id': 'unit:1'})
+        model = RecordTableModel(('ID', 'Role'), ((unit, ('unit:1', 'soldier')),))
+        model.set_presentation(role_cells={(0, 1)})
+        equipped_font = model.data(model.index(0, 1), Qt.ItemDataRole.FontRole)
+        self.assertTrue(equipped_font.bold())
+        self.assertFalse(equipped_font.italic())
+        equipped_color = model.data(model.index(0, 1), Qt.ItemDataRole.BackgroundRole)
+        model.set_presentation(staged_cells={(0, 1)})
+        staged_font = model.data(model.index(0, 1), Qt.ItemDataRole.FontRole)
+        staged_color = model.data(model.index(0, 1), Qt.ItemDataRole.BackgroundRole)
+        self.assertTrue(staged_font.italic())
+        self.assertNotEqual(equipped_color, staged_color)
+
     def test_staged_background_distinguishes_field_and_resets(self):
         from PySide6.QtCore import Qt
         from xml.etree.ElementTree import Element

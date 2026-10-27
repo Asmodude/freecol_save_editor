@@ -3,6 +3,7 @@
 This read-only mixin keeps the approved two-table (rivals / native nations)
 presentation while isolating it from the main window.
 """
+from qt_stage_controls import StageChangeButton, style_stage_choice
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QComboBox, QLabel
 from qt_navigation import rows_for_scope
@@ -57,13 +58,14 @@ class DiplomacyViewMixin:
                             for choice in ('peace', 'war', 'cease_fire', 'alliance'):
                                 editor.addItem(choice.replace('_', ' ').title(), choice)
                             editor.setCurrentIndex(editor.findData(selected))
+                            style_stage_choice(editor, staged)
                         else:
                             editor = QLineEdit(str(selected), holder)
                             editor.setObjectName('diplomacyTension')
                         editor.setProperty('relationshipKey', (owner, field))
-                        button = QPushButton('✎', holder)
+                        button = StageChangeButton(holder)
                         button.setObjectName('stageDiplomacyRelation')
-                        button.setFixedWidth(25)
+                        button.setMinimumWidth(button.sizeHint().width())
                         button.clicked.connect(
                             lambda checked=False, oid=owner, fld=field, inp=editor:
                             self.stage_relation(oid, fld, inp.currentData()
@@ -98,13 +100,8 @@ class DiplomacyViewMixin:
         self.selected_element = element
         self.inspector_label.setText(element.get('nation','Diplomacy'))
         owner_id, other_id = element.get('owner'), element.get('other')
-        stance = self.session.staged_value(
-            (owner_id, 'stance|' + other_id), element.get('stance'))
-        if not self.session.is_changed((owner_id, 'stance|' + other_id)):
-            stance = self.session.staged_value(
-                (other_id, 'stance|' + owner_id), stance)
-        tension = self.session.staged_value(
-            (owner_id, 'tension|' + other_id), element.get('tension'))
+        stance = element.get('stance')
+        tension = element.get('tension')
         self.details.setPlainText(
             f"Category: {category}\nOther nation: {element.get('nation')}\n"
             f"Stance: {stance}\nTension: {tension}")

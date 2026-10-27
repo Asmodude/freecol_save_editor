@@ -66,6 +66,20 @@ Maintain an explicit Tk → Qt parity checklist and test realistic combinations 
 
 **Checkpoint:** every currently accepted *non-destructive* Tk edit is matched and verified in Qt.
 
+## Phase 2D approved addendum — 27 October 2026 (supersedes original 2D sequencing)
+
+**User APPROVED the independently reviewed Phase 2D implementation plan and PySide6-first principle.** See `docs/PHASE2D_IMPLEMENTATION_PLAN.md` for the authoritative detailed requirements and `docs/PHASE2D_INDEPENDENT_REVIEW.md` for Claude's findings. This acceptance is **plan only**; no software milestone or merge has been approved.
+
+- **Qt-first:** All new GUI functionality targets PySide6 (Lady Philippa Y. Side VI). Core save/edit/validation/deletion facilities remain UI-independent. Tkinter (Sir Thorwald) is frozen except necessary fixes to preserve accepted functionality; no new Tk features or Qt compromises for Tk.
+- **2D-1 first:** UX clarity (Stage Change buttons, always-visible instructions, source-only Inspector/Raw XML) *with* shared Qt inline-editor/equipment components, keyboard/accessibility and focused behavioural testing.
+- **2D-0 mandatory hard gate:** Before **2D-2 or any new deletion UI**, fix self-closing XML tag span corruption and add robust exact-removal/survivor integrity verification; prohibit the last colony inhabitant's deletion across the entire staged set; converge native-unit deletion paths and provide an impact planner. 2D-0 may proceed independently alongside 2D-1.
+- **Before deletion UI:** unify checked staging and edit-set validation safely, preserving accepted Tk semantics; Qt deletion must always preflight the whole staged set. Build owner-specific impact/confirmation (Cancel default), explicit refusals, consistent staged markers and undo; enforce visually separate destructive controls (O5).
+- **2D-2:** deletion for supported human, rival European and native units, fail-closed on unsupported dependencies and locations.
+- **2D-3:** safe native settlement deletion parity with existing mixed-owner and cached-missionary refusals.
+- **2D-4:** mandatory human and rival European colony deletion on a **separate branch and review/acceptance gate**, preceded by a written, independently reviewed dependency matrix grounded in real saves and FreeCol code.
+- **Efficiency:** focused consolidation only, including shared Qt editors and parse reuse before 2D-4; broad architectural clean-up remains in 0.9.0. No regression or weakening of save integrity.
+- **Governance:** CI, independent review where appropriate, user Windows/FreeCol tests, explicit acceptance and separate merge/tag/branch-deletion approvals. Cached missionary fix remains deferred past 1.0 on request.
+
 ## 2D — Cross-owner deletions and colony dependency safety
 
 **In mandatory scope:**

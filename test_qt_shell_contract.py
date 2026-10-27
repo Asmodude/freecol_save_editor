@@ -58,7 +58,7 @@ class QtShellContractTests(unittest.TestCase):
     def test_workspace_rows_keep_identity_with_icons(self):
         self.assertIn("if col == 0 and self.group != 'Founding Fathers':", self.source)
         self.assertIn("model_decorations[(row, col)] = icon", self.source)
-        self.assertIn("self.record_model.set_presentation(model_decorations, model_tooltips, staged_cells)", self.source)
+        # Role/staged presentation is covered by behavioural RecordTableModel tests.
         self.assertIn("self.model_view = build_record_table_view", self.source)
 
     def test_final_unit_rows_and_navigation_cleanup(self):
