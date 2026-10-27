@@ -27,6 +27,12 @@ class RoleArtworkTests(unittest.TestCase):
             self.assertFalse(icon.isNull())
             local.assert_called_once_with('pioneer')
 
+    def test_hardy_pioneer_keeps_expert_sprite_even_with_pioneer_role(self):
+        icons = UnitIcons(source=(None, None, '', None))
+        with patch.object(icons, 'icon', return_value=QIcon()) as artwork:
+            icons.effective_icon('model.unit.hardyPioneer', 'model.role.pioneer')
+            artwork.assert_called_once_with('model.unit.hardyPioneer', size=23)
+
     def test_missing_role_art_reverts_to_type_with_role(self):
         icons = UnitIcons(source=(None, None, '', None))
         with patch.object(icons, '_local_image', return_value=None), \
