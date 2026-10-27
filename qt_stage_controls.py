@@ -22,5 +22,8 @@ def style_stage_choice(combo, staged=False):
     combo.setStyleSheet(
         'QComboBox { border: 2px solid ' + border +
         '; border-radius: 3px; padding: 2px; background: ' +
-        background + '; color: #172B45; }'
+        background + '; color: #172B45; }' +
+        'QComboBox:disabled { border: 1px solid #9CA3AF;'
+        ' background: #E5E7EB; color: #6B7280; }' +
+        'QComboBox:focus { border: 2px solid #155EEF; }'
     )
