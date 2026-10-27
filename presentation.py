@@ -41,7 +41,8 @@ def owner_name(key, doc):
 
 
 def loc_name(key, doc):
-    return location_label(key, doc.locations, doc.tiles, doc.colony_tile_names, doc.unit_locations)
+    return location_label(key, doc.locations, doc.tiles, doc.colony_tile_names, doc.unit_locations,
+                          buildings=getattr(doc, 'colony_building_names', {}))
 
 
 def effective_unit_moves(unit, doc, session):
