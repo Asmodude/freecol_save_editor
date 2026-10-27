@@ -29,7 +29,8 @@ class NationalLibertyTests(unittest.TestCase):
     def test_national_liberty_edit_is_staged_and_source_immutable(self):
         session = EditSession()
         player = next(ET.fromstring(_XML).iter('player'))
-        self.assertIn('liberty', EditSession.editable_fields('Players', player))
+        # Legacy Tk permissions remain unchanged; this is a Qt-only control.
+        self.assertNotIn('liberty', EditSession.editable_fields('Players', player))
         key = ('player:1', 'liberty')
         new = session.validate(key, '1300', original=1234)
         stage_checked(session, _XML, key, 1234, new)
