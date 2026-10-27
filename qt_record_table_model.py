@@ -40,7 +40,7 @@ class RecordTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.DecorationRole:
             return self._decorations.get((index.row(), index.column()))
         if role == Qt.ItemDataRole.BackgroundRole and (index.row(), index.column()) in self._staged_cells:
-            return QColor('#DCEEFF')
+            return QColor('#E5F5E9')
         if role == Qt.ItemDataRole.BackgroundRole and (index.row(), index.column()) in self._role_cells:
             return QColor('#FFF0C9')
         if role == Qt.ItemDataRole.FontRole and (index.row(), index.column()) in self._role_cells:
