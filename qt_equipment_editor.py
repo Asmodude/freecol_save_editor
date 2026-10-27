@@ -125,3 +125,5 @@ class EquipmentEditor(QWidget):
             self.selector.setToolTip('No eligible roles can be verified from the saved ruleset')
             self.button.setEnabled(False)
         update_display()
+        if self.selector.count() == 1 and self.selector.itemData(0) == 'model.role.default':
+            self.button.setEnabled(False)
