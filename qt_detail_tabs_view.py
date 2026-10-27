@@ -73,7 +73,10 @@ class DetailTabsMixin:
                         role = (self.session.staged_value((unit.get('id'), 'equipment'),
                                 (unit.get('role', 'model.role.default'), 0))[0]
                                 if unit is not None else None)
-                        icon = self.unit_icons.effective_icon(value, role)
+                        # The table cell is a human-readable label. Manifest keys require
+                        # the authoritative model.unit.* identifier instead.
+                        unit_type = unit.get('unitType') if unit is not None else value
+                        icon = self.unit_icons.effective_icon(unit_type, role)
                         if not icon.isNull():
                             item.setIcon(icon)
                     if col == 0 and name == 'Goods':
