@@ -10,21 +10,21 @@ class NumericStageEditor(QWidget):
 
     def __init__(self, value, original, *, staged=False, object_name='numericInput',
                  button_name='stageNumeric', tooltip='', label_tooltip='Value in opened save',
-                 margins=(2, 1, 2, 1), spacing=3, status_name=None, parent=None):
+                 margins=(2, 1, 2, 1), spacing=3, status_name=None, compact_source=False, parent=None):
         super().__init__(parent)
         self._committed = str(value)
         line = QHBoxLayout(self)
         line.setContentsMargins(*margins)
         line.setSpacing(spacing)
         self.original_label = None
-        if staged:
+        if staged and not compact_source:
             self.original_label = QLabel('was ' + str(original), self)
             self.original_label.setObjectName(object_name + 'Original')
             self.original_label.setToolTip(label_tooltip)
             line.addWidget(self.original_label)
         self.edit = QLineEdit(self._committed, self)
         self.edit.setObjectName(object_name)
-        self.edit.setToolTip(tooltip)
+        self.edit.setToolTip(tooltip + ('; source value: ' + str(original) if staged and compact_source else ''))
         self.edit.setStyleSheet(
             'QLineEdit { border: 2px solid ' + ('#26815A' if staged else '#76A9E8') +
             '; border-radius: 3px; padding: 2px; background: ' +
