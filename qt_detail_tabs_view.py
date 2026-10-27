@@ -189,6 +189,8 @@ class DetailTabsMixin:
                                     amount.setRange(0, 0)
                                 else:
                                     amount.setRange(1, max(1, limit))
+                                if role == 'model.role.pioneer':
+                                    amount.setValue(min(5, max(1, limit)))
                                 amount.setVisible(role == 'model.role.pioneer')
                                 amount.setEnabled(limit > 1)
                                 amount.setSuffix(' × 20 tools' if role == 'model.role.pioneer' else '')
