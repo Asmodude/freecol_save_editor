@@ -789,7 +789,6 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         if self.group == 'Founding Fathers':
             # National Father progress is the owning player's liberty points,
             # not summed Bells in any warehouse.
-            from qt_navigation import human_player_id
             pid = (human_player_id(doc) if self.scope == 'mine'
                    else self.scope[len('player:'):] if self.scope.startswith('player:') else None)
             progress_suffix = ''
