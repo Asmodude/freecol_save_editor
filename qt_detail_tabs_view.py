@@ -70,8 +70,10 @@ class DetailTabsMixin:
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     if col == 1 and name in ('Workers', 'Stationed units', 'Affiliated units', 'In transit'):
                         unit = self.document.unit_by_id(values[0]) if name in ('Workers', 'Stationed units') else None
-                        role = unit.get('role') if unit is not None else None
-                        icon = self.unit_icons.icon(value, role=role)
+                        role = (self.session.staged_value((unit.get('id'), 'equipment'),
+                                (unit.get('role', 'model.role.default'), 0))[0]
+                                if unit is not None else None)
+                        icon = self.unit_icons.effective_icon(value, role)
                         if not icon.isNull():
                             item.setIcon(icon)
                     if col == 0 and name == 'Goods':
