@@ -5,7 +5,7 @@ It preserves source-record identity independently of sorting/filtering and
 does not mutate records. Wiring it into views requires separate parity tests.
 """
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
-from PySide6.QtGui import QIcon, QColor
+from PySide6.QtGui import QIcon, QColor, QFont
 
 
 class RecordTableModel(QAbstractTableModel):
@@ -40,6 +40,11 @@ class RecordTableModel(QAbstractTableModel):
             return self._decorations.get((index.row(), index.column()))
         if role == Qt.ItemDataRole.BackgroundRole and (index.row(), index.column()) in self._staged_cells:
             return QColor('#DCEEFF')
+        if role == Qt.ItemDataRole.FontRole and (index.row(), index.column()) in self._staged_cells:
+            font = QFont()
+            font.setBold(True)
+            font.setItalic(True)
+            return font
         if role == Qt.ItemDataRole.ToolTipRole:
             return self._tooltips.get((index.row(), index.column()))
         if role == Qt.ItemDataRole.DisplayRole and 0 <= index.column() < len(values):
@@ -64,7 +69,8 @@ class RecordTableModel(QAbstractTableModel):
         if self.rowCount() and self.columnCount():
             self.dataChanged.emit(self.index(0, 0),
                                   self.index(self.rowCount()-1, self.columnCount()-1),
-                                  [Qt.ItemDataRole.DecorationRole, Qt.ItemDataRole.ToolTipRole])
+                                  [Qt.ItemDataRole.DecorationRole, Qt.ItemDataRole.ToolTipRole,
+                                   Qt.ItemDataRole.BackgroundRole, Qt.ItemDataRole.FontRole])
 
     def replace_rows(self, rows, headings=None):
         self.beginResetModel()

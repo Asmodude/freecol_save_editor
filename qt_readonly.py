@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 from save_document import SaveDocument
 from edit_session import EditSession, EditValidationError
+from edit_preflight import stage_checked
 from qt_staged_changes_panel import StagedChangesPanel
 import presentation
 from qt_navigation import rows_for_scope, human_player_id
@@ -67,7 +68,7 @@ HEADERS = {
     'Native settlements': ('ID','Name','Owner','Location','Learnable skill','Wanted goods'),
     'Units': ('ID','Type','Owner','Location','Role','Experience toward','Experience','Moves left','Max moves','Hit points','State'),
     'Founding Fathers': ('Founding Father', 'Status'),
-    'National Goods': ('Goods', 'Total in colonies', 'Colonies with stock'),
+    'National Goods': ('Goods', 'Source → proposed total', 'Colonies with source stock'),
     'Game properties': ('Source', 'Property', 'Saved value'),
     'Diplomacy': ('Category', 'Other nation', 'Relationship', 'Saved value'),
 }
@@ -243,6 +244,8 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.overview = OverviewPanel()
         self.tabs.addTab(self.overview, 'Overview')
         self.overview.edit_requested.connect(self.stage_overview_edit)
+        self.overview.equipment_requested.connect(self.stage_unit_equipment)
+        self.overview.skill_requested.connect(self.stage_native_skill)
         self.colony_tables = {}
         for name in ('Buildings', 'Workers', 'Stationed units', 'Goods', 'Affiliated units', 'Alarm', 'By colony', 'In transit'):
             table = QTableWidget()
@@ -295,7 +298,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.unit_xml_button.clicked.connect(
             lambda: self.inspector_tabs.setCurrentWidget(self.raw_xml))
         inspector_layout.addWidget(self.unit_xml_button)
-        self.inspector_hint = QLabel('Player gold supports staged editing; other fields remain read-only')
+        self.inspector_hint = QLabel('Supported numeric values can be staged from Overview and colony Workers')
         inspector_layout.addWidget(self.inspector_hint)
         self.right_splitter = QSplitter(Qt.Orientation.Vertical)
         self.right_splitter.setObjectName('inspectorPendingSplitter')
@@ -318,18 +321,168 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.install_navigation()
 
     def stage_overview_edit(self, record_id, field, raw_value):
-        if field != 'gold' or self.document is None:
+        if self.document is None:
             return
-        element = self.document.players.get(record_id)
-        if element is None or 'gold' not in EditSession.editable_fields('Players', element):
+        player_field = field in ('gold', 'tax')
+        unit_field = field in ('experience', 'movesLeft')
+        colony_field = field == 'sonsOfLibertyTarget'
+        if not (player_field or unit_field or colony_field):
             return
-        original = int(element.get('gold'))
+        element = (self.document.players.get(record_id) if player_field
+                   else next((colony for colony in self.document.colonies
+                              if colony.get('id') == record_id), None) if colony_field
+                   else self.document.unit_by_id(record_id))
+        group = 'Players' if player_field else 'Colonies' if colony_field else 'Units'
+        if element is None or (not colony_field and field not in EditSession.editable_fields(group, element)):
+            return
+        if player_field and field == 'tax' and (element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648'):
+            return
+        raw_original = element.get('sonsOfLiberty' if colony_field else field)
+        if not raw_original or not raw_original.isascii() or not raw_original.isdecimal():
+            return
+        original = int(raw_original)
         key = (record_id, field)
         try:
-            new = self.session.validate(key, raw_value, original=original)
-            self.session.stage(key, original, new)
+            # Backend preflight evaluates movesLeft against any staged role,
+            # whereas the existing EditSession numeric check uses source role.
+            if field == 'movesLeft':
+                raw = raw_value.strip()
+                if not raw.isascii() or not raw.isdecimal():
+                    raise EditValidationError('Invalid movement: enter a non-negative whole number.')
+                new = int(raw)
+            else:
+                new = self.session.validate(key, raw_value, original=original)
+            stage_checked(self.session, self.document.xml_bytes, key, original, new)
         except (EditValidationError, ValueError) as exc:
-            QMessageBox.warning(self, 'Cannot stage gold', str(exc))
+            QMessageBox.warning(self, 'Cannot stage ' + field, str(exc))
+            return
+        self.refresh_staged_view()
+
+    def stage_relation(self, owner_id, field, raw_value):
+        """Validate real saved relationship before stage; never create missing edges."""
+        if self.document is None or '|' not in field:
+            return
+        kind, other_id = field.split('|', 1)
+        if kind not in ('stance', 'tension', 'alarm'):
+            return
+        if kind == 'alarm':
+            owner = next((s for s in self.document.native_settlements if s.get('id') == owner_id), None)
+        else:
+            owner = self.document.players.get(owner_id)
+        if owner is None or other_id not in self.document.players:
+            return
+        relations = [r for r in owner.findall(kind) if r.get('player') == other_id]
+        if len(relations) != 1:
+            QMessageBox.warning(self, 'Cannot stage relationship', 'Relationship absent or not unique in original save')
+            return
+        previous = relations[0].get('value')
+        if previous is None:
+            return
+        key = (owner_id, field)
+        try:
+            original = previous if kind == 'stance' else int(previous)
+            new = self.session.validate(key, str(raw_value), original=original)
+            stage_checked(self.session, self.document.xml_bytes, key, original, new)
+        except (ValueError, EditValidationError) as exc:
+            QMessageBox.warning(self, 'Cannot stage relationship', str(exc))
+            return
+        self.refresh_staged_view()
+
+    def stage_native_skill(self, settlement_id, skill):
+        if self.document is None or skill not in self.document.professions:
+            return
+        settlement = next((item for item in self.document.native_settlements
+                           if item.get('id') == settlement_id), None)
+        if settlement is None or settlement.get('learnableSkill') is None:
+            return
+        key = (settlement_id, 'learnableSkill')
+        original = settlement.get('learnableSkill')
+        try:
+            proposed = self.session.validate(key, skill, original=original,
+                                             professions=self.document.professions)
+            stage_checked(self.session, self.document.xml_bytes, key, original, proposed)
+        except (ValueError, EditValidationError) as exc:
+            QMessageBox.warning(self, 'Cannot stage skill', str(exc))
+            return
+        self.refresh_staged_view()
+
+    def stage_colony_goods(self, colony_id, goods_type, raw_value):
+        """Edit a specific warehouse type identified by its full ruleset ID."""
+        if self.document is None:
+            return
+        colony = next((node for node in self.document.colonies
+                       if node.get('id') == colony_id), None)
+        if colony is None or goods_type not in self.document.goods_types:
+            return
+        stored = colony.find('./goodsContainer/storedGoods')
+        if stored is None:
+            QMessageBox.warning(self, 'Cannot stage goods', 'Colony has no storedGoods element')
+            return
+        found = [g for g in stored.findall('goods') if g.get('type') == goods_type]
+        if len(found) > 1:
+            QMessageBox.warning(self, 'Cannot stage goods', 'Duplicated goods type in colony')
+            return
+        original = int(found[0].get('amount')) if found else 0
+        key = (colony_id, goods_type)
+        try:
+            new = self.session.validate(key, raw_value, original=original)
+            stage_checked(self.session, self.document.xml_bytes, key, original, new)
+        except (ValueError, TypeError, EditValidationError) as exc:
+            QMessageBox.warning(self, 'Cannot stage goods', str(exc))
+            return
+        self.refresh_staged_view()
+
+    def stage_unit_equipment(self, unit_id, role, count):
+        """Stage composite equipment through the shared backend preflight."""
+        if self.document is None:
+            return
+        unit = self.document.unit_by_id(unit_id)
+        if unit is None or role is None:
+            return
+        from equipment_rules import validate_equipment
+        if role == 'model.role.default': count = 0
+        original = (unit.get('role', 'model.role.default'), int(unit.get('roleCount', '1')))
+        try:
+            if (unit_id, 'deleteUnit') in self.session.edits or any(
+                    k[1] == 'deleteNativeUnit' and k[0].split('|')[0] == unit_id
+                    for k in self.session.edits):
+                raise ValueError('Unit already staged for deletion')
+            validate_equipment(self.document.root, unit, role, count)
+            from edit_backend import proportional_movement
+            from edit_preflight import preflight
+            from movement_rules import movement_cap
+            from xml.etree.ElementTree import Element
+            old_cap = movement_cap(self.document.root, Element('unit',
+                               dict(unit.attrib, role=original[0], roleCount=str(original[1]))))
+            prior_role = self.session.staged_value((unit_id, 'equipment'), original)[0]
+            prior_cap = movement_cap(self.document.root, Element('unit',
+                               dict(unit.attrib, role=prior_role)))
+            new_cap = movement_cap(self.document.root, Element('unit',
+                               dict(unit.attrib, role=role)))
+            move_key = (unit_id, 'movesLeft')
+            proposed = dict(self.session.edits)
+            if (role, count) != original:
+                proposed[(unit_id, 'equipment')] = (original, (role, count))
+            else:
+                proposed.pop((unit_id, 'equipment'), None)
+            if move_key in proposed:
+                move_original, move_current = proposed[move_key]
+                # Returning to the source role should also restore a source-equal
+                # explicit movement override. Do not scale 3/12 down to 1/3
+                # when the user explicitly requested the original 3 MP.
+                if (role, count) == original and move_current == move_original:
+                    proposed.pop(move_key)
+                else:
+                    recalculated = proportional_movement(move_current, prior_cap, new_cap)
+                    if recalculated == move_original and (role, count) == original:
+                        proposed.pop(move_key)
+                    else:
+                        proposed[move_key] = (move_original, recalculated)
+            preflight(self.document.xml_bytes, proposed)
+            self.session.edits.clear()
+            self.session.edits.update(proposed)
+        except (ValueError, TypeError) as exc:
+            QMessageBox.warning(self, 'Cannot stage equipment', str(exc))
             return
         self.refresh_staged_view()
 
@@ -338,10 +491,35 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.update_save_button()
         if self.document is not None:
             chosen = self.selected_element
+            if self.group == 'Diplomacy':
+                active_category = self.diplomacy_tabs.tabText(self.diplomacy_tabs.currentIndex())
+                self.populate()
+                for category, table in self.diplomacy_grids.items():
+                    if chosen is None:
+                        continue
+                    for row in range(table.rowCount()):
+                        item = table.item(row, 0)
+                        record = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
+                        if record is not None and (record.get('owner'), record.get('other')) == (
+                                chosen.get('owner'), chosen.get('other')):
+                            table.selectRow(row)
+                            break
+                for index in range(self.diplomacy_tabs.count()):
+                    if self.diplomacy_tabs.tabText(index) == active_category:
+                        self.diplomacy_tabs.setCurrentIndex(index)
+                        break
+                self.inspect_diplomacy(active_category)
+                return
+            active_tab = self.tabs.tabText(self.tabs.currentIndex()) if self.tabs.currentIndex() >= 0 else None
             self.populate()
             if chosen is not None:
                 select_record_in_view(self.model_view, self.record_model, chosen)
                 self.inspect()
+                if active_tab:
+                    for index in range(self.tabs.count()):
+                        if self.tabs.tabText(index) == active_tab:
+                            self.tabs.setCurrentIndex(index)
+                            break
 
     def update_save_button(self):
         self.save_button.setText(f'Save As ({self.session.count})')
@@ -506,6 +684,17 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             self.overview._render()
             self.details._render()
 
+    def national_goods_projection(self, record):
+        """Source and proposed totals, without changing the original save."""
+        source = int(record.get('amount', '0'))
+        owner = record.get('owner')
+        kind = record.get('id')
+        ids = {col.get('id') for col in self.document.colonies if col.get('owner') == owner}
+        delta = sum(int(new_value) - int(old_value)
+                    for (record_id, field), (old_value, new_value) in self.session.edits.items()
+                    if record_id in ids and field == kind)
+        return source, source + delta, delta != 0
+
     def populate(self):
         self.update_workspace_header()
         # Apply category sizing even when no save is loaded and populate exits early.
@@ -575,7 +764,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                       if self.group == 'Game properties' else
                       (element.get('name'), element.get('status'))
                       if self.group == 'Founding Fathers' else
-                      (element.get('name'), element.get('amount'), element.get('colonies'))
+                      (element.get('name'),
+                       (f'{self.national_goods_projection(element)[0]} → {self.national_goods_projection(element)[1]}'
+                        if self.national_goods_projection(element)[2] else element.get('amount')),
+                       element.get('colonies'))
                       if self.group == 'National Goods' else
                       display_row(self.group, presentation.row_values(self.group, element, doc, self.session)))
             if query and query not in ' '.join(str(value) for value in values).casefold():
@@ -592,11 +784,13 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             for col, value in enumerate(values):
                 icon = QIcon()
                 tooltip = None
-                if (self.group == 'Players' and col == 6
-                        and self.session.is_changed((record.get('id'), 'gold'))):
+                field_id = ({6: 'gold', 7: 'tax'}.get(col) if self.group == 'Players'
+                            else {6: 'experience', 7: 'movesLeft'}.get(col) if self.group == 'Units'
+                            else None)
+                if field_id and self.session.is_changed((record.get('id'), field_id)):
                     staged_cells.add((row, col))
-                    tooltip = ('STAGED gold: ' + str(value) +
-                               ' (original save: ' + str(record.get('gold')) + ')')
+                    tooltip = ('STAGED ' + field_id + ': ' + str(value) +
+                               ' (original save: ' + str(record.get(field_id)) + ')')
                 if col == 0 and self.group != 'Founding Fathers':
                     row_kinds = {
                         'Players': 'nation', 'Colonies': 'colony',
@@ -736,12 +930,17 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             amount = element.get('amount', '0')
             count = element.get('colonies', '0')
             self.inspector_label.setText(name)
+            source, projected, pending = self.national_goods_projection(element)
             self.details.setPlainText(
-                f'Goods: {name}\nTotal in colonies: {amount}\n'
-                f'Colonies with stock: {count}')
+                f'Goods: {name}\nSource warehouse total: {amount}\n'
+                + (f'Proposed total with staged edits: {projected}\n' if pending else '') +
+                f'Colonies with source stock: {count}\n'
+                'Staged warehouse edits are excluded until exported and reopened.')
             self.overview.setPlainText(
-                f'{name}\n\nNation-wide colony warehouse total: {amount}\n'
+                f'{name}\n\nOriginal save warehouse total: {amount}\n'
+                + (f'Proposed total with staged edits: {projected}\n' if pending else '') +
                 f'Colonies containing this good: {count}\n\n'
+                'Table shows source → proposed totals wherever warehouse edits are staged.\n'
                 'Read-only aggregate; cargo aboard units and ships is excluded.')
             self.raw_xml.setPlainText(
                 'Computed aggregate from owned colony goodsContainer/storedGoods/goods.\n'
@@ -775,7 +974,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             ('FreeCol identifier', element.get('id'))])
         elif self.group == 'Players':
             summary.extend([('Nation', presentation.short(element.get('nationId'))),
-                            ('Gold', str(self.session.staged_value((element.get('id'), 'gold'), element.get('gold')))), ('Tax', element.get('tax')),
+                            ('Gold', str(self.session.staged_value((element.get('id'), 'gold'), element.get('gold')))), ('Tax', None if element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648' else str(self.session.staged_value((element.get('id'), 'tax'), element.get('tax')))),
                             ('AI controlled', element.get('ai'))])
         elif self.group == 'Colonies':
             summary.extend([('Owner', doc.owner_name(element.get('owner'))),

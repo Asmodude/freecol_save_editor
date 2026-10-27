@@ -149,6 +149,45 @@ def _change_reciprocal_stance(xml,owner_id,target_id,old,new):
     a=m.end()+x.start()+value.start(1);b=m.end()+x.start()+value.end(1)
     return xml[:a]+new.encode()+xml[b:]
 
+def proportional_movement(moves, old_cap, new_cap):
+    """Map remaining moves proportionally, rounding half up (not Python bankers' rounding)."""
+    if old_cap <= 0 or new_cap < 0 or not 0 <= moves <= old_cap:
+        raise ValueError('Invalid source movement for role conversion')
+    return min(new_cap, (2 * moves * new_cap + old_cap) // (2 * old_cap))
+
+
+def _equipment_movement_old(root, unit_id, equipment):
+    """Movement that equipment staging will produce before any explicit movesLeft edit."""
+    unit = next((u for u in root.iter('unit') if u.get('id') == unit_id), None)
+    if unit is None:
+        raise ValueError('Unit not found for movement recalculation')
+    old_cap = movement_cap(root, unit)
+    new_unit = ET.Element('unit', dict(unit.attrib, role=equipment[1][0],
+                                      roleCount=str(equipment[1][1])))
+    new_cap = movement_cap(root, new_unit)
+    return proportional_movement(int(unit.get('movesLeft', '0')), old_cap, new_cap)
+
+
+def ordered_edits_for_application(original, edits):
+    """Keep the source-original session schema while applying dependent moves after role."""
+    root = ET.fromstring(original)
+    def order(item):
+        key = item[0]
+        return (0 if key[1] in ('deleteUnit', 'deleteNativeUnit') else
+                1 if key[1] == 'deleteSettlement' else
+                2 if key[1] == 'equipment' else
+                3 if key[1] == 'movesLeft' else 4, key)
+    result = []
+    for key, (old, new) in sorted(edits.items(), key=order):
+        if key[1] == 'movesLeft' and (key[0], 'equipment') in edits:
+            expected_source = next((u for u in root.iter('unit') if u.get('id') == key[0]), None)
+            if expected_source is None or int(expected_source.get('movesLeft', '-1')) != old:
+                raise ValueError('Movement source mismatch')
+            old = _equipment_movement_old(root, key[0], edits[(key[0], 'equipment')])
+        result.append((key, (old, new)))
+    return result
+
+
 def change_equipment(xml, object_id, old, new):
     """Replace role and roleCount in one XML start tag, preserving unit type and other bytes."""
     root=ET.fromstring(xml)
@@ -157,6 +196,7 @@ def change_equipment(xml, object_id, old, new):
     unit=units[0]
     old_role,old_count=old
     new_role,new_count=new
+    if new_role == 'model.role.default': new_count = 0
     if (unit.get('role','model.role.default'),int(unit.get('roleCount','1')))!=(old_role,old_count):
         raise ValueError('Stale equipment data')
     from equipment_rules import validate_equipment
@@ -164,9 +204,10 @@ def change_equipment(xml, object_id, old, new):
     check=ET.Element('unit',dict(unit.attrib,role=new_role,roleCount=str(new_count)))
     try: cap=movement_cap(root,check)
     except UnknownMovement as exc:raise ValueError('Unable to verify movement after equipping: '+str(exc))
-    # Preserve movement already spent; if switching to a lower maximum, clamp.
+    # Convert remaining movement proportionally between role caps (half-up rounding).
     original_moves=int(unit.get('movesLeft','0'))
-    effective_moves=min(original_moves,cap)
+    original_cap=movement_cap(root,unit)
+    effective_moves=proportional_movement(original_moves,original_cap,cap)
     tag=_find_tag(xml,object_id)
     text=tag.group(0)
     for name,value in (('role',new_role),('roleCount',str(new_count)),('movesLeft',str(effective_moves))):
@@ -308,7 +349,7 @@ def produce(src,dst,edits):
                 sid=key[0]
                 if any(k!=key and k[0]==sid for k in edits):raise ValueError('Do not mix settlement deletion with settlement property edits')
             if key[1]=='deleteUnit' and any(k!=key and k[0]==key[0] for k in edits):raise ValueError('Do not edit and delete the same unit')
-        for (obj,field),(old,new) in sorted(edits.items(),key=lambda kv:(0 if kv[0][1] in ('deleteUnit','deleteNativeUnit') else 1 if kv[0][1]=='deleteSettlement' else 2,kv[0])):
+        for (obj,field),(old,new) in ordered_edits_for_application(original, edits):
             xml=change_field(xml,obj,field,old,new)
         root=ET.fromstring(xml)
         for (obj,field),(_,new) in edits.items():

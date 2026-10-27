@@ -6,7 +6,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPixmap
 from PySide6.QtWidgets import (
     QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea, QLineEdit, QPushButton,
-    QSizePolicy, QVBoxLayout, QWidget,
+    QSizePolicy, QVBoxLayout, QWidget, QComboBox, QSpinBox,
 )
 from colony_graphics import resolve_colony_graphic
 from qt_property_icons import property_icon
@@ -14,6 +14,9 @@ from qt_goods_icons import GoodsIcons, goods_key
 from qt_flag_icons import flag_pixmap
 from qt_unit_icons import UnitIcons
 from qt_overview_sections import overview_sections
+from equipment_rules import ROLES, validate_equipment
+from qt_equipment_controls import WheelSafeComboBox, WheelSafeSpinBox
+from presentation import effective_unit_moves
 
 
 def summary_parts(text):
@@ -41,6 +44,8 @@ def summary_parts(text):
 class OverviewPanel(QWidget):
     """Overview with scoped inline editing of supported fields."""
     edit_requested = Signal(str, str, str)
+    equipment_requested = Signal(str, str, int)
+    skill_requested = Signal(str, str)
     def __init__(self, parent=None):
         super().__init__(parent)
         frame = QVBoxLayout(self)
@@ -193,21 +198,175 @@ class OverviewPanel(QWidget):
                     for row, (key, val) in enumerate(subset):
                         label = QLabel(key)
                         label.setStyleSheet('color: palette(mid);')
-                        editable_gold = (self._group == 'Players' and key == 'Gold'
+                        numeric_fields = ({'Gold': 'gold', 'Tax': 'tax'} if self._group == 'Players' else
+                                          {'Experience': 'experience', 'Moves left': 'movesLeft'} if self._group == 'Units' else
+                                          {'Sons of Liberty': 'sonsOfLibertyTarget'} if self._group == 'Colonies' else {})
+                        numeric_field = numeric_fields.get(key)
+                        source_field = 'sonsOfLiberty' if numeric_field == 'sonsOfLibertyTarget' else numeric_field
+                        eligible_colony_sol = True
+                        if numeric_field == 'sonsOfLibertyTarget':
+                            members = sum(1 for member in self._record.iter('unit') if member.get('id')) if self._record is not None else 0
+                            try:
+                                expected = min(100, int(self._record.get('liberty')) * 100 // (members * 200))
+                                eligible_colony_sol = int(self._record.get('sonsOfLiberty')) == expected
+                            except (ValueError, TypeError, ZeroDivisionError):
+                                eligible_colony_sol = False
+                        editable_numeric = (numeric_field is not None
                                          and self._record is not None and self._session is not None
-                                         and self._record.get('gold') not in (None, '-2147483648')
-                                         and (self._record.get('gold') or '').isascii()
-                                         and (self._record.get('gold') or '').isdecimal())
-                        if editable_gold:
-                            record_id = self._record.get('id')
-                            original = self._record.get('gold')
+                                         and (numeric_field != 'gold' or self._record.get('gold') != '-2147483648')
+                                         and (numeric_field != 'tax' or not (self._record.get('playerType', '').lower() in ('native', 'indian') or self._record.get('gold') == '-2147483648'))
+                                         and eligible_colony_sol
+                                         and (self._record.get(source_field) or '').isascii()
+                                         and (self._record.get(source_field) or '').isdecimal())
+                        if (self._group == 'Native settlements' and key == 'Learnable skill'
+                                and self._record is not None and self._session is not None
+                                and self._document is not None):
+                            sid = self._record.get('id')
+                            current = self._record.get('learnableSkill')
+                            choices = list(getattr(self._document, 'professions', ()) or ())
+                            value = QWidget()
+                            layout = QHBoxLayout(value)
+                            layout.setContentsMargins(0, 0, 0, 0)
+                            selector = QComboBox(value)
+                            selector.setObjectName('nativeLearnableSkill')
+                            for skill in choices:
+                                selector.addItem(skill.rsplit('.', 1)[-1].replace('_', ' ').title(), skill)
+                            proposed = self._session.staged_value((sid, 'learnableSkill'), current)
+                            index = selector.findData(proposed)
+                            if index >= 0:
+                                selector.setCurrentIndex(index)
+                            button = QPushButton('✎', value)
+                            button.setObjectName('stageNativeLearnableSkill')
+                            button.setEnabled(index >= 0)
+                            button.setToolTip('Stage a skill actually taught in the opened save')
+                            button.clicked.connect(
+                                lambda checked=False, sid=sid, selector=selector:
+                                self.skill_requested.emit(sid, selector.currentData()))
+                            layout.addWidget(selector, 1)
+                            layout.addWidget(button)
+                        elif (self._group == 'Units' and key == 'Role' and self._record is not None
+                                and self._document is not None and self._session is not None):
+                            uid = self._record.get('id')
+                            original_role = self._record.get('role', 'model.role.default')
+                            original_count = int(self._record.get('roleCount', '1'))
+                            staged_role, staged_count = self._session.staged_value(
+                                (uid, 'equipment'), (original_role, original_count))
                             value = QWidget()
                             edit_layout = QHBoxLayout(value)
                             edit_layout.setContentsMargins(0, 0, 0, 0)
-                            field = QLineEdit(str(self._session.staged_value((record_id, 'gold'), int(original))))
-                            field.setObjectName('inlineGoldInput')
-                            staged = self._session.is_changed((record_id, 'gold'))
-                            field.setToolTip(f'Original save: {original}. Press Enter to stage.')
+                            selector = WheelSafeComboBox(value)
+                            selector.setObjectName('unitEquipmentRole')
+                            for candidate in ROLES:
+                                # Validate against the opened-save unit and ruleset.
+                                try:
+                                    validate_equipment(self._document.root, self._record, candidate,
+                                                       0 if candidate == 'model.role.default' else 1)
+                                except (ValueError, TypeError):
+                                    continue
+                                selector.addItem({
+                                    'model.role.default': 'Unequipped colonist',
+                                    'model.role.soldier': 'Arm as Soldier',
+                                    'model.role.dragoon': 'Equip as Dragoon',
+                                    'model.role.scout': 'Equip as Scout',
+                                    'model.role.pioneer': 'Equip with Tools (Pioneer)',
+                                }.get(candidate, candidate.rsplit('.', 1)[-1].title()), candidate)
+                            count = WheelSafeSpinBox(value)
+                            count.setObjectName('unitEquipmentCount')
+                            def sync_count(index, selector=selector, count=count, doc=self._document):
+                                role_id = selector.itemData(index)
+                                roles = [r for r in doc.root.iter('role') if r.get('id') == role_id]
+                                limit = int(roles[0].get('maximum-count', '1')) if len(roles) == 1 else 1
+                                if role_id == 'model.role.default':
+                                    count.setRange(0, 0)
+                                else:
+                                    count.setRange(1, max(1, limit))
+                                if role_id == 'model.role.pioneer':
+                                    count.setValue(min(5, max(1, limit)))
+                                count.setEnabled(limit > 1)
+                                count.setVisible(role_id == 'model.role.pioneer')
+                                count.setToolTip('Pioneer: 1–5 means 20–100 tools' if role_id == 'model.role.pioneer'
+                                                 else 'Equipment count defined by the save ruleset')
+                            selector.currentIndexChanged.connect(sync_count)
+                            tools_label = QLabel('', value)
+                            tools_label.setObjectName('pioneerToolQuantity')
+                            def sync_tools(*_args, selector=selector, count=count, label=tools_label):
+                                label.setText({
+                                    'model.role.default': 'No equipment',
+                                    'model.role.soldier': '50 muskets',
+                                    'model.role.dragoon': '50 muskets + 50 horses',
+                                    'model.role.scout': '50 horses',
+                                    'model.role.pioneer': f'{count.value() * 20} tools',
+                                }.get(selector.currentData(), ''))
+                            selector.currentIndexChanged.connect(sync_tools)
+                            count.valueChanged.connect(sync_tools)
+                            chosen = selector.findData(staged_role)
+                            # Hardy Pioneer default equipment naturally suggests Pioneer.
+                            if (not self._session.is_changed((uid, 'equipment'))
+                                    and original_role == 'model.role.default'
+                                    and 'hardypioneer' in (self._record.get('unitType') or '').lower()):
+                                pioneer = selector.findData('model.role.pioneer')
+                                if pioneer >= 0:
+                                    chosen = pioneer
+                            if chosen >= 0:
+                                selector.setCurrentIndex(chosen)
+                                sync_count(chosen)
+                                count.setValue(staged_count if staged_role == selector.currentData() else
+                                               min(5, count.maximum()) if selector.currentData() == 'model.role.pioneer' else 1)
+                            else:
+                                selector.setEnabled(False)
+                                count.setEnabled(False)
+                                selector.setToolTip('No eligible roles can be verified from the saved ruleset')
+                            button = QPushButton('✎', value)
+                            button.setObjectName('stageUnitEquipment')
+                            button.setToolTip('Stage role and equipment together; warehouse stock is unchanged')
+                            button.setEnabled(chosen >= 0)
+                            button.clicked.connect(
+                                lambda checked=False, rid=uid, choose=selector, qty=count:
+                                self.equipment_requested.emit(rid, choose.currentData(), qty.value()))
+                            status = QLabel(value)
+                            status.setObjectName('unitEquipmentStatus')
+                            pending = self._session.is_changed((uid, 'equipment'))
+                            def update_status(_ignored=None, chooser=selector, amount=count, label=status,
+                                              planned=(staged_role, staged_count), base=original_role,
+                                              pending=pending):
+                                choice = (chooser.currentData(), amount.value())
+                                friendly = lambda role: role.rsplit('.', 1)[-1].title()
+                                if choice != planned:
+                                    label.setText('Not staged')
+                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' +
+                                                     friendly(planned[0]) + '; current choice not staged')
+                                elif pending:
+                                    label.setText('Staged')
+                                    label.setToolTip('Original: ' + friendly(base) + '; staged: ' + friendly(planned[0]))
+                                else:
+                                    label.setText('')
+                                    label.setToolTip('Original: ' + friendly(base))
+                                button.setEnabled(choice[0] is not None)
+                            selector.currentIndexChanged.connect(update_status)
+                            count.valueChanged.connect(update_status)
+                            sync_tools()
+                            update_status()
+                            edit_layout.addWidget(selector, 2)
+                            edit_layout.addWidget(count, 1)
+                            edit_layout.addWidget(tools_label)
+                            edit_layout.addWidget(status)
+                            edit_layout.addWidget(button)
+                        elif editable_numeric:
+                            record_id = self._record.get('id')
+                            original = self._record.get(source_field)
+                            value = QWidget()
+                            edit_layout = QHBoxLayout(value)
+                            edit_layout.setContentsMargins(0, 0, 0, 0)
+                            displayed = (effective_unit_moves(self._record, self._document, self._session)
+                                         if numeric_field == 'movesLeft' else
+                                         self._session.staged_value((record_id, numeric_field), int(original)))
+                            field = QLineEdit(str(displayed))
+                            field.setObjectName('inline' + numeric_field.title() + 'Input')
+                            staged = (self._session.is_changed((record_id, numeric_field)) or
+                                      (numeric_field == 'movesLeft' and str(displayed) != original))
+                            field.setToolTip(f'Original save: {original}. Press Enter to stage.' +
+                                             (' Liberty, rebels/tories and production bonus recalculate on export.'
+                                              if numeric_field == 'sonsOfLibertyTarget' else ''))
                             field.setStyleSheet('QLineEdit { border: 2px solid ' +
                                                 ('#26815A' if staged else '#76A9E8') + '; '
                                                 'border-radius: 3px; padding: 3px; '
@@ -215,17 +374,32 @@ class OverviewPanel(QWidget):
                                                 '; color: #172B45; }')
                             if staged:
                                 original_label = QLabel('was ' + original)
-                                original_label.setObjectName('inlineGoldOriginal')
+                                original_label.setObjectName('inline' + numeric_field.title() + 'Original')
                                 original_label.setToolTip('Value in opened save')
                                 edit_layout.addWidget(original_label)
                             button = QPushButton('✎')
-                            button.setObjectName('stageInlineGold')
+                            button.setObjectName('stageInline' + numeric_field.title())
                             button.setFixedWidth(30)
-                            button.setToolTip('Stage this value')
+                            button.setToolTip('Stage this value (or press Enter)')
+                            if numeric_field == 'movesLeft':
+                                # A typed value is only a candidate until Enter/Stage is pressed.
+                                # Explicitly flag it so the Overview cannot look committed
+                                # while the table and exported XML still contain the staged value.
+                                button.setText('Stage')
+                                button.setFixedWidth(54)
+                                status = QLabel('')
+                                status.setObjectName('inlineMovesLeftStageStatus')
+                                committed = str(displayed)
+                                def movement_stage_status(text, label=status, saved=committed):
+                                    dirty = text != saved
+                                    label.setText('Not staged' if dirty else '')
+                                    label.setToolTip('Press Enter or Stage to include this movement value in the export' if dirty else '')
+                                field.textChanged.connect(movement_stage_status)
+                                edit_layout.addWidget(status)
                             field.returnPressed.connect(
-                                lambda rid=record_id, edit=field: self.edit_requested.emit(rid, 'gold', edit.text()))
+                                lambda rid=record_id, field_id=numeric_field, edit=field: self.edit_requested.emit(rid, field_id, edit.text()))
                             button.clicked.connect(
-                                lambda checked=False, rid=record_id, edit=field: self.edit_requested.emit(rid, 'gold', edit.text()))
+                                lambda checked=False, rid=record_id, field_id=numeric_field, edit=field: self.edit_requested.emit(rid, field_id, edit.text()))
                             edit_layout.addWidget(field, 1)
                             edit_layout.addWidget(button)
                         else:

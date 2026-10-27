@@ -66,7 +66,8 @@ class StagedChangesPanel(QWidget):
         if field.startswith(('stance|', 'tension|', 'alarm|')):
             topic, other = field.split('|', 1)
             counterpart = doc.owner_name(other) if doc is not None else other
-            label = presentation.readable(topic) + ' — ' + counterpart
+            label = (f'Stance ⇄ {counterpart} (both directions)' if topic == 'stance'
+                     else presentation.readable(topic) + ' → ' + counterpart)
         elif field == 'sonsOfLibertyTarget':
             label = 'Sons of Liberty'
         else:
@@ -111,7 +112,15 @@ class StagedChangesPanel(QWidget):
     def undo_key(self, key):
         if key not in self.session.edits:
             return
-        self.session.unstage(key)
+        if self.document is not None and hasattr(self.document, 'xml_bytes'):
+            from edit_preflight import unstage_checked
+            try:
+                unstage_checked(self.session, self.document.xml_bytes, key)
+            except ValueError as exc:
+                QMessageBox.warning(self, 'Cannot undo staged change', str(exc))
+                return
+        else:
+            self.session.unstage(key)
         self.refresh()
         self.changed.emit()
 

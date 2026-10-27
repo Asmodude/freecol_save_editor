@@ -5,7 +5,8 @@ from qt_sorting import sort_key
 
 
 class SortableItem(QTableWidgetItem):
-    """Keep row identity attached to items during Qt sorting."""
+    """Keep row identity and source sort values when a widget paints the cell."""
+    SourceSortRole = Qt.ItemDataRole.UserRole + 2
     def __init__(self, value, numeric=False):
         super().__init__('' if value is None else str(value))
         self.numeric = numeric
@@ -13,6 +14,9 @@ class SortableItem(QTableWidgetItem):
             self.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
     def __lt__(self, other):
-        return sort_key(self.text(), self.numeric) < sort_key(other.text(), self.numeric)
+        left = self.data(self.SourceSortRole)
+        right = other.data(self.SourceSortRole)
+        return sort_key(self.text() if left is None else left, self.numeric) < sort_key(
+            other.text() if right is None else right, self.numeric)
 
 

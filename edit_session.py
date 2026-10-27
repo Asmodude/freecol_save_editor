@@ -99,6 +99,7 @@ class EditSession:
         uid=unit.get('id')
         if (uid,'deleteUnit') in self.edits or (uid,'deleteNativeUnit') in self.edits:
             raise ValueError('Unit is already staged for deletion')
+        if role == 'model.role.default': amount = 0
         validate_equipment(root,unit,role,amount)
         original=(unit.get('role','model.role.default'),int(unit.get('roleCount','1')))
         return self.stage((uid,'equipment'),original,(role,amount))

@@ -25,6 +25,26 @@ class PresentationTests(unittest.TestCase):
         self.assertEqual(row[6],15)
         self.assertEqual(row[4],2)
 
+    def test_staged_role_updates_displayed_moves_proportionally(self):
+        from xml.etree.ElementTree import fromstring
+        xml = (b'<save><unit-type id="model.unit.freeColonist" movement="3"/>'
+               b'<role id="model.role.soldier"/><role id="model.role.dragoon">'
+               b'<modifier id="model.modifier.movementBonus" value="9" type="additive"/>'
+               b'</role><player id="player:1"/>'
+               b'<unit id="unit:1" unitType="model.unit.freeColonist" '
+               b'owner="player:1" role="model.role.soldier" roleCount="1" movesLeft="3"/>'
+               b'</save>')
+        root = fromstring(xml)
+        unit = next(root.iter('unit'))
+        document = SimpleNamespace(root=root, players={'player:1':next(root.iter('player'))},
+                                   locations={},tiles={},colony_tile_names={},unit_locations={})
+        session = EditSession()
+        session.stage(('unit:1','equipment'), ('model.role.soldier',1),
+                      ('model.role.dragoon',1))
+        self.assertEqual(presentation.row_values('Units',unit,document,session)[7], 12)
+        session.stage(('unit:1','movesLeft'),3,9)
+        self.assertEqual(presentation.row_values('Units',unit,document,session)[7], 9)
+
     def test_edit_permissions_match_legacy_overview(self):
         edit=EditSession()
         normal=ET.Element('player',{'gold':'50'})

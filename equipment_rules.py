@@ -9,7 +9,9 @@ def validate_equipment(root,unit,role,count):
     if len(options)!=1 or len(types)!=1:raise ValueError('Role or unit type not uniquely defined')
     config=options[0]; unit_type=types[0]
     maximum=int(config.get('maximum-count','1'))
-    if not 1<=count<=maximum:raise ValueError('Equipment count outside ruleset limit')
+    if role == 'model.role.default':
+        if count != 0: raise ValueError('Default role must have zero equipment count')
+    elif not 1<=count<=maximum:raise ValueError('Equipment count outside ruleset limit')
     # Evaluate explicit constraints declared by role against unit type abilities.
     def abilities(e):
         return {a.get('id'):a.get('value','true')=='true' for a in e.findall('ability')}

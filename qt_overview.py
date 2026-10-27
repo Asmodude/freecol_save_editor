@@ -65,7 +65,8 @@ def record_overview(group, element, document):
         field('Nation', presentation.readable(element.get('nationId')))
         field('Type', element.get('playerType'))
         field('Gold', element.get('gold'))
-        field('Tax', element.get('tax'))
+        if element.get('playerType', '').lower() not in ('native', 'indian') and element.get('gold') != '-2147483648':
+            field('Tax', element.get('tax'))
         field('Score', element.get('score'))
         field('Colonies', document.colony_counts.get(element.get('id'), 0))
         field('Native settlements', document.native_counts.get(element.get('id'), 0))

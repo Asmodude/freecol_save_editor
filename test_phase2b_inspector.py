@@ -24,7 +24,7 @@ class Phase2BInspectorTests(unittest.TestCase):
         try:
             player_a = Element("player", {"id": "player:1", "gold": "7225", "username": "A"})
             player_b = Element("player", {"id": "player:2", "gold": "100", "username": "B"})
-            explorer.document = SimpleNamespace(players={"player:1": player_a, "player:2": player_b})
+            explorer.document = SimpleNamespace(players={"player:1": player_a, "player:2": player_b}, xml_bytes=b'<save><game><player id="player:1" gold="7225"></player><player id="player:2" gold="100"></player></game></save>')
             explorer.group = "Players"
             # The only production editor is the lower-middle Overview control.
             explorer.overview.setPlainText("Player A\nGold: 7225")
@@ -40,6 +40,127 @@ class Phase2BInspectorTests(unittest.TestCase):
             self.assertEqual(explorer.session.edits, {("player:1", "gold"): (7225, 9000)})
             self.assertEqual(player_a.get("gold"), "7225")
             self.assertEqual(player_b.get("gold"), "100")
+        finally:
+            explorer.session.exported_snapshot = dict(explorer.session.edits)
+            explorer.close()
+
+    def test_player_tax_uses_same_live_editor_and_backend_limits(self):
+        explorer = QtExplorer()
+        try:
+            player = Element("player", {"id": "player:1", "gold": "7225", "tax": "20"})
+            xml = b'<save><game><player id="player:1" gold="7225" tax="20"></player></game></save>'
+            explorer.document = SimpleNamespace(players={"player:1": player}, xml_bytes=xml)
+            explorer.group = "Players"
+            explorer.overview.setPlainText("Player A\nGold: 7225\nTax: 20")
+            explorer.overview.set_record("Players", player, explorer.document, explorer.session)
+            from PySide6.QtWidgets import QLineEdit
+            field = explorer.overview.findChild(QLineEdit, "inlineTaxInput")
+            self.assertIsNotNone(field)
+            field.setText("45")
+            with patch.object(explorer, "refresh_staged_view"):
+                field.returnPressed.emit()
+            self.assertEqual(explorer.session.edits[("player:1", "tax")], (20, 45))
+            self.assertEqual(player.get("tax"), "20")
+        finally:
+            explorer.session.exported_snapshot = dict(explorer.session.edits)
+            explorer.close()
+
+    def test_unit_experience_and_movement_inline_editors(self):
+        explorer = QtExplorer()
+        try:
+            unit = Element("unit", {"id": "unit:1", "unitType": "model.unit.freeColonist",
+                                  "owner": "player:1", "role": "model.role.default",
+                                  "experience": "7", "movesLeft": "2"})
+            xml = (b'<save><unit-type id="model.unit.freeColonist" movement="3"></unit-type>'
+                   b'<role id="model.role.default"></role><game>'
+                   b'<player id="player:1"></player>'
+                   b'<unit id="unit:1" unitType="model.unit.freeColonist" '
+                   b'owner="player:1" role="model.role.default" experience="7" movesLeft="2"></unit>'
+                   b'</game></save>')
+            explorer.document = SimpleNamespace(
+                players={"player:1": Element("player", {"id": "player:1"})},
+                unit_by_id=lambda uid: unit if uid == "unit:1" else None, xml_bytes=xml)
+            explorer.group = "Units"
+            explorer.overview.setPlainText("Unit One\nExperience: 7\nMoves left: 2")
+            explorer.overview.set_record("Units", unit, explorer.document, explorer.session)
+            from PySide6.QtWidgets import QLineEdit
+            experience = explorer.overview.findChild(QLineEdit, "inlineExperienceInput")
+            movement = explorer.overview.findChild(QLineEdit, "inlineMovesleftInput")
+            self.assertIsNotNone(experience)
+            self.assertIsNotNone(movement)
+            with patch.object(explorer, "refresh_staged_view"):
+                experience.setText("24")
+                experience.returnPressed.emit()
+                movement.setText("3")
+                movement.returnPressed.emit()
+            self.assertEqual(explorer.session.edits[("unit:1", "experience")], (7, 24))
+            self.assertEqual(explorer.session.edits[("unit:1", "movesLeft")], (2, 3))
+            self.assertEqual(unit.get("movesLeft"), "2")
+            with patch("qt_readonly.QMessageBox.warning") as warning:
+                explorer.stage_overview_edit("unit:1", "movesLeft", "4")
+            warning.assert_called_once()
+            self.assertEqual(explorer.session.edits[("unit:1", "movesLeft")], (2, 3))
+        finally:
+            explorer.session.exported_snapshot = dict(explorer.session.edits)
+            explorer.close()
+
+    def test_native_tax_absent_and_uneditable(self):
+        explorer = QtExplorer()
+        try:
+            native = Element("player", {"id": "player:3", "playerType": "native",
+                                        "gold": "-2147483648", "tax": "50"})
+            explorer.document = SimpleNamespace(players={"player:3": native},
+                xml_bytes=b'<save><game><player id="player:3" playerType="native" gold="-2147483648" tax="50"></player></game></save>')
+            explorer.overview.setPlainText("Native\nGold: -2147483648\nTax: 50")
+            explorer.overview.set_record("Players", native, explorer.document, explorer.session)
+            from PySide6.QtWidgets import QLineEdit
+            self.assertIsNone(explorer.overview.findChild(QLineEdit, "inlineTaxInput"))
+            explorer.stage_overview_edit("player:3", "tax", "55")
+            self.assertEqual(explorer.session.count, 0)
+            from qt_overview import record_overview
+            doc = SimpleNamespace(colony_counts={},native_counts={})
+            self.assertNotIn("Tax:", record_overview("Players", native, doc))
+            import presentation
+            doc.colony_counts, doc.native_counts = {}, {}
+            self.assertEqual(presentation.row_values("Players", native, doc, explorer.session)[7], "N/A")
+        finally:
+            explorer.close()
+
+    def test_equipment_editor_stages_composite_and_rejects_bad_move(self):
+        explorer = QtExplorer()
+        try:
+            from xml.etree.ElementTree import fromstring
+            xml = (b'<save><specification>'
+                   b'<unit-type id="model.unit.freeColonist" movement="3">'
+                   b'<ability id="model.ability.canBeEquipped" value="true"></ability>'
+                   b'</unit-type>'
+                   b'<role id="model.role.default" maximum-count="1"></role>'
+                   b'<role id="model.role.soldier" maximum-count="1"></role>'
+                   b'<role id="model.role.dragoon" maximum-count="1">'
+                   b'<modifier id="model.modifier.movementBonus" type="additive" value="9"></modifier>'
+                   b'</role></specification><game><player id="player:1"></player>'
+                   b'<unit id="unit:1" unitType="model.unit.freeColonist" owner="player:1" '
+                   b'role="model.role.soldier" roleCount="1" movesLeft="3" experience="12"></unit>'
+                   b'</game></save>')
+            root = fromstring(xml)
+            unit = next(root.iter('unit'))
+            explorer.document = SimpleNamespace(
+                root=root, xml_bytes=xml, players={'player:1': next(root.iter('player'))},
+                unit_by_id=lambda uid: unit if uid == 'unit:1' else None)
+            explorer.group = 'Units'
+            explorer.overview.setPlainText('Unit One\nRole: Soldier\nExperience: 12')
+            explorer.overview.set_record('Units', unit, explorer.document, explorer.session)
+            from PySide6.QtWidgets import QComboBox, QPushButton
+            select = explorer.overview.findChild(QComboBox, 'unitEquipmentRole')
+            self.assertIsNotNone(select)
+            choose = select.findData('model.role.dragoon')
+            self.assertGreaterEqual(choose, 0)
+            select.setCurrentIndex(choose)
+            with patch.object(explorer, 'refresh_staged_view'):
+                explorer.overview.findChild(QPushButton, 'stageUnitEquipment').click()
+            self.assertEqual(explorer.session.edits[('unit:1', 'equipment')],
+                             (('model.role.soldier', 1), ('model.role.dragoon', 1)))
+            self.assertEqual(unit.get('role'), 'model.role.soldier')
         finally:
             explorer.session.exported_snapshot = dict(explorer.session.edits)
             explorer.close()

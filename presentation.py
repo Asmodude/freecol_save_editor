@@ -44,11 +44,29 @@ def loc_name(key, doc):
     return location_label(key, doc.locations, doc.tiles, doc.colony_tile_names, doc.unit_locations)
 
 
+def effective_unit_moves(unit, doc, session):
+    key = (unit.get('id'), 'movesLeft')
+    if session.is_changed(key):
+        return session.staged_value(key, unit.get('movesLeft'))
+    equip = session.edits.get((unit.get('id'), 'equipment'))
+    if not equip:
+        return unit.get('movesLeft')
+    from edit_backend import proportional_movement
+    try:
+        prior = movement_cap(doc.root, unit)
+        role, count = equip[1]
+        projected = ET.Element('unit', dict(unit.attrib, role=role, roleCount=str(count)))
+        next_cap = movement_cap(doc.root, projected)
+        return proportional_movement(int(unit.get('movesLeft')), prior, next_cap)
+    except (UnknownMovement, ValueError, TypeError):
+        return unit.get('movesLeft')
+
+
 def row_values(group, e, doc, session):
     a=e.attrib
     staged=session.edits
     if group=='Players':
-        return (a.get('id'),a.get('username'),short(a.get('nationId')),a.get('playerType'),doc.colony_counts.get(a.get('id'),0),doc.native_counts.get(a.get('id'),0),'N/A' if a.get('gold')=='-2147483648' else staged.get((a.get('id'),'gold'),(None,a.get('gold')))[1],staged.get((a.get('id'),'tax'),(None,a.get('tax')))[1],a.get('score'),a.get('ai'),a.get('dead'))
+        return (a.get('id'),a.get('username'),short(a.get('nationId')),a.get('playerType'),doc.colony_counts.get(a.get('id'),0),doc.native_counts.get(a.get('id'),0),'N/A' if a.get('gold')=='-2147483648' else staged.get((a.get('id'),'gold'),(None,a.get('gold')))[1],('N/A' if a.get('playerType', '').lower() in ('native','indian') or a.get('gold')=='-2147483648' else staged.get((a.get('id'),'tax'),(None,a.get('tax')))[1]),a.get('score'),a.get('ai'),a.get('dead'))
     if group=='Colonies':
         return (a.get('id'),a.get('name'),owner_name(a.get('owner'),doc),loc_name(a.get('tile'),doc),a.get('established'),a.get('liberty'),staged.get((a.get('id'),'sonsOfLibertyTarget'),(None,a.get('sonsOfLiberty')))[1],a.get('productionBonus'))
     if group=='Native settlements':
@@ -62,4 +80,5 @@ def row_values(group, e, doc, session):
         maximum=movement_cap(doc.root,move_unit)
     except (UnknownMovement,TypeError):
         maximum='—'
-    return (a.get('id'),short(a.get('unitType')),owner_name(a.get('owner'),doc),loc_name(a.get('location'),doc),short(staged.get((a.get('id'),'equipment'),(None,(a.get('role','model.role.default'),1)))[1][0]),experience_towards(a),staged.get((a.get('id'),'experience'),(None,a.get('experience')))[1],staged.get((a.get('id'),'movesLeft'),(None,a.get('movesLeft')))[1],maximum,a.get('hitPoints'),a.get('state'))
+    displayed_moves = effective_unit_moves(e, doc, session)
+    return (a.get('id'),short(a.get('unitType')),owner_name(a.get('owner'),doc),loc_name(a.get('location'),doc),short(staged.get((a.get('id'),'equipment'),(None,(a.get('role','model.role.default'),1)))[1][0]),experience_towards(a),staged.get((a.get('id'),'experience'),(None,a.get('experience')))[1],displayed_moves,maximum,a.get('hitPoints'),a.get('state'))

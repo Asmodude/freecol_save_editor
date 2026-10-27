@@ -1,6 +1,6 @@
 # FreeCol Save Editor — Development Roadmap
 
-_Last revised: 2026-10-25. Planning document; targets are not deadlines._
+_Last revised: 2026-10-27. Planning document; targets are not deadlines._
 
 ## Development principles
 - **Non-regression:** every user-accepted capability is a continuing requirement. Changes require regression testing; deliberate changes to accepted behaviour require agreement.
@@ -8,6 +8,13 @@ _Last revised: 2026-10-25. Planning document; targets are not deadlines._
 - **Documentation:** `README.txt` summarises accepted major series (0.1, 0.2, etc.). `CHANGELOG.md` preserves detailed changes for every build. This file records future work and evolves as decisions change.
 - **Workflow:** use GitHub branches and reviewed changes for experimental features; only mark milestones accepted after Windows and in-game testing.
 - **Original FreeCol artwork:** load from users' installed game rather than redistributing assets.
+
+## Planned Qt editing UX — Stage Change clarity (deferred until after Phase 2C merge)
+- **User-requested, 27 October 2026. Not implemented.** Replace the small, ambiguous icon-only stage buttons across **all supported Qt inline editing locations** with a consistently labelled **Stage Change** button. Scope includes Overview fields, colony Workers/Stationed units/Goods, diplomacy and native settlement editors; audit the actual UI for every staging action.
+- Add brief, **always-visible** editing instructions in a stable part of the Qt editor chrome (prefer a compact line beneath the top toolbar / above the work area, not inside a context-dependent Inspector tab): **"To make edits: Edit data one at a time followed by clicking \"Stage Change\" next to that edit."**
+- Ensure the labelled controls remain usable with window resizing, long labels, keyboard focus, accessible names and tooltips; do not change stage-on-click semantics, validation, original/staged indicators, undo or Save As.
+- **Inspector clarity (user-approved, 27 October 2026; not implemented):** label Inspector Details and Raw XML explicitly as **original/source save values, excluding staged changes**; explain that proposed role, roleCount, movement and other edits are held separately until Save As, when exported XML contains them. Keep staged indicators clearly visible in the editing view. Include in the same early Phase 2D usability pass and Windows visual verification.
+- **Scheduling:** early **Phase 2D UI/UX preparation**, after Phase 2C has been independently reviewed and merged, before expanding destructive editing controls. Include Windows visual acceptance and focused regression tests. This enhancement must not delay the already pending Phase 2C merge gate.
 
 ## Phase 2B — accepted and merged (2026-10-25)
 - Inline validated player-gold editing in lower middle Overview; staged values explicitly marked in the workspace and their original values shown next to the editor.
