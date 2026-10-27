@@ -222,6 +222,28 @@ The core would merit an 8. The view layer and the deletion verification pull it 
 
 ---
 
+### 4.4 Clean-up pass timing (explicit recommendation)
+
+**Do not run a separate, broad code-efficiency and clean-up pass now.** Split it as follows:
+
+- **Now, inside 2D-0 and 2D-1** (targeted, because it either makes deletion safe or would otherwise be built twice):
+  - deletion engine hardening (items 1–3);
+  - the shared inline-editor kit, replacing the 8 stage-button sites and the two divergent equipment editors (items 4 and 13), delivered *with* the labelled Stage Change buttons;
+  - one staging path and one edit-set validation routine (items 5–6), before deletion staging is added.
+- **During 2D, before colony deletion (2D-4):** parse once per preflight and per deletion (item 8).
+- **Broad pass deferred to 0.9.0** (the planned clean-up and packaging release):
+  - remaining long-function splitting (item 11);
+  - renaming `qt_readonly.py` and tidying its inline imports (item 12);
+  - retiring the Tk-only APIs (item 14, after Phase 3);
+  - replacing any source-text tests not already touched during 2D (item 10).
+
+**Rationale:**
+- A refactor with no new functionality is hard for the user to verify on Windows: every screen needs re-checking, and "nothing visibly changed" is difficult to confirm.
+- Earlier bugs clustered where much code changed at once.
+- Tying each clean-up item to the feature work that touches the same code means every change is exercised by tests and Windows checks that happen anyway.
+- Deferring the rest to 0.9.0 avoids churning files that 2D is actively changing, and does it once against code that has stopped moving.
+- The Tk code cannot be retired before Phase 3, because the map editor still lives there.
+
 ## 5. Summary
 
 The plan is right in shape and order but needs one inserted checkpoint:
@@ -233,3 +255,4 @@ The plan is right in shape and order but needs one inserted checkpoint:
 - **2D-1** should build a small shared editor kit, rather than relabelling eight hand-built button sites.
 - **Add to the plan:** O5 confirmations, staged-deletion markers and explicit coverage statements.
 - **Before colony deletion:** a written dependency matrix from real saves.
+- **No separate broad clean-up pass now:** targeted clean-up inside 2D-0 and 2D-1; the broad pass at 0.9.0 (§4.4).
