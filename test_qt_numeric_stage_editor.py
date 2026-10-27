@@ -18,11 +18,15 @@ class NumericStageEditorTests(unittest.TestCase):
         self.assertEqual(editor.original_label.text(), 'was 8')
         editor.edit.setText('19')
         self.assertEqual(seen, [])
+        self.assertEqual(editor.status.text(), 'Not staged')
+        self.assertFalse(editor.status.isHidden() is False and editor.status.text() == '')
         editor.edit.returnPressed.emit()
         self.assertEqual(seen, ['19'])
         editor.edit.setText('20')
         editor.button.click()
         self.assertEqual(seen, ['19', '20'])
+        editor.edit.setText('12')
+        self.assertEqual(editor.status.text(), '')
         self.assertEqual(editor.edit.objectName(), 'testAmount')
 
     def test_unstaged_has_no_original_label_and_blue_border(self):
