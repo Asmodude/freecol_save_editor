@@ -62,6 +62,8 @@ class NonPersonnelEligibilityTests(unittest.TestCase):
         try:
             self.assertEqual(widget.selector.count(), 1)
             self.assertEqual(widget.selector.itemData(0), 'model.role.default')
+            self.assertFalse(widget.selector.isEnabled())
+            self.assertFalse(widget.button.isEnabled())
         finally:
             widget.deleteLater()
 
