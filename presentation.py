@@ -20,16 +20,16 @@ def readable(value):
 
 
 ROLE_LABELS = {
-    'model.role.default': 'Unequipped',
-    'model.role.soldier': 'Soldier',
-    'model.role.dragoon': 'Dragoon',
-    'model.role.scout': 'Scout',
-    'model.role.pioneer': 'Pioneer',
+    'model.role.default': 'Unequipped colonist',
+    'model.role.soldier': 'Soldier (50 muskets)',
+    'model.role.dragoon': 'Dragoon (50 muskets, 50 horses)',
+    'model.role.scout': 'Scout (50 horses)',
+    'model.role.pioneer': 'Pioneer (tools)',
 }
 
 def equipment_description(role, count):
     """Human-readable equipment quantity without exposing internal tuples."""
-    label = ROLE_LABELS.get(role, readable(role))
+    label = readable(role)
     if role == 'model.role.pioneer':
         return f'{label} — {int(count) * 20} tools (roleCount: {count})'
     return f'{label} (roleCount: {count})'
