@@ -196,6 +196,7 @@ def change_equipment(xml, object_id, old, new):
     unit=units[0]
     old_role,old_count=old
     new_role,new_count=new
+    if new_role == 'model.role.default': new_count = 0
     if (unit.get('role','model.role.default'),int(unit.get('roleCount','1')))!=(old_role,old_count):
         raise ValueError('Stale equipment data')
     from equipment_rules import validate_equipment
