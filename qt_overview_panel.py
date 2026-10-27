@@ -280,6 +280,8 @@ class OverviewPanel(QWidget):
                                     count.setRange(0, 0)
                                 else:
                                     count.setRange(1, max(1, limit))
+                                if role_id == 'model.role.pioneer':
+                                    count.setValue(min(5, max(1, limit)))
                                 count.setEnabled(limit > 1)
                                 count.setVisible(role_id == 'model.role.pioneer')
                                 count.setToolTip('Pioneer: 1–5 means 20–100 tools' if role_id == 'model.role.pioneer'
@@ -308,7 +310,8 @@ class OverviewPanel(QWidget):
                             if chosen >= 0:
                                 selector.setCurrentIndex(chosen)
                                 sync_count(chosen)
-                                count.setValue(staged_count if staged_role == selector.currentData() else 1)
+                                count.setValue(staged_count if staged_role == selector.currentData() else
+                                               min(5, count.maximum()) if selector.currentData() == 'model.role.pioneer' else 1)
                             else:
                                 selector.setEnabled(False)
                                 count.setEnabled(False)
