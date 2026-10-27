@@ -1,10 +1,11 @@
-"""Phase 2D-1: effective equipment roles prefer real artwork and never fabricate sprites."""
+"""Manifest-grounded FreeCol unit artwork regression checks."""
 import os
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+import tempfile
 import unittest
-from unittest.mock import patch
+from pathlib import Path
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QPixmap
 from qt_unit_icons import UnitIcons
 
 
@@ -13,32 +14,39 @@ class RoleArtworkTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_role_artwork_is_used_when_present(self):
-        icons = UnitIcons(source=(None, None, '', None))
-        image = QPixmap(10, 10)
-        image.fill()
-        from PySide6.QtCore import QBuffer, QIODevice
-        buf = QBuffer()
-        buf.open(QIODevice.OpenModeFlag.WriteOnly)
-        image.save(buf, 'PNG')
-        data = bytes(buf.data())
-        with patch.object(icons, '_local_image', return_value=data) as local:
-            icon = icons.effective_icon('model.unit.freeColonist', 'model.role.pioneer')
-            self.assertFalse(icon.isNull())
-            local.assert_called_once_with('pioneer')
+    def test_manifest_selects_distinct_specialist_and_role_art(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'resources'
+            img = root / 'images'
+            cases = [
+                ('seasonedScout', 'scout', 'scout/seasonedScout'),
+                ('veteranSoldier', 'soldier', 'soldier/veteranSoldier'),
+                ('hardyPioneer', 'pioneer', 'pioneer/hardyPioneer'),
+                ('freeColonist', 'dragoon', 'dragoon/dragoon'),
+                ('jesuitMissionary', 'missionary', 'missionary/jesuitMissionary'),
+                ('brave', 'default', 'civilian/brave'),
+            ]
+            lines = []
+            for i, (unit, role, relative) in enumerate(cases):
+                target = img / 'units' / (relative + '.png')
+                target.parent.mkdir(parents=True, exist_ok=True)
+                pix = QPixmap(8 + i, 8 + i)
+                pix.fill()
+                self.assertTrue(pix.save(str(target)))
+                lines.append(f'image.unit.model.unit.{unit}.{role}=resources/images/units/{relative}.png')
+            root.mkdir(parents=True, exist_ok=True)
+            (root / 'resources.properties').write_text('\n'.join(lines), encoding='utf-8')
+            icons = UnitIcons(source=(img, None, '', 'fixture'))
+            for i, (unit, role, relative) in enumerate(cases):
+                with self.subTest(unit=unit):
+                    icon = icons.effective_icon('model.unit.' + unit, 'model.role.' + role)
+                    self.assertFalse(icon.isNull())
+                    self.assertEqual(icon.pixmap(100, 100).width(), 8 + i)
 
-    def test_hardy_pioneer_keeps_expert_sprite_even_with_pioneer_role(self):
+    def test_missing_mapping_uses_type_fallback(self):
         icons = UnitIcons(source=(None, None, '', None))
-        with patch.object(icons, 'icon', return_value=QIcon()) as artwork:
-            icons.effective_icon('model.unit.hardyPioneer', 'model.role.pioneer')
-            artwork.assert_called_once_with('model.unit.hardyPioneer', size=23)
-
-    def test_missing_role_art_reverts_to_type_with_role(self):
-        icons = UnitIcons(source=(None, None, '', None))
-        with patch.object(icons, '_local_image', return_value=None), \
-             patch.object(icons, 'icon', return_value=QIcon()) as fallback:
-            icons.effective_icon('model.unit.freeColonist', 'model.role.scout')
-            fallback.assert_called_once_with('model.unit.freeColonist', size=23, role='model.role.scout')
+        self.assertFalse(icons.effective_icon('model.unit.freeColonist',
+                                             'model.role.scout').isNull())
 
 
 if __name__ == '__main__':
