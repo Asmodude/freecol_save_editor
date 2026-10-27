@@ -51,6 +51,13 @@ class NationalLibertyTests(unittest.TestCase):
         unstage_checked(session, _XML, key)
         self.assertNotIn(key, session.edits)
 
+    def test_refuse_non_colonial_player_liberty_at_export_boundary(self):
+        from edit_backend import change_field
+        native = (b'<save><player id="player:2" playerType="native" '
+                  b'liberty="10"/></save>')
+        with self.assertRaisesRegex(ValueError, 'colonial'):
+            change_field(native, 'player:2', 'liberty', 10, 20)
+
     def test_immutable_source_value_is_a_preflight_guard(self):
         session = EditSession()
         with self.assertRaises(ValueError):
