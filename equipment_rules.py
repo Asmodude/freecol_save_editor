@@ -2,10 +2,10 @@
 from movement_rules import movement_cap, UnknownMovement
 ROLES=('model.role.default','model.role.soldier','model.role.dragoon','model.role.scout','model.role.pioneer')
 
-def validate_equipment(root,unit,role,count):
+def validate_equipment(root,unit,role,count,*,rules=None):
     if role not in ROLES:raise ValueError('Unsupported equipment role')
-    options=[r for r in root.iter('role') if r.get('id')==role]
-    types=[t for t in root.iter('unit-type') if t.get('id')==unit.get('unitType')]
+    options=rules.roles.get(role, ()) if rules is not None else [r for r in root.iter('role') if r.get('id')==role]
+    types=rules.types.get(unit.get('unitType'), ()) if rules is not None else [t for t in root.iter('unit-type') if t.get('id')==unit.get('unitType')]
     if len(options)!=1 or len(types)!=1:raise ValueError('Role or unit type not uniquely defined')
     config=options[0]; unit_type=types[0]
     maximum=int(config.get('maximum-count','1'))
@@ -26,5 +26,5 @@ def validate_equipment(root,unit,role,count):
         name=requirement.get('id'); expected=requirement.get('value','true')=='true'
         if active.get(name,False)!=expected:raise ValueError('Unit cannot use this role: '+name)
     test=type('U',(),{'get':lambda self,k,default=None: (role if k=='role' else unit.get(k,default))})()
-    movement_cap(root,test)
+    movement_cap(root,test,rules=rules)
     return True
