@@ -40,6 +40,7 @@ from qt_overview_panel import OverviewPanel
 from qt_inspector_details import InspectorDetails
 from qt_final_visual_format import established_turn, colony_inspector_location
 from qt_unit_icons import UnitIcons
+from qt_role_markers import equipment_marker
 from colony_graphics import resolve_colony_graphic
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
@@ -840,12 +841,13 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                     pending_equipment = self.session.is_changed(equipment_key)
                     effective_role = self.session.staged_value(
                         equipment_key, (actual_role, 0))[0]
-                    if pending_equipment:
+                    marker = equipment_marker(actual_role, pending_equipment)
+                    if marker == 'staged':
                         staged_cells.add((row, col))
                         tooltip = ('STAGED equipment role: ' + str(effective_role) +
                                    ' | Source role: ' + str(actual_role) +
                                    ' | Unit type: ' + str(record.get('unitType')))
-                    elif actual_role != 'model.role.default':
+                    elif marker == 'equipped':
                         role_cells.add((row, col))
                         tooltip = ('Equipped role: ' + str(actual_role) +
                                    ' | Unit type: ' + str(record.get('unitType')))
