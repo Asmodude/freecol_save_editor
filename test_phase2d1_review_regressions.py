@@ -38,9 +38,9 @@ class ReviewCorrectionsTests(unittest.TestCase):
             window.visible_rows = [player]
             window.session.stage(('player:1','gold'), '7225', '9999')
             window.session.stage(('player:1','tax'), '12', '20')
-            with patch('qt_readonly.selected_source_record', return_value=player), \\
-                 patch.object(window, 'update_detail_tabs'), \\
-                 patch('qt_readonly.record_overview', return_value='Player overview'), \\
+            with patch('qt_readonly.selected_source_record', return_value=player), \
+                 patch.object(window, 'update_detail_tabs'), \
+                 patch('qt_readonly.record_overview', return_value='Player overview'), \
                  patch.object(window.overview, 'set_record'):
                 window.inspect()
             details = window.details.toPlainText()
