@@ -76,6 +76,22 @@ class UnitIcons:
                 pass
         return paths
 
+    def effective_icon(self, unit_type, role, size=23):
+        """Prefer genuine role artwork, falling back to original unit-type artwork."""
+        role_key = unit_key(role)
+        if role_key and role_key != 'default':
+            if role_key == 'dragoon':
+                # FreeCol supplies some mounted variants beneath units/dragoon/.
+                return self.icon(unit_type, size=size, role=role)
+            # Standalone role artwork is only used if the installed FreeCol
+            # distribution actually contains it, never synthesised.
+            data = self._local_image(role_key)
+            if data:
+                pix = QPixmap()
+                if pix.loadFromData(data) and not pix.isNull():
+                    return QIcon(pix)
+        return self.icon(unit_type, size=size, role=role)
+
     def icon(self, value, size=23, role=None):
         key = unit_key(value)
         if not key:
