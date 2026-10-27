@@ -20,6 +20,17 @@ class LocationNameTests(unittest.TestCase):
         self.assertEqual(location_label('building:73', {}, {}, {}, buildings=buildings), 'Christiansborg')
         self.assertEqual(location_label('building:999', {}, {}, {}, buildings=buildings), 'building:999')
 
+    def test_ambiguous_building_location_falls_back_without_rejecting_save(self):
+        game = ET.fromstring("""<game><map>
+          <tile id="tile:1"><colony id="colony:1" name="Alpha">
+            <building id="building:99"/></colony></tile>
+          <tile id="tile:2"><colony id="colony:2" name="Beta">
+            <building id="building:99"/></colony></tile>
+        </map></game>""")
+        buildings = colony_building_names(game)
+        self.assertNotIn('building:99', buildings)
+        self.assertEqual(location_label('building:99', {}, {}, {}, buildings=buildings), 'building:99')
+
     def test_colony_tile_uses_name_not_coordinates(self):
         game=ET.fromstring("""<game><map>
           <tile id="tile:12611" x="79" y="122">
