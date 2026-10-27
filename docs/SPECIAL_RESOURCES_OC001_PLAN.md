@@ -29,3 +29,12 @@ These are *production or progress concepts*, not physical warehouse stock. Avoid
 ## Non-regression and release governance
 
 Maintain all Phase 1–2D-1.5 behaviours. This branch does not implement destructive deletion or modify Tk. PR and green CI are not acceptance or merge authorization. Unfinished SR-2/3/4 prohibit claiming OC-001 complete.
+
+## Implementation evidence and scope checkpoint
+
+- **Confirmed from FreeCol Player serialization constants:** `liberty`, `immigration`, `immigrationRequired` are actual player attributes. Display these only if present; the UI displays `immigration / immigrationRequired` as progress, without equating stored Crosses with national immigration. Qt-only liberty staging uses the preflight/production backend and leaves legacy Tk editing permissions unchanged.
+- **Congress:** owner-scoped `liberty`, including a staged projection, is visible in the Congress heading without treating Bells as warehouse goods.
+- **Hammers per turn:** FreeCol determines real production via `ProductionCache` and `ProductionInfo`, combining unit/building production, consumption and modifiers. The save's `storedGoods` amount is NOT a per-turn quantity. Do not use the hammer stockpile as a substitute or claim a production rate until a parity-tested resolver exists. This requirement is OPEN and mandatory before OC-001 acceptance.
+- **Warehouse filtering:** both Goods views and drilldowns use stable model goods IDs and preserve physical stock, source XML and existing sort/edit identity.
+- **Regression tests:** `test_special_resources_warehouse.py`, `test_special_resources_progress.py`, `test_special_resources_qt_integration.py`. Verify latest feature and PR CI on the exact head before calling the tests green.
+- **Early CI findings:** an existing Tk editable-permissions test and an existing Congress-heading contract test flagged implementation changes; both were preserved rather than weakening accepted tests. A local-scope `human_player_id` import shadowed the global helper and was corrected, with the existing Qt record-selection suite retained. 
