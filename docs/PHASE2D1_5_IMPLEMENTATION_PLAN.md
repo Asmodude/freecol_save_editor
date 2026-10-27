@@ -1,5 +1,7 @@
 # Phase 2D-1.5 — Shared Numeric Controls and Equipment Performance
 
+> **Binding outstanding dependencies (27 Oct 2026):** The agreed C2 Special Resources implementation was omitted from the earlier phase plan. It is **mandatory before C3**, not postponed indefinitely. A reported C1+C2 movement-error cascade also remains a C3 verification gate. See [Outstanding Commitments](OUTSTANDING_COMMITMENTS.md). Phase 2D-1.5 Windows testing covers A/B/C now; defer full D integration / roundtrip until those gates are satisfied. Do not merge or tag without explicit approval.
+
 Status: **In development; no Windows acceptance or merge authorization yet.**
 
 Baseline: Phase 2D-1 merge `9bf270b8d4ce47f616a17374f0b767987802bd52`, release tag `v0.6.2.6.4-phase2d1`.
