@@ -266,7 +266,7 @@ def change_field(xml, object_id, field, old, new):
         m=found[0]
         s=a+store.start(1)+m.start(2); e=a+store.start(1)+m.end(2)
         return _replace_span(xml,s,e,old,new)
-    allowed={'player:':('gold','tax'),'unit:':('experience',)}
+    allowed={'player:':('gold','tax','liberty'),'unit:':('experience',)}
     if not any(object_id.startswith(prefix) and field in fields for prefix,fields in allowed.items()):
         raise ValueError(f'Unsupported edit: {object_id}.{field}')
     match=_find_tag(xml,object_id)
