@@ -126,7 +126,7 @@ class UnitIcons:
                 continue
             # Properties paths can contain optional image selectors after a comma.
             candidate = entry.split(',', 1)[0].strip().removeprefix('resource:')
-            candidate = candidate.removeprefix('images/')
+            candidate = candidate.removeprefix('resources/images/').removeprefix('images/')
             if not candidate.startswith('units/'):
                 continue
             data = None
