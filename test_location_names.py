@@ -1,10 +1,25 @@
 import unittest
 import xml.etree.ElementTree as ET
 
-from location_names import colony_tile_names, location_label, unit_locations
+from location_names import colony_tile_names, colony_building_names, location_label, unit_locations
 
 
 class LocationNameTests(unittest.TestCase):
+    def test_authoritative_building_resolves_to_colony_without_cached_pollution(self):
+        game = ET.fromstring("""<game><map>
+          <tile id="tile:1"><colony id="colony:2" name="Christiansborg">
+            <building id="building:73" type="model.building.lumberMill"/>
+          </colony></tile>
+          <tile id="tile:2"><cachedTile><tile id="tile:1">
+            <colony id="colony:2" name="Wrong cached name">
+              <building id="building:73"/>
+            </colony></tile></cachedTile></tile>
+        </map></game>""")
+        buildings = colony_building_names(game)
+        self.assertEqual(buildings['building:73'], 'Christiansborg')
+        self.assertEqual(location_label('building:73', {}, {}, {}, buildings=buildings), 'Christiansborg')
+        self.assertEqual(location_label('building:999', {}, {}, {}, buildings=buildings), 'building:999')
+
     def test_colony_tile_uses_name_not_coordinates(self):
         game=ET.fromstring("""<game><map>
           <tile id="tile:12611" x="79" y="122">
