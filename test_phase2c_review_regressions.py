@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from equipment_rules import validate_equipment
 from edit_session import EditSession
 from edit_preflight import unstage_checked
+from edit_backend import change_equipment
 
 
 class Phase2CReviewRegressions(unittest.TestCase):
@@ -36,6 +37,31 @@ class Phase2CReviewRegressions(unittest.TestCase):
             self.assertIn(('unit:21', 'equipment'), session.edits)
             session.stage_equipment(self.root, self.unit, 'model.role.default', 1)
             self.assertNotIn(('unit:21', 'equipment'), session.edits)
+
+    def test_backend_writes_zero_count_when_returning_to_default(self):
+        # Full attribute rewrite through the real backend with a saved ruleset.
+        raw = b'''<save><specification>
+          <role id="model.role.default" maximum-count="1"/>
+          <role id="model.role.pioneer" maximum-count="5"/>
+          <unit-type id="model.unit.freeColonist" movement="3">
+            <ability id="model.ability.canBeEquipped" value="true"/>
+          </unit-type>
+        </specification><game><player id="player:1"/>
+          <unit id="unit:21" owner="player:1"
+            unitType="model.unit.freeColonist"
+            role="model.role.pioneer" roleCount="4"
+            movesLeft="3"/>
+        </game></save>'''
+        result = change_equipment(
+            raw, 'unit:21',
+            ('model.role.pioneer', 4),
+            ('model.role.default', 1),  # Legacy caller; backend must normalize.
+        )
+        unit = next(u for u in ET.fromstring(result).iter('unit')
+                    if u.get('id') == 'unit:21')
+        self.assertEqual(unit.get('role'), 'model.role.default')
+        self.assertEqual(unit.get('roleCount'), '0')
+        self.assertEqual(unit.get('movesLeft'), '3')
 
     def test_undo_equipment_drops_equal_source_moves_override(self):
         session = EditSession()
