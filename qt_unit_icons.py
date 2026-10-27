@@ -79,6 +79,10 @@ class UnitIcons:
     def effective_icon(self, unit_type, role, size=23):
         """Prefer genuine role artwork, falling back to original unit-type artwork."""
         role_key = unit_key(role)
+        # Hardy Pioneer has its own expert artwork; the generic pioneer role
+        # sprite must never mask its specialist unit identity.
+        if unit_key(unit_type) == 'hardyPioneer' and role_key == 'pioneer':
+            return self.icon(unit_type, size=size)
         if role_key and role_key != 'default':
             if role_key == 'dragoon':
                 # FreeCol supplies some mounted variants beneath units/dragoon/.
