@@ -1,6 +1,7 @@
 """Regression checks for Phase 2C independent review findings."""
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 import xml.etree.ElementTree as ET
 
 from equipment_rules import validate_equipment
@@ -62,6 +63,25 @@ class Phase2CReviewRegressions(unittest.TestCase):
         self.assertEqual(unit.get('role'), 'model.role.default')
         self.assertEqual(unit.get('roleCount'), '0')
         self.assertEqual(unit.get('movesLeft'), '3')
+
+    def test_return_to_soldier_restores_explicit_source_moves(self):
+        from qt_readonly import QtExplorer
+        source = ET.fromstring('<unit id="unit:21" unitType="model.unit.freeColonist" role="model.role.soldier" roleCount="1" movesLeft="3"/>')
+        document = SimpleNamespace(root=self.root, xml_bytes=b'<save/>',
+                                   unit_by_id=lambda uid: source)
+        session = EditSession()
+        session.edits[('unit:21', 'equipment')] = (
+            ('model.role.soldier', 1), ('model.role.dragoon', 1))
+        session.edits[('unit:21', 'movesLeft')] = (3, 3)
+        owner = SimpleNamespace(document=document, session=session,
+                                refresh_staged_view=lambda: None)
+        def cap(_root, unit):
+            return 12 if unit.get('role') == 'model.role.dragoon' else 3
+        with patch('equipment_rules.validate_equipment'), \
+             patch('movement_rules.movement_cap', side_effect=cap), \
+             patch('edit_preflight.preflight', return_value=b'<save/>'):
+            QtExplorer.stage_unit_equipment(owner, 'unit:21', 'model.role.soldier', 1)
+        self.assertEqual(session.edits, {})
 
     def test_undo_equipment_drops_equal_source_moves_override(self):
         session = EditSession()
