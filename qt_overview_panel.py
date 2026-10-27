@@ -218,6 +218,7 @@ class OverviewPanel(QWidget):
                                          and self._record is not None and self._session is not None
                                          and (numeric_field != 'gold' or self._record.get('gold') != '-2147483648')
                                          and (numeric_field != 'tax' or not (self._record.get('playerType', '').lower() in ('native', 'indian') or self._record.get('gold') == '-2147483648'))
+                                         and (numeric_field != 'liberty' or self._record.get('playerType', '').lower() == 'colonial')
                                          and eligible_colony_sol
                                          and (self._record.get(source_field) or '').isascii()
                                          and (self._record.get(source_field) or '').isdecimal())
