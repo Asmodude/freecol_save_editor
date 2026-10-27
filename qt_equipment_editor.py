@@ -3,7 +3,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
 from equipment_rules import ROLES, validate_equipment
 from qt_equipment_controls import WheelSafeComboBox, WheelSafeSpinBox
-from qt_stage_controls import StageChangeButton
+from qt_stage_controls import StageChangeButton, style_stage_choice
 
 ROLE_LABELS = {
     'model.role.default': 'Unequipped colonist',
@@ -31,6 +31,7 @@ class EquipmentEditor(QWidget):
         self.selector = WheelSafeComboBox(self)
         self.selector.setObjectName('unitEquipmentRole' if context == 'overview' else 'stationedEquipmentRole')
         self.selector.setProperty('unitId', uid)
+        style_stage_choice(self.selector, pending)
         for role in ROLES:
             try:
                 validate_equipment(document.root, unit, role, 0 if role == 'model.role.default' else 1)
