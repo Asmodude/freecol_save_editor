@@ -201,7 +201,7 @@ class OverviewPanel(QWidget):
                     for row, (key, val) in enumerate(subset):
                         label = QLabel(key)
                         label.setStyleSheet('color: palette(mid);')
-                        numeric_fields = ({'Gold': 'gold', 'Tax': 'tax'} if self._group == 'Players' else
+                        numeric_fields = ({'Gold': 'gold', 'Tax': 'tax', 'National liberty points': 'liberty'} if self._group == 'Players' else
                                           {'Experience': 'experience', 'Moves left': 'movesLeft'} if self._group == 'Units' else
                                           {'Sons of Liberty': 'sonsOfLibertyTarget'} if self._group == 'Colonies' else {})
                         numeric_field = numeric_fields.get(key)
