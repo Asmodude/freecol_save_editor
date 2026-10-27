@@ -69,4 +69,6 @@ Accepted functionality is cumulative: later releases should not break previous a
 
 License: MIT for original project code, subject to the licensing terms of incorporated third-party material.
 
+For evidence about the intermittent FreeCol 1.2.0 automatic-movement/Lumberjack anomaly, see docs/FREECOL_MOVEMENT_DIAGNOSTIC.md. The engine investigation is parked, not resolved.
+
 See CHANGELOG.md for detailed changes.
