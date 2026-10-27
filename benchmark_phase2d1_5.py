@@ -46,19 +46,24 @@ def main():
     args = parser.parse_args()
     if args.units <= 0:
         parser.error('--units must be positive')
-    QApplication.instance() or QApplication([])
+    app = QApplication.instance() or QApplication([])
     started = time.perf_counter()
     document = SaveDocument.load(args.save)
     load_ms = 1000 * (time.perf_counter() - started)
     units = sample_units(document, args.units)
+    started_index = time.perf_counter()
+    _ = document.equipment_rules_index
+    index_ms = 1000 * (time.perf_counter() - started_index)
     plain = SimpleNamespace(root=document.root)
     old_ms = time_editors(plain, units)
     new_ms = time_editors(document, units)
     print(f'Save: {args.save}; bytes: {len(document.xml_bytes):,}')
-    print(f'Load + one-time index: {load_ms:.1f} ms')
+    print(f'Load without equipment index: {load_ms:.1f} ms')
+    print(f'One-time lazy rules index: {index_ms:.1f} ms')
     print(f'Uncached {len(units)} editors, median of 3: {old_ms:.1f} ms')
     print(f'Indexed  {len(units)} editors, median of 3: {new_ms:.1f} ms')
-    print(f'Improvement: {(old_ms / new_ms):.2f}x' if new_ms else 'Invalid duration')
+    print(f'Warm equipment-editor improvement: {(old_ms / new_ms):.2f}x' if new_ms else 'Invalid duration')
+    print(f'First indexed construction including index build: {index_ms + new_ms:.1f} ms')
 
 
 if __name__ == '__main__':
