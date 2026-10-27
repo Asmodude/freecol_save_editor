@@ -1,8 +1,8 @@
-from qt_stage_controls import StageChangeButton
 """Graphical, strictly read-only Overview compatible with existing summary callers.
 
 The source summary remains authoritative; this widget changes presentation only.
 """
+from qt_stage_controls import StageChangeButton
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPixmap
 from PySide6.QtWidgets import (
