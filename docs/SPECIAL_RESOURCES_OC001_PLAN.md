@@ -16,13 +16,13 @@ These are *production or progress concepts*, not physical warehouse stock. Avoid
 
 ## Checkpoints
 
-**SR-1 — Warehouse views (implemented, awaiting CI/Windows):** shared `qt_special_resources.py` identifiers; exclude all three kinds from `goods_catalog`, `colony_sections`, National Goods aggregation and goods/cargo drilldowns; preserve original XML, all physical goods and item identities.
+**SR-1 — Warehouse views (implemented; automated CI green; Windows pending):** shared `qt_special_resources.py` identifiers; exclude all three kinds from `goods_catalog`, `colony_sections`, National Goods aggregation and goods/cargo drilldowns; preserve original XML, all physical goods and item identities.
 
-**SR-2 — Authoritative progress and production mapping (open):** inspect real FreeCol `Morten.fsg` and Java model/source to identify the saved player liberty/Father progress, immigration accumulation and immigration threshold (including owner-specific modifiers), colony total production per-turn. Document exact XML paths and derived formulas. Where a value cannot be computed faithfully, label it *unavailable* rather than invent it.
+**SR-2 — Authoritative progress and production mapping (player progress mapped; Hammers production OPEN):** inspect real FreeCol `Morten.fsg` and Java model/source to identify the saved player liberty/Father progress, immigration accumulation and immigration threshold (including owner-specific modifiers), colony total production per-turn. Document exact XML paths and derived formulas. Where a value cannot be computed faithfully, label it *unavailable* rather than invent it.
 
-**SR-3 — Qt presentation (open):** show only source-backed fields and valid derived production in colony/national/Continental Congress views.
+**SR-3 — Qt presentation (national progress and Congress implemented; Hammers per turn OPEN):** show only source-backed fields and valid derived production in colony/national/Continental Congress views.
 
-**SR-4 — National liberty editor (open):** design validation, preflight, staged undo, backend Save As and exported consistency based on exact source mapping. Do not add a clickable editor that only changes display while leaving FreeCol's data untouched.
+**SR-4 — National liberty editor (Qt-only staged path implemented; Windows/FreeCol acceptance pending):** design validation, preflight, staged undo, backend Save As and exported consistency based on exact source mapping. Do not add a clickable editor that only changes display while leaving FreeCol's data untouched.
 
 **SR-5 — Acceptance (open):**  automated tests for ruleset variants, sorting, staged edits, Undo, immutable source, integrity and player scoping; Windows acceptance; independent Claude review; resolve OC-002 movement-error issue; then deferred C3 real FreeCol roundtrip. Explicit approval required before merge/tag/branch cleanup.
 
@@ -38,3 +38,7 @@ Maintain all Phase 1–2D-1.5 behaviours. This branch does not implement destruc
 - **Warehouse filtering:** both Goods views and drilldowns use stable model goods IDs and preserve physical stock, source XML and existing sort/edit identity.
 - **Regression tests:** `test_special_resources_warehouse.py`, `test_special_resources_progress.py`, `test_special_resources_qt_integration.py`. Verify latest feature and PR CI on the exact head before calling the tests green.
 - **Early CI findings:** an existing Tk editable-permissions test and an existing Congress-heading contract test flagged implementation changes; both were preserved rather than weakening accepted tests. A local-scope `human_player_id` import shadowed the global helper and was corrected, with the existing Qt record-selection suite retained. 
+
+## Exact production-source finding
+
+FreeCol's `Colony.writeAttributes()` serializes colony accumulated `liberty` and `immigration`, but **not** a readily usable `hammersPerTurn` value. `Colony.getTotalProductionOf(type)` sums current work-location production; `ProductionCache` computes actual production and consumption from occupied buildings, stored raw inputs, production types, unit attributes and modifiers. Thus the stockpile `model.goods.hammers` is neither an accurate substitute nor necessarily the production rate. We need a parity-tested simulation/resolver (or a supported FreeCol model bridge), not a blind direct-XML field lookup. **The Hammers display remains an explicit blocker**, not a postponed optional feature.
