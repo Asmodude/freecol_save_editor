@@ -836,16 +836,19 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             icon = self.navigation_icons.icon(kind, size=20)
                 if self.group == 'Units' and col == 4:
                     actual_role = record.get('role', 'model.role.default')
+                    equipment_key = (record.get('id'), 'equipment')
+                    pending_equipment = self.session.is_changed(equipment_key)
                     effective_role = self.session.staged_value(
-                        (record.get('id'), 'equipment'), (actual_role, 0))[0]
-                    if effective_role != 'model.role.default':
-                        tooltip = ('Equipped role: ' + str(effective_role) +
-                                   ' | Unit type: ' + str(record.get('unitType')) +
-                                   (' | STAGED change' if effective_role != actual_role else ''))
-                        if effective_role != actual_role:
-                            staged_cells.add((row, col))
-                        else:
-                            role_cells.add((row, col))
+                        equipment_key, (actual_role, 0))[0]
+                    if pending_equipment:
+                        staged_cells.add((row, col))
+                        tooltip = ('STAGED equipment role: ' + str(effective_role) +
+                                   ' | Source role: ' + str(actual_role) +
+                                   ' | Unit type: ' + str(record.get('unitType')))
+                    elif actual_role != 'model.role.default':
+                        role_cells.add((row, col))
+                        tooltip = ('Equipped role: ' + str(actual_role) +
+                                   ' | Unit type: ' + str(record.get('unitType')))
                 if self.group == 'Native settlements' and col == 5:
                     from qt_goods_icons import goods_key
                     names = [part.strip() for part in str(value or '').split(',')]
