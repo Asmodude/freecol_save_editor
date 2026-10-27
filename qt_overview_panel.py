@@ -259,7 +259,8 @@ class OverviewPanel(QWidget):
                             for candidate in ROLES:
                                 # Validate against the opened-save unit and ruleset.
                                 try:
-                                    validate_equipment(self._document.root, self._record, candidate, 1)
+                                    validate_equipment(self._document.root, self._record, candidate,
+                                                       0 if candidate == 'model.role.default' else 1)
                                 except (ValueError, TypeError):
                                     continue
                                 selector.addItem({
@@ -275,7 +276,7 @@ class OverviewPanel(QWidget):
                                 role_id = selector.itemData(index)
                                 roles = [r for r in doc.root.iter('role') if r.get('id') == role_id]
                                 limit = int(roles[0].get('maximum-count', '1')) if len(roles) == 1 else 1
-                                count.setRange(1, max(1, limit))
+                                count.setRange(0, 0) if role_id == 'model.role.default' else count.setRange(1, max(1, limit))
                                 count.setEnabled(limit > 1)
                                 count.setVisible(role_id == 'model.role.pioneer')
                                 count.setToolTip('Pioneer: 1–5 means 20–100 tools' if role_id == 'model.role.pioneer'
