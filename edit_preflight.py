@@ -64,5 +64,10 @@ def unstage_checked(session, xml_bytes, key):
     """Prevent undo leaving mutually dependent edits unexportable."""
     proposed = dict(session.edits)
     proposed.pop(key, None)
+    if key[1] == 'equipment':
+        dependent = (key[0], 'movesLeft')
+        if dependent in proposed and proposed[dependent][0] == proposed[dependent][1]:
+            proposed.pop(dependent)
     preflight(xml_bytes, proposed)
-    session.unstage(key)
+    session.edits.clear()
+    session.edits.update(proposed)
