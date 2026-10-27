@@ -2,10 +2,11 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel
 from equipment_rules import ROLES, validate_equipment
+from presentation import equipment_description, ROLE_LABELS
 from qt_equipment_controls import WheelSafeComboBox, WheelSafeSpinBox
 from qt_stage_controls import StageChangeButton, style_stage_choice
 
-ROLE_LABELS = {
+_LEGACY_ROLE_LABELS = {
     'model.role.default': 'Unequipped colonist',
     'model.role.soldier': 'Soldier (50 muskets)',
     'model.role.dragoon': 'Dragoon (50 muskets, 50 horses)',
@@ -83,14 +84,14 @@ class EquipmentEditor(QWidget):
             }.get(role, ''))
             if choice != planned:
                 self.status.setText('Not staged')
-                self.status.setToolTip('Original: ' + original_role + '; staged: ' + str(planned) +
+                self.status.setToolTip('Original: ' + equipment_description(original_role, original_count) + '; staged: ' + equipment_description(*planned) +
                                        '; current selection not staged')
             elif pending:
                 self.status.setText('Staged')
-                self.status.setToolTip('Original: ' + original_role + '; staged: ' + str(planned))
+                self.status.setToolTip('Original: ' + equipment_description(original_role, original_count) + '; staged: ' + equipment_description(*planned))
             else:
                 self.status.setText('')
-                self.status.setToolTip('Original: ' + original_role)
+                self.status.setToolTip('Original: ' + equipment_description(original_role, original_count))
             self.button.setEnabled(role is not None)
 
         self.selector.currentIndexChanged.connect(update_role)
