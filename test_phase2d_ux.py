@@ -4,7 +4,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import unittest
 
 from PySide6.QtWidgets import QApplication, QPushButton
-from qt_stage_controls import StageChangeButton
+from qt_stage_controls import StageChangeButton, style_stage_choice
+from PySide6.QtWidgets import QComboBox
+from qt_staged_changes_panel import StagedChangesPanel
+from edit_session import EditSession
 from qt_readonly import QtExplorer
 
 
@@ -24,6 +27,24 @@ class Phase2DUxTests(unittest.TestCase):
         button.click()
         self.assertEqual(clicks, [True])
         button.deleteLater()
+
+    def test_choice_styling_identifies_editable_and_staged(self):
+        combo = QComboBox()
+        style_stage_choice(combo, False)
+        self.assertIn('#76A9E8', combo.styleSheet())
+        style_stage_choice(combo, True)
+        self.assertIn('#26815A', combo.styleSheet())
+        combo.deleteLater()
+
+    def test_pioneer_staged_change_explains_tools_and_rolecount(self):
+        panel = StagedChangesPanel(EditSession())
+        try:
+            values = panel.labels_for(('unit:5', 'equipment'),
+                ('model.role.default', 0), ('model.role.pioneer', 4))
+            self.assertIn('80 tools', values[3])
+            self.assertIn('roleCount: 4', values[3])
+        finally:
+            panel.deleteLater()
 
     def test_instructions_and_source_notice_are_permanent(self):
         window = QtExplorer()
