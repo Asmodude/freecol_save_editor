@@ -440,6 +440,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         if unit is None or role is None:
             return
         from equipment_rules import validate_equipment
+        if role == 'model.role.default': count = 0
         original = (unit.get('role', 'model.role.default'), int(unit.get('roleCount', '1')))
         try:
             if (unit_id, 'deleteUnit') in self.session.edits or any(
