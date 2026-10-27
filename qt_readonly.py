@@ -998,7 +998,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             ('FreeCol identifier', element.get('id'))])
         elif self.group == 'Players':
             summary.extend([('Nation', presentation.short(element.get('nationId'))),
-                            ('Gold', str(self.session.staged_value((element.get('id'), 'gold'), element.get('gold')))), ('Tax', None if element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648' else str(self.session.staged_value((element.get('id'), 'tax'), element.get('tax')))),
+                            ('Gold', str(element.get('gold'))), ('Tax', None if element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648' else str(element.get('tax'))),
                             ('AI controlled', element.get('ai'))])
         elif self.group == 'Colonies':
             summary.extend([('Owner', doc.owner_name(element.get('owner'))),
