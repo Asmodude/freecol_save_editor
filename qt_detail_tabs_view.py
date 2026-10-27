@@ -174,7 +174,8 @@ class DetailTabsMixin:
                             }
                             for candidate in ROLES:
                                 try:
-                                    validate_equipment(self.document.root, unit, candidate, 1)
+                                    validate_equipment(self.document.root, unit, candidate,
+                                                       0 if candidate == 'model.role.default' else 1)
                                 except (ValueError, TypeError):
                                     continue
                                 selector.addItem(names.get(candidate, candidate), candidate)
@@ -184,7 +185,7 @@ class DetailTabsMixin:
                                 role = chooser.currentData()
                                 matches = [r for r in document.root.iter('role') if r.get('id') == role]
                                 limit = int(matches[0].get('maximum-count', '1')) if len(matches) == 1 else 1
-                                amount.setRange(1, max(1, limit))
+                                amount.setRange(0, 0) if role == 'model.role.default' else amount.setRange(1, max(1, limit))
                                 amount.setVisible(role == 'model.role.pioneer')
                                 amount.setEnabled(limit > 1)
                                 amount.setSuffix(' × 20 tools' if role == 'model.role.pioneer' else '')
