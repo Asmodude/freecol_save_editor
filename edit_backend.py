@@ -266,6 +266,14 @@ def change_field(xml, object_id, field, old, new):
         m=found[0]
         s=a+store.start(1)+m.start(2); e=a+store.start(1)+m.end(2)
         return _replace_span(xml,s,e,old,new)
+    if field == 'liberty':
+        # National liberty is player progress, not goods or colony SoL.
+        if not object_id.startswith('player:'):
+            raise ValueError('National liberty requires a player ID')
+        candidates=[p for p in ET.fromstring(xml).iter('player')
+                    if p.get('id')==object_id]
+        if len(candidates)!=1 or candidates[0].get('playerType')!='colonial':
+            raise ValueError('National liberty requires a unique colonial player')
     allowed={'player:':('gold','tax','liberty'),'unit:':('experience',)}
     if not any(object_id.startswith(prefix) and field in fields for prefix,fields in allowed.items()):
         raise ValueError(f'Unsupported edit: {object_id}.{field}')
