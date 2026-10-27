@@ -204,7 +204,7 @@ def change_equipment(xml, object_id, old, new):
     check=ET.Element('unit',dict(unit.attrib,role=new_role,roleCount=str(new_count)))
     try: cap=movement_cap(root,check)
     except UnknownMovement as exc:raise ValueError('Unable to verify movement after equipping: '+str(exc))
-    # Preserve movement already spent; if switching to a lower maximum, clamp.
+    # Convert remaining movement proportionally between role caps (half-up rounding).
     original_moves=int(unit.get('movesLeft','0'))
     original_cap=movement_cap(root,unit)
     effective_moves=proportional_movement(original_moves,original_cap,cap)
