@@ -12,10 +12,11 @@ from qt_equipment_editor import EquipmentEditor
 from qt_numeric_stage_editor import NumericStageEditor
 
 
-def fixture(identifier):
+def fixture(identifier, *, equipped_ability=True):
+    ability = '<ability id="model.ability.canBeEquipped" value="true"/>' if equipped_ability else ''
     root = ET.fromstring(f"""<save>
       <unit-type id="model.unit.{identifier}" movement="3">
-        <ability id="model.ability.canBeEquipped" value="true"/>
+        {ability}
       </unit-type>
       <role id="model.role.default" maximum-count="1"/>
       <role id="model.role.pioneer" maximum-count="5"/>
@@ -35,7 +36,7 @@ class NonPersonnelEligibilityTests(unittest.TestCase):
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
 
-    def test_non_personnel_types_refuse_every_non_default_role_even_with_positive_ability(self):
+    def test_secondary_guard_rejects_nonstandard_non_personnel_with_positive_ability(self):
         for identifier in ('treasureTrain', 'wagonTrain', 'artillery',
                            'damagedArtillery', 'caravel', 'merchantman',
                            'galleon', 'frigate', 'privateer', 'manOWar'):
@@ -47,6 +48,21 @@ class NonPersonnelEligibilityTests(unittest.TestCase):
                     with self.subTest(unit=identifier, role=role, cached=indexed is not None):
                         with self.assertRaisesRegex(ValueError, 'cannot be equipped'):
                             validate_equipment(root, unit, role, 1, rules=indexed)
+
+    def test_freecol_shaped_non_personnel_without_equipping_ability(self):
+        # In serialized standard rulesets, wagons, artillery and ships
+        # do not carry canBeEquipped.
+        for identifier in ('treasureTrain', 'wagonTrain', 'artillery',
+                           'damagedArtillery', 'caravel', 'merchantman',
+                           'galleon', 'frigate', 'privateer', 'manOWar'):
+            root, unit = fixture(identifier, equipped_ability=False)
+            for rules in (None, EquipmentRulesIndex(root)):
+                for role in ('model.role.pioneer', 'model.role.soldier',
+                             'model.role.dragoon', 'model.role.scout'):
+                    with self.subTest(identifier=identifier, role=role,
+                                      cached=rules is not None):
+                        with self.assertRaises(ValueError):
+                            validate_equipment(root, unit, role, 1, rules=rules)
 
     def test_valid_colonist_remains_equippable(self):
         root, unit = fixture('freeColonist')
