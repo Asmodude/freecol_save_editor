@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feature/phase1-qt-readonly-shell
+      - "feature/**"
   pull_request:
   workflow_dispatch:
 
