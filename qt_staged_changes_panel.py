@@ -61,7 +61,11 @@ class StagedChangesPanel(QWidget):
             return title, label, 'Present', 'Delete'
         if field == 'equipment':
             def role(value):
-                return f'{presentation.readable(value[0])} × {value[1]}'
+                role_id, count = value
+                label = presentation.readable(role_id)
+                return (f'{label} — {count * 20} tools (roleCount: {count})'
+                        if role_id == 'model.role.pioneer' else
+                        f'{label} (roleCount: {count})')
             return title, 'Equipment', role(original), role(staged)
         if field.startswith(('stance|', 'tension|', 'alarm|')):
             topic, other = field.split('|', 1)
