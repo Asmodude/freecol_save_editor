@@ -60,13 +60,9 @@ class StagedChangesPanel(QWidget):
             label = 'Delete ' + kind
             return title, label, 'Present', 'Delete'
         if field == 'equipment':
-            def role(value):
-                role_id, count = value
-                label = presentation.readable(role_id)
-                return (f'{label} — {count * 20} tools (roleCount: {count})'
-                        if role_id == 'model.role.pioneer' else
-                        f'{label} (roleCount: {count})')
-            return title, 'Equipment', role(original), role(staged)
+            return (title, 'Equipment',
+                    presentation.equipment_description(*original),
+                    presentation.equipment_description(*staged))
         if field.startswith(('stance|', 'tension|', 'alarm|')):
             topic, other = field.split('|', 1)
             counterpart = doc.owner_name(other) if doc is not None else other
