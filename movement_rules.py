@@ -3,6 +3,7 @@ Movement values are FreeCol internal points (3 points usually equal one normal t
 Fail closed for rules we cannot evaluate, instead of inventing a maximum.
 """
 import xml.etree.ElementTree as ET
+from types import MappingProxyType
 
 class UnknownMovement(ValueError): pass
 
@@ -19,9 +20,9 @@ class EquipmentRulesIndex:
                 types.setdefault(key, []).append(node)
             elif node.tag == 'player':
                 players.setdefault(key, node)
-        self.roles = {key: tuple(value) for key, value in roles.items()}
-        self.types = {key: tuple(value) for key, value in types.items()}
-        self.players = players
+        self.roles = MappingProxyType({key: tuple(value) for key, value in roles.items()})
+        self.types = MappingProxyType({key: tuple(value) for key, value in types.items()})
+        self.players = MappingProxyType(players)
 
 
 def movement_cap(root, unit, *, rules=None):
