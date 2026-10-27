@@ -19,7 +19,7 @@ class SharedEquipmentEditorTests(unittest.TestCase):
             '<save><role id="model.role.default" maximum-count="1"/>'
             '<role id="model.role.pioneer" maximum-count="5"/>'
             '<role id="model.role.soldier" maximum-count="1"/>'
-            '<unit-type id="model.unit.hardyPioneer">'
+            '<unit-type id="model.unit.hardyPioneer" movement="3">'
             '<ability id="model.ability.canBeEquipped" value="true"/></unit-type>'
             '<unit id="unit:9" unitType="model.unit.hardyPioneer" owner="player:1"'
             ' role="model.role.default" roleCount="0" movesLeft="3"/></save>'
