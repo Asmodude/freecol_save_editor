@@ -1,3 +1,4 @@
+from qt_stage_controls import StageChangeButton
 """Diplomacy table rendering and inspection for the Qt explorer.
 
 This read-only mixin keeps the approved two-table (rivals / native nations)
@@ -61,9 +62,9 @@ class DiplomacyViewMixin:
                             editor = QLineEdit(str(selected), holder)
                             editor.setObjectName('diplomacyTension')
                         editor.setProperty('relationshipKey', (owner, field))
-                        button = QPushButton('✎', holder)
+                        button = StageChangeButton(holder)
                         button.setObjectName('stageDiplomacyRelation')
-                        button.setFixedWidth(25)
+                        button.setMinimumWidth(button.sizeHint().width())
                         button.clicked.connect(
                             lambda checked=False, oid=owner, fld=field, inp=editor:
                             self.stage_relation(oid, fld, inp.currentData()
