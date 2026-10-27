@@ -1,8 +1,8 @@
-from qt_stage_controls import StageChangeButton
 """Read-only detail-tab rendering and contextual inspector navigation.
 
 Extracted unchanged from the accepted Qt Explorer during Phase 2A.
 """
+from qt_stage_controls import StageChangeButton
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QLabel, QComboBox, QSpinBox
 from equipment_rules import ROLES, validate_equipment
