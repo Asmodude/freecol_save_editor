@@ -100,13 +100,8 @@ class DiplomacyViewMixin:
         self.selected_element = element
         self.inspector_label.setText(element.get('nation','Diplomacy'))
         owner_id, other_id = element.get('owner'), element.get('other')
-        stance = self.session.staged_value(
-            (owner_id, 'stance|' + other_id), element.get('stance'))
-        if not self.session.is_changed((owner_id, 'stance|' + other_id)):
-            stance = self.session.staged_value(
-                (other_id, 'stance|' + owner_id), stance)
-        tension = self.session.staged_value(
-            (owner_id, 'tension|' + other_id), element.get('tension'))
+        stance = element.get('stance')
+        tension = element.get('tension')
         self.details.setPlainText(
             f"Category: {category}\nOther nation: {element.get('nation')}\n"
             f"Stance: {stance}\nTension: {tension}")
