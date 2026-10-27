@@ -788,6 +788,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         model_decorations = {}
         model_tooltips = {}
         staged_cells = set()
+        role_cells = set()
         for row, (record, values) in enumerate(rows):
             for col, value in enumerate(values):
                 icon = QIcon()
@@ -841,7 +842,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                         tooltip = ('Equipped role: ' + str(effective_role) +
                                    ' | Unit type: ' + str(record.get('unitType')) +
                                    (' | STAGED change' if effective_role != actual_role else ''))
-                        staged_cells.add((row, col))
+                        if effective_role != actual_role:
+                            staged_cells.add((row, col))
+                        else:
+                            role_cells.add((row, col))
                 if self.group == 'Native settlements' and col == 5:
                     from qt_goods_icons import goods_key
                     names = [part.strip() for part in str(value or '').split(',')]
@@ -870,7 +874,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                     model_decorations[(row, col)] = icon
                 if tooltip:
                     model_tooltips[(row, col)] = tooltip
-        self.record_model.set_presentation(model_decorations, model_tooltips, staged_cells)
+        self.record_model.set_presentation(model_decorations, model_tooltips, staged_cells, role_cells)
         apply_record_view_sizing(self.model_view, self.group)
         self.model_view.resizeColumnsToContents()
         context = self.navigation.currentItem().text(0) if self.navigation.currentItem() else self.scope
