@@ -85,7 +85,7 @@ class EditSession:
     def editable_fields(group, element):
         """Existing Overview editability, including native gold sentinel."""
         if group == 'Players':
-            return {'tax'} | ({'gold', 'liberty'} if element.get('gold') != '-2147483648' else set())
+            return {'tax'} | ({'gold'} if element.get('gold') != '-2147483648' else set())
         if group == 'Units':
             return {'experience', 'movesLeft'}
         if group == 'Colonies':
