@@ -394,7 +394,7 @@ class OverviewPanel(QWidget):
                                 def movement_stage_status(text, label=status, saved=committed):
                                     dirty = text != saved
                                     label.setText('Not staged' if dirty else '')
-                                    label.setToolTip('Press Enter or Stage to include this movement value in the export' if dirty else '')
+                                    label.setToolTip('Press Enter or Stage Change to include this movement value in the export' if dirty else '')
                                 field.textChanged.connect(movement_stage_status)
                                 edit_layout.addWidget(status)
                             field.returnPressed.connect(
