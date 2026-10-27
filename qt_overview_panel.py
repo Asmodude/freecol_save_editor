@@ -267,21 +267,12 @@ class OverviewPanel(QWidget):
                                 tooltip=f'Original save: {original}. Press Enter to stage.' +
                                         (' Liberty, rebels/tories and production bonus recalculate on export.'
                                          if numeric_field == 'sonsOfLibertyTarget' else ''),
-                                margins=(0, 0, 0, 0))
+                                margins=(0, 0, 0, 0),
+                                status_name=('inlineMovesLeftStageStatus' if numeric_field == 'movesLeft'
+                                             else None))
                             value.stage_requested.connect(
                                 lambda text, rid=record_id, field_id=numeric_field:
                                 self.edit_requested.emit(rid, field_id, text))
-                            if numeric_field == 'movesLeft':
-                                # Pending typed movement is not yet a staged edit.
-                                status = QLabel('')
-                                status.setObjectName('inlineMovesLeftStageStatus')
-                                committed = str(displayed)
-                                def movement_stage_status(text, label=status, saved=committed):
-                                    dirty = text != saved
-                                    label.setText('Not staged' if dirty else '')
-                                    label.setToolTip('Press Enter or Stage Change to include this movement value in the export' if dirty else '')
-                                value.edit.textChanged.connect(movement_stage_status)
-                                value.layout().insertWidget(value.layout().count() - 1, status)
                         else:
                             value = QLabel(val)
                             value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
