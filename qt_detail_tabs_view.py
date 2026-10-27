@@ -123,24 +123,18 @@ class DetailTabsMixin:
                             target = counterpart.get('id')
                             field = 'alarm|' + target
                             original = int(node.get('value'))
-                            holder = QWidget(table)
-                            layout = QHBoxLayout(holder)
-                            layout.setContentsMargins(2, 1, 2, 1)
-                            edit = QLineEdit(str(self.session.staged_value((sid, field), original)), holder)
-                            edit.setObjectName('nativeSettlementAlarm')
-                            edit.setProperty('relationshipKey', (sid, field))
-                            edit.setToolTip('Directional alarm for ' + target)
-                            button = StageChangeButton(holder)
-                            button.setObjectName('stageSettlementAlarm')
-                            button.setMinimumWidth(button.sizeHint().width())
-                            edit.returnPressed.connect(
-                                lambda sid=sid, field=field, edit=edit:
-                                self.stage_relation(sid, field, edit.text()))
-                            button.clicked.connect(
-                                lambda checked=False, sid=sid, field=field, edit=edit:
-                                self.stage_relation(sid, field, edit.text()))
-                            layout.addWidget(edit, 1)
-                            layout.addWidget(button)
+                            key = (sid, field)
+                            holder = NumericStageEditor(
+                                self.session.staged_value(key, original), original,
+                                staged=self.session.is_changed(key),
+                                object_name='nativeSettlementAlarm',
+                                button_name='stageSettlementAlarm',
+                                tooltip='Directional alarm for ' + target,
+                                parent=table)
+                            holder.edit.setProperty('relationshipKey', key)
+                            holder.stage_requested.connect(
+                                lambda text, sid=sid, field=field:
+                                self.stage_relation(sid, field, text))
                             table.setCellWidget(row, col, holder)
                     if name == 'Stationed units' and col == 3 and colony is not None:
                         # The displayed role is owned by this unit, not the colony.
