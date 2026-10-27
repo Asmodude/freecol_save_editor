@@ -18,6 +18,7 @@ def colony_tile_names(game):
 def colony_building_names(game):
     """Map authoritative colony building IDs to colony names, excluding cached tiles."""
     result = {}
+    ambiguous = set()
     for tile in game.findall('./map/tile'):
         for colony in tile.findall('colony'):
             colony_id = colony.get('id') or ''
@@ -26,12 +27,14 @@ def colony_building_names(game):
             name = colony.get('name') or colony_id
             for element in colony.iter('building'):
                 key = element.get('id')
-                if key:
-                    if key in result and result[key] != name:
-                        raise ValueError('Ambiguous building location ' + key)
+                if not key or key in ambiguous:
+                    continue
+                if key in result and result[key] != name:
+                    ambiguous.add(key)
+                    result.pop(key, None)
+                else:
                     result[key] = name
     return result
-
 
 def unit_locations(units):
     """Lookup only authoritative units; cached unit snapshots are excluded upstream."""
