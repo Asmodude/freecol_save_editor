@@ -1,3 +1,4 @@
+from qt_stage_controls import StageChangeButton
 """Read-only detail-tab rendering and contextual inspector navigation.
 
 Extracted unchanged from the accepted Qt Explorer during Phase 2A.
@@ -98,9 +99,9 @@ class DetailTabsMixin:
                                            '; border-radius: 3px; padding: 2px; background: ' +
                                            ('#E5F5E9' if staged else '#EDF5FF') +
                                            '; color: #172B45; }')
-                        button = QPushButton('✎', holder)
+                        button = StageChangeButton(holder)
                         button.setObjectName('stageColonyGoods')
-                        button.setFixedWidth(25)
+                        button.setMinimumWidth(button.sizeHint().width())
                         button.setToolTip('Stage this goods amount')
                         valid_store = colony.find('./goodsContainer/storedGoods') is not None
                         edit.setEnabled(valid_store)
@@ -136,9 +137,9 @@ class DetailTabsMixin:
                             edit.setObjectName('nativeSettlementAlarm')
                             edit.setProperty('relationshipKey', (sid, field))
                             edit.setToolTip('Directional alarm for ' + target)
-                            button = QPushButton('✎', holder)
+                            button = StageChangeButton(holder)
                             button.setObjectName('stageSettlementAlarm')
-                            button.setFixedWidth(25)
+                            button.setMinimumWidth(button.sizeHint().width())
                             edit.returnPressed.connect(
                                 lambda sid=sid, field=field, edit=edit:
                                 self.stage_relation(sid, field, edit.text()))
@@ -202,9 +203,9 @@ class DetailTabsMixin:
                                 count.setValue(current_count)
                             else:
                                 selector.setEnabled(False)
-                            button = QPushButton('✎', holder)
+                            button = StageChangeButton(holder)
                             button.setObjectName('stageStationedEquipment')
-                            button.setFixedWidth(25)
+                            button.setMinimumWidth(button.sizeHint().width())
                             button.setEnabled(index >= 0)
                             button.setToolTip('Stage this unit equipment; no warehouse stock is consumed')
                             button.clicked.connect(
@@ -267,9 +268,9 @@ class DetailTabsMixin:
                                 '; border-radius: 3px; padding: 2px; background: ' +
                                 ('#E5F5E9' if staged else '#EDF5FF') +
                                 '; color: #172B45; }')
-                            button = QPushButton('✎', holder)
+                            button = StageChangeButton(holder)
                             button.setObjectName('stageWorkerExperience')
-                            button.setFixedWidth(25)
+                            button.setMinimumWidth(button.sizeHint().width())
                             button.setToolTip('Stage this worker experience')
                             edit.returnPressed.connect(
                                 lambda uid=uid, editor=edit: self.stage_overview_edit(uid, 'experience', editor.text()))
