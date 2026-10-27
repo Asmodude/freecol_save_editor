@@ -1,9 +1,9 @@
-from qt_stage_controls import StageChangeButton
 """Diplomacy table rendering and inspection for the Qt explorer.
 
 This read-only mixin keeps the approved two-table (rivals / native nations)
 presentation while isolating it from the main window.
 """
+from qt_stage_controls import StageChangeButton
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QComboBox, QLabel
 from qt_navigation import rows_for_scope
