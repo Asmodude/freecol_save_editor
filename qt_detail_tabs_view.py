@@ -13,6 +13,7 @@ from qt_settlement_details import settlement_units
 from qt_diplomacy import settlement_alarm_rows
 from qt_national_goods import colony_goods_breakdown, transported_goods_breakdown
 from qt_sortable_item import SortableItem
+from qt_numeric_stage_editor import NumericStageEditor
 from qt_unit_icons import authoritative_unit_type
 from qt_sorting import NUMERIC_DETAIL_COLUMNS
 from qt_detail_inspector import detail_inspection
@@ -92,37 +93,22 @@ class DetailTabsMixin:
                         original = int(source.get('amount')) if source is not None else 0
                         edit_key = (colony.get('id'), goods_type)
                         staged = self.session.is_changed(edit_key)
-                        holder = QWidget(table)
-                        line = QHBoxLayout(holder)
-                        line.setContentsMargins(2, 1, 2, 1)
-                        if staged:
-                            line.addWidget(QLabel('was ' + str(original), holder))
-                        edit = QLineEdit(str(self.session.staged_value(edit_key, original)), holder)
-                        edit.setObjectName('colonyGoodsAmountInput')
-                        edit.setProperty('goodsTypeId', goods_type)
-                        edit.setToolTip('Original stock: ' + str(original) + '; Enter to stage')
-                        edit.setStyleSheet('QLineEdit { border: 2px solid ' +
-                                           ('#26815A' if staged else '#76A9E8') +
-                                           '; border-radius: 3px; padding: 2px; background: ' +
-                                           ('#E5F5E9' if staged else '#EDF5FF') +
-                                           '; color: #172B45; }')
-                        button = StageChangeButton(holder)
-                        button.setObjectName('stageColonyGoods')
-                        button.setMinimumWidth(button.sizeHint().width())
-                        button.setToolTip('Stage this goods amount')
+                        holder = NumericStageEditor(
+                            self.session.staged_value(edit_key, original), original,
+                            staged=staged, object_name='colonyGoodsAmountInput',
+                            button_name='stageColonyGoods',
+                            tooltip='Original stock: ' + str(original) + '; Enter to stage',
+                            parent=table)
+                        holder.edit.setProperty('goodsTypeId', goods_type)
+                        holder.button.setToolTip('Stage this goods amount')
                         valid_store = colony.find('./goodsContainer/storedGoods') is not None
-                        edit.setEnabled(valid_store)
-                        button.setEnabled(valid_store)
+                        holder.edit.setEnabled(valid_store)
+                        holder.button.setEnabled(valid_store)
                         if not valid_store:
-                            edit.setToolTip('Colony has no storedGoods element; editing unavailable')
-                        edit.returnPressed.connect(
-                            lambda cid=colony.get('id'), kind=goods_type, field=edit:
-                            self.stage_colony_goods(cid, kind, field.text()))
-                        button.clicked.connect(
-                            lambda checked=False, cid=colony.get('id'), kind=goods_type, field=edit:
-                            self.stage_colony_goods(cid, kind, field.text()))
-                        line.addWidget(edit, 1)
-                        line.addWidget(button)
+                            holder.edit.setToolTip('Colony has no storedGoods element; editing unavailable')
+                        holder.stage_requested.connect(
+                            lambda text, cid=colony.get('id'), kind=goods_type:
+                            self.stage_colony_goods(cid, kind, text))
                         table.setCellWidget(row, col, holder)
                     if name == 'Alarm' and col == 1 and settlement is not None:
                         # Match the same colonial-player source order as settlement_alarm_rows;
@@ -177,34 +163,16 @@ class DetailTabsMixin:
                         if (original is not None and original.isascii() and original.isdecimal()):
                             edit_key = (uid, 'experience')
                             staged = self.session.is_changed(edit_key)
-                            holder = QWidget(table)
-                            line = QHBoxLayout(holder)
-                            line.setContentsMargins(2, 1, 2, 1)
-                            line.setSpacing(3)
-                            if staged:
-                                old = QLabel('was ' + original, holder)
-                                old.setToolTip('Experience in the opened save')
-                                line.addWidget(old)
-                            edit = QLineEdit(str(self.session.staged_value(edit_key, int(original))), holder)
-                            edit.setObjectName('workerExperienceInput')
-                            edit.setToolTip('Edit worker experience (0–200); Enter to stage. Original: ' + original)
-                            edit.setStyleSheet(
-                                'QLineEdit { border: 2px solid ' +
-                                ('#26815A' if staged else '#76A9E8') +
-                                '; border-radius: 3px; padding: 2px; background: ' +
-                                ('#E5F5E9' if staged else '#EDF5FF') +
-                                '; color: #172B45; }')
-                            button = StageChangeButton(holder)
-                            button.setObjectName('stageWorkerExperience')
-                            button.setMinimumWidth(button.sizeHint().width())
-                            button.setToolTip('Stage this worker experience')
-                            edit.returnPressed.connect(
-                                lambda uid=uid, editor=edit: self.stage_overview_edit(uid, 'experience', editor.text()))
-                            button.clicked.connect(
-                                lambda checked=False, uid=uid, editor=edit:
-                                self.stage_overview_edit(uid, 'experience', editor.text()))
-                            line.addWidget(edit, 1)
-                            line.addWidget(button)
+                            holder = NumericStageEditor(
+                                self.session.staged_value(edit_key, int(original)), original,
+                                staged=staged, object_name='workerExperienceInput',
+                                button_name='stageWorkerExperience',
+                                tooltip='Edit worker experience (0–200); Enter to stage. Original: ' + original,
+                                label_tooltip='Experience in the opened save',
+                                parent=table)
+                            holder.button.setToolTip('Stage this worker experience')
+                            holder.stage_requested.connect(
+                                lambda text, uid=uid: self.stage_overview_edit(uid, 'experience', text))
                             table.setCellWidget(row, col, holder)
             if name in ('Workers', 'Stationed units'):
                 # Match the main Units list: taller rows preserve full unit artwork.
