@@ -2,7 +2,7 @@
 
 The source summary remains authoritative; this widget changes presentation only.
 """
-from qt_stage_controls import StageChangeButton
+from qt_stage_controls import StageChangeButton, style_stage_choice
 from qt_equipment_editor import EquipmentEditor
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPixmap
@@ -237,6 +237,7 @@ class OverviewPanel(QWidget):
                             index = selector.findData(proposed)
                             if index >= 0:
                                 selector.setCurrentIndex(index)
+                            style_stage_choice(selector, self._session.is_changed((sid, 'learnableSkill')))
                             button = StageChangeButton(value)
                             button.setObjectName('stageNativeLearnableSkill')
                             button.setEnabled(index >= 0)
