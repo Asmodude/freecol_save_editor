@@ -467,11 +467,17 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                 proposed.pop((unit_id, 'equipment'), None)
             if move_key in proposed:
                 move_original, move_current = proposed[move_key]
-                recalculated = proportional_movement(move_current, prior_cap, new_cap)
-                if recalculated == move_original and (role, count) == original:
+                # Returning to the source role should also restore a source-equal
+                # explicit movement override. Do not scale 3/12 down to 1/3
+                # when the user explicitly requested the original 3 MP.
+                if (role, count) == original and move_current == move_original:
                     proposed.pop(move_key)
                 else:
-                    proposed[move_key] = (move_original, recalculated)
+                    recalculated = proportional_movement(move_current, prior_cap, new_cap)
+                    if recalculated == move_original and (role, count) == original:
+                        proposed.pop(move_key)
+                    else:
+                        proposed[move_key] = (move_original, recalculated)
             preflight(self.document.xml_bytes, proposed)
             self.session.edits.clear()
             self.session.edits.update(proposed)
