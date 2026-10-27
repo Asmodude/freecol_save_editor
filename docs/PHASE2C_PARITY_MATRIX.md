@@ -1,28 +1,26 @@
 # Phase 2C — Tk → Qt Parity Matrix
 
-**Status:** C1 Windows ACCEPTED on tested commit `deb5cec` (28 pass, 0 fail, 1 N/A plus 2/2 follow-up retests); C2 not yet accepted. implementation evidence is recorded per operation, not inferred from plan acceptance.  
-**Baseline:** Phase 2B merged on main. **Independent source audit:** Claude, [PHASE2C_PLAN_REVIEW.md](PHASE2C_PLAN_REVIEW.md), 26 October 2026 (confirmed complete non-destructive operation inventory against `freecol_explorer.py`, `EditSession` and `edit_backend.py`).  
-**Source of truth:** [Accepted implementation plan](PHASE2C_IMPLEMENTATION_PLAN.md), especially §12.
+**Final C1–C3 Windows status: ACCEPTED by user on 27 October 2026.** C1 accepted 26 October (`deb5cec`, CI #472), C2 accepted 26 October (`cd10b2c`, CI #546), C3 accepted 27 October (movement override, representative FreeCol Save As/load/reload, editing non-regression). Claude's independent review (`docs/PHASE2C3_INDEPENDENT_REVIEW.md`) was **PASS WITH CAVEATS** at `068a0cd`. Post-review fixes and CI/Windows verification are **not yet signed off**; PR #6 remains unmerged.
 
-| Field / operation | Authoritative edit key | Validation and notable behavior | Qt implementation | Automated | Windows | FreeCol |
-|---|---|---|---|---|---|---|
-| Gold | `(player_id, gold)` | 0–2,147,483,647; native sentinel excluded | Phase 2B; C1 preflight integration | Preflight tests added; full regression pending | 2B passed; C1 recheck pending | 2B passed |
-| Tax | `(player_id, tax)` | 0–100; present numeric source attribute | Inline shared player numeric control implemented on branch | Qt behavior and preflight tests pass in CI #451 | Pending | Pending |
-| Experience | `(unit_id, experience)` | 0–200; present numeric attribute; full unit Overview editing gives capability parity | Shared inline numeric unit Overview editor implemented | Offscreen stage/source integrity test added; CI #456 passed | Pending | Pending |
-| Moves left | `(unit_id, movesLeft)` | 0–movement cap with **staged role** | Shared inline unit Overview editor and backend-preflight staging implemented | Offscreen cap rejection test added; equipment/movement stage and undo combinations covered by automated tests #460–461 | Pending | Pending |
-| Equipment | `(unit_id, equipment)` | Composite (role,roleCount); valid roles/abilities, native/naval, deletion conflict; may clamp moves | Initial Unit Overview role/count UI integrated with backend preflight | Qt signal/stage test + movement dependency tests; CI #476 passed | Pending | Pending |
-| Colony goods | `(colony_id, model.goods.<type>)` | Known type; 0 if absent; positive stock creation only with storedGoods | Inline Goods editor implemented; stable full type ID and preflight | Qt sorting and absent-stock test; CI #483 passed | Pending | Pending | Pending |
-| Sons of Liberty | `(colony_id, sonsOfLibertyTarget)` | 0–100; population >0 and standard formula; changes six attributes | Eligible Colony Overview inline target; backend preflight; tooltip explains deferred recalculation | Six derived attributes verified in Qt/preflight test; CI #487 passed | Pending | Pending |
-| Stance | `(player_id, stance|<other>)` | Four permitted choices; existing equal reciprocal; changes both ways | Not started (C2) | Pending | Pending | Pending |
-| Tension | `(player_id, tension|<other>)` | Existing directed relation; numeric nonnegative ≤2,147,483,647 | Not started (C2) | Pending | Pending | Pending |
-| Settlement alarm | `(settlement_id, alarm|<colonial player>)` | Existing directed relation only; no creation of missing records | Not started (C2) | Pending | Pending | Pending |
-| Learnable skill | `(settlement_id, learnableSkill)` | Only skills taught by authoritative settlements in the opened save | Not started (C2) | Pending | Pending | Pending |
+**Scope:** Phase 2C delivers non-destructive parity. Destructive deletion parity is Phase 2D. Source-of-truth details: `docs/PHASE2C_IMPLEMENTATION_PLAN.md` and `docs/PHASE2_DEVELOPMENT_PLAN.md`.
 
-**Scope:** Deletion actions are intentionally Phase 2D, not omissions in this 2C matrix. The native Tk limitation allowing staging of a nonexistent alarm that fails export must **not** be copied: present those relations as non-editable with explanation. Do not introduce warehouse capacity rules, arbitrary derived-value edits or ruleset-wide skill choices.
+| Field / operation | Authoritative key | Qt and validation | Automated evidence | Windows evidence | FreeCol evidence |
+|---|---|---|---|---|---|
+| Gold | `(player_id,gold)` | Inline, integer 0–2,147,483,647; native sentinel excluded | 2B suite, C1 preflight; independent review §1 | C1 PASS | 2B and C3 roundtrip |
+| Tax | `(player_id,tax)` | Inline 0–100; native tax refused | CI #451 onward, independent §1 | C1 PASS incl. focused native-tax retest | C3 representative roundtrip |
+| Experience | `(unit_id,experience)` | Inline 0–200 in Units Overview and colony Workers | CI #456 and Workers identity tests; independent §1 | C1 PASS incl. Workers-tab retest | C3 representative roundtrip |
+| Moves left | `(unit_id,movesLeft)` | Cap from effective staged equipment; explicit override preserved | C3 fix; independent §2 live export | C1, C2, C3 PASS | C3 PASS |
+| Equipment | `(unit_id,equipment)` | Role/count composite, ruleset validation, proportional moves; Unit Overview and Stationed | CI #476, #544; independent §1–3 | C2 PASS; post-review default/0 fix requires retest | C3 PASS; post-review retest pending |
+| Colony goods | `(colony_id,model.goods.<type>)` | Eligible existing and absent stock, validation and proposed national projection | CI #483; independent §1 | C2 PASS incl. projection correction | C3 representative roundtrip |
+| Sons of Liberty | `(colony_id,sonsOfLibertyTarget)` | Eligible colony; dependent fields calculated on export | CI #487; independent §1 | C2 PASS | C3 representative roundtrip |
+| Stance | `(player_id,stance|other)` | Reciprocal source-backed, valid options, reject opposite-direction duplicate | CI #502; independent §1 | C2 PASS | C3 representative roundtrip |
+| Tension | `(player_id,tension|other)` | Directional, existing source-backed relation | CI #502; independent §1 | C2 PASS | C3 representative roundtrip |
+| Settlement alarm | `(settlement_id,alarm|player)` | Directional, existing source-backed relation, reject absent | CI #503; independent §1 | C2 PASS | C3 representative roundtrip |
+| Learnable skill | `(settlement_id,learnableSkill)` | Only skills present among authoritative settlements in opened save | CI #497; independent §1 | C2 PASS | C3 representative roundtrip |
 
-**Audit conclusion:** The independently reviewed inventory contains no additional accepted non-destructive Tk operations (Claude §1, §8). Stage-time backend preflight must refuse all unsupported combinations **before** modifying session, and remains supplemental to final producer validation.
+**Evidence precision:** C3 verified representative real-game export and reload; it was **not** an exhaustive individual FreeCol roundtrip for all eleven rows. Independent off-screen combined export confirmed every supported edit type. Historic paragraphs below document their state **at the time**, including earlier pending labels; the table above is authoritative as of 27 October.
 
-**Status policy:** Implementation, automated, Windows and FreeCol outcomes will be updated separately with evidence. No unchecked category is marked accepted.
+## C1 and C2 development history (historic snapshots, not current status)
 
 **C1 partial implementation (26 October 2026):** `edit_preflight.py` provides cloned in-memory backend validation and checked stage/undo APIs; Qt player Gold and Tax staging uses it. `RecordTableModel` exposes persistent bold/italic staged-value font roles, including selected rows. Draft PR #6 holds all development; CI #451 passed at `507129f`. Unit XP, movement and all C2 categories remain unimplemented; no Windows acceptance claimed.
 
@@ -77,3 +75,21 @@ These changes require green final CI and **focused Windows retests**. The initia
 - **Final six-case Windows retest on `cd10b2c`: 6 PASS, 0 FAIL, 0 N/A.** Equipment scrolling PASS; role staging status PASS; equipment terminology PASS; diplomacy layout PASS; Raw XML PASS; Dragoon→Soldier movement downgrade PASS. User comments: **None**.
 
 **C2 Windows gate ACCEPTED.** No merge, tag, branch deletion or C3/game roundtrip acceptance is implied. Preserve all accepted C1/C2 behavior. Next: C3 safe export and actual FreeCol load → advance turn → save → reload validation.
+
+
+## C3 Windows acceptance — 27 October 2026
+
+The tester reported **PASS** for all three closing criteria:
+1. Equipment plus explicit movement override staged/exported with the requested final movement value.
+2. Guarded Save As → FreeCol load → reload with representative edits.
+3. Editing non-regression.
+
+Headless CI before the independent review: **303 tests, 1 expected skip** (run #554 on `c86ab48`); Claude independently executed the same suite and a synthetic real-Qt offscreen full-operation export at commit `068a0cd`, finding **no unintended attribute changes** and issuing **PASS WITH CAVEATS**.
+
+### Post-review corrections (not yet accepted)
+
+Claude found default-role units could stage `roleCount=1` instead of FreeCol's required 0, and equipment undo could leave a no-op dependent movement edit `3→3`. Both defects have code corrections on the branch, requiring a final green CI and a focused Windows check. Shared Tk backend proportional movement semantics differ from earlier Tk clamp behavior and are documented in CHANGELOG. See `docs/PHASE2C3_INDEPENDENT_REVIEW.md`.
+
+The intermittent FreeCol automatic movement/Lumberjack anomaly is documented separately in `docs/FREECOL_MOVEMENT_DIAGNOSTIC.md`, with root cause unconfirmed. It is not silently attributed to the editor or treated as proof of FreeCol-only causation.
+
+**Merge gate:** post-review tests + Windows verification + explicit user approval; no merge/tag/branch deletion authorized by this document.
