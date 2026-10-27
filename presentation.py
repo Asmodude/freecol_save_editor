@@ -19,6 +19,22 @@ def readable(value):
     return re.sub(r'(?<!^)(?=[A-Z])',' ',value).replace('_',' ').title()
 
 
+ROLE_LABELS = {
+    'model.role.default': 'Unequipped',
+    'model.role.soldier': 'Soldier',
+    'model.role.dragoon': 'Dragoon',
+    'model.role.scout': 'Scout',
+    'model.role.pioneer': 'Pioneer',
+}
+
+def equipment_description(role, count):
+    """Human-readable equipment quantity without exposing internal tuples."""
+    label = ROLE_LABELS.get(role, readable(role))
+    if role == 'model.role.pioneer':
+        return f'{label} — {int(count) * 20} tools (roleCount: {count})'
+    return f'{label} (roleCount: {count})'
+
+
 def experience_towards(attrs):
     goods=(attrs.get('experienceType') or '')
     if not goods:
