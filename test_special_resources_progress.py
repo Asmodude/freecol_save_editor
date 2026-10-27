@@ -26,6 +26,14 @@ class NationalLibertyTests(unittest.TestCase):
         self.assertIn('Immigration required: 100', text)
         self.assertNotIn('Hammers:', text)
 
+    def test_colony_accumulated_liberty_is_not_mislabeled_as_production(self):
+        from types import SimpleNamespace
+        colony = ET.fromstring('<colony id="colony:1" name="Alpha" liberty="42"/>')
+        doc = SimpleNamespace(units=[], owner_name=lambda _: '', location_name=lambda _: '')
+        text = record_overview('Colonies', colony, doc)
+        self.assertIn('Colony liberty points: 42', text)
+        self.assertNotIn('Liberty bells: 42', text)
+
     def test_national_liberty_edit_is_staged_and_source_immutable(self):
         session = EditSession()
         player = next(ET.fromstring(_XML).iter('player'))
