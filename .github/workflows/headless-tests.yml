@@ -33,4 +33,4 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         # Discovery picks up every test_*.py, so new test modules are never left out of CI.
-        run: python -m unittest discover -v -p 'test_*.py'
+        run: python run_headless_tests.py
