@@ -342,7 +342,9 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                               if colony.get('id') == record_id), None) if colony_field
                    else self.document.unit_by_id(record_id))
         group = 'Players' if player_field else 'Colonies' if colony_field else 'Units'
-        if element is None or (not colony_field and field not in EditSession.editable_fields(group, element)):
+        if element is None or (not colony_field and field not in EditSession.editable_fields(group, element)
+                               and not (player_field and field == 'liberty'
+                                        and element.get('gold') != '-2147483648')):
             return
         if player_field and field == 'tax' and (element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648'):
             return
