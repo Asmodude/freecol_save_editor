@@ -33,9 +33,11 @@ class EquipmentEditor(QWidget):
         self.selector.setObjectName('unitEquipmentRole' if context == 'overview' else 'stationedEquipmentRole')
         self.selector.setProperty('unitId', uid)
         style_stage_choice(self.selector, pending)
+        rules = getattr(document, 'equipment_rules_index', None)
         for role in ROLES:
             try:
-                validate_equipment(document.root, unit, role, 0 if role == 'model.role.default' else 1)
+                validate_equipment(document.root, unit, role,
+                                   0 if role == 'model.role.default' else 1, rules=rules)
             except (ValueError, TypeError):
                 continue
             self.selector.addItem(ROLE_LABELS.get(role, role.rsplit('.', 1)[-1].title()), role)
@@ -54,7 +56,10 @@ class EquipmentEditor(QWidget):
         layout.addWidget(self.tools_label)
         layout.addWidget(self.status)
         layout.addWidget(self.button)
-        limits = {e.get('id'): int(e.get('maximum-count', '1')) for e in document.root.iter('role')}
+        limits = ({key: int(elements[0].get('maximum-count', '1'))
+                   for key, elements in rules.roles.items() if len(elements) == 1}
+                  if rules is not None else
+                  {e.get('id'): int(e.get('maximum-count', '1')) for e in document.root.iter('role')})
 
         def update_role(_index):
             role = self.selector.currentData()
