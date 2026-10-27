@@ -130,7 +130,7 @@ class DetailTabsMixin:
                                 object_name='nativeSettlementAlarm',
                                 button_name='stageSettlementAlarm',
                                 tooltip='Directional alarm for ' + target,
-                                parent=table)
+                                compact_source=True, parent=table)
                             holder.edit.setProperty('relationshipKey', key)
                             holder.stage_requested.connect(
                                 lambda text, sid=sid, field=field:
