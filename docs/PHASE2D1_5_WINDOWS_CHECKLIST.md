@@ -1,5 +1,7 @@
 # Phase 2D-1.5 — Windows Acceptance Checklist
 
+> **27 Oct 2026 sequencing correction:** Perform **sections A, B and C now**. **Defer section D**, including the FreeCol turn-advance roundtrip, until mandatory C2 **Special Resources** (OC-001) and the previously reported C1+C2 movement-error gate (OC-002) have been addressed. See [Outstanding Commitments](OUTSTANDING_COMMITMENTS.md). Green CI does not waive those gates.
+
 **Branch:** `feature/phase2d1-5-component-performance`  
 **Phase status:** Awaiting user's Windows test, performance measurements, and independent Claude review.  
 **Baseline:** Phase 2D-1 accepted tag `v0.6.2.6.4-phase2d1`.
