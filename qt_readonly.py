@@ -332,7 +332,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
     def stage_overview_edit(self, record_id, field, raw_value):
         if self.document is None:
             return
-        player_field = field in ('gold', 'tax')
+        player_field = field in ('gold', 'tax', 'liberty')
         unit_field = field in ('experience', 'movesLeft')
         colony_field = field == 'sonsOfLibertyTarget'
         if not (player_field or unit_field or colony_field):
