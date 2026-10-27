@@ -13,6 +13,7 @@ from qt_settlement_details import settlement_units
 from qt_diplomacy import settlement_alarm_rows
 from qt_national_goods import colony_goods_breakdown, transported_goods_breakdown
 from qt_sortable_item import SortableItem
+from qt_unit_icons import authoritative_unit_type
 from qt_sorting import NUMERIC_DETAIL_COLUMNS
 from qt_detail_inspector import detail_inspection
 from qt_raw_xml import formatted_record_xml
@@ -75,7 +76,7 @@ class DetailTabsMixin:
                                 if unit is not None else None)
                         # The table cell is a human-readable label. Manifest keys require
                         # the authoritative model.unit.* identifier instead.
-                        unit_type = unit.get('unitType') if unit is not None else value
+                        unit_type = authoritative_unit_type(unit, value)
                         icon = self.unit_icons.effective_icon(unit_type, role)
                         if not icon.isNull():
                             item.setIcon(icon)
