@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from location_names import colony_tile_names, colony_building_names, unit_locations, location_label
 from unit_records import authoritative_units
+from movement_rules import EquipmentRulesIndex
 
 
 class SaveDocument:
@@ -33,6 +34,7 @@ class SaveDocument:
         self.path=Path(path)
         self.xml_bytes=xml_bytes
         self.root=root
+        self.equipment_rules_index=EquipmentRulesIndex(root)
         self.game=game
         self.players=players
         self.colonies=colonies
