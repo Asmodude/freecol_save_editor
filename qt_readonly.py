@@ -792,12 +792,12 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             from qt_navigation import human_player_id
             pid = (human_player_id(doc) if self.scope == 'mine'
                    else self.scope[len('player:'):] if self.scope.startswith('player:') else None)
-            congress = 'Continental Congress — ' + str(len(rows)) + ' recruited'
+            progress_suffix = ''
             player = doc.players.get(pid) if pid else None
             if player is not None and (player.get('liberty') or '').isascii() and (player.get('liberty') or '').isdecimal():
                 progress = self.session.staged_value((pid, 'liberty'), int(player.get('liberty')))
-                congress += f' · Liberty points: {progress:,}'
-            self.congress_heading.setText(congress)
+                progress_suffix = f' · Liberty points: {progress:,}'
+            self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited' + progress_suffix)
         model_decorations = {}
         model_tooltips = {}
         staged_cells = set()
