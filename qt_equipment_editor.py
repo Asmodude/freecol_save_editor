@@ -107,6 +107,12 @@ class EquipmentEditor(QWidget):
             pioneer = self.selector.findData('model.role.pioneer')
             if pioneer >= 0:
                 selected = pioneer
+        if self.selector.count() == 1 and self.selector.itemData(0) == 'model.role.default':
+            # A non-personnel unit has no equipment choices; do not invite a
+            # meaningless Default -> Default staging action.
+            self.selector.setEnabled(False)
+            self.button.setEnabled(False)
+            self.selector.setToolTip('No alternative equipment roles are valid for this unit')
         if selected >= 0:
             self.selector.setCurrentIndex(selected)
             update_role(selected)
