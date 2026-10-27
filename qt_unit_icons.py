@@ -19,6 +19,11 @@ def unit_key(value):
     return value if value and value.replace('_', '').isalnum() else ''
 
 
+def authoritative_unit_type(unit, display_label):
+    """Use the actual FreeCol type id for sprite resolution, never table text."""
+    return unit.get('unitType') if unit is not None else display_label
+
+
 class UnitIcons:
     def __init__(self, source=None):
         self.source = discover() if source is None else source
