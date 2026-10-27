@@ -71,7 +71,7 @@ Targeted cleaning accompanies the features it enables: shared Qt editors in 2D-1
 
 ## Global acceptance and governance
 
-- Every checkpoint gets automated behavioural and integrity regression tests, green CI on the exact tested branch head, appropriate Claude independent safety review, and explicit user Windows/gameplay acceptance.
+- Every checkpoint follows the established order: automated behavioural/integrity regression tests and green CI on the exact tested branch head; user Windows usability and FreeCol gameplay testing; fixes and focused Windows retests until the user considers the checkpoint ready; **then** independent Claude review; any review corrections and corresponding regression/Windows retests; finally explicit user checkpoint acceptance. Claude's review is not a substitute for the earlier human usability gate.
 - Original `.fsg` bytes never change; Save As must reject existing destinations; XML/ZIP and FreeCol game behaviour must remain valid.
 - Cached-missionary deletion fix remains **out of scope until after v1.0, if requested**; preserve safe refusal and explain it.
 - No work on the unrelated `MOVE_NO_MOVES`/Lumberjack diagnostic without new evidence or user request.
