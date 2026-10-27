@@ -62,7 +62,7 @@ def transported_goods_breakdown(document, player_id, goods_id):
 
 def colony_goods_breakdown(document, player_id, goods_id):
     """Stable, read-only per-colony quantities including zero-stock colonies."""
-    if not player_id or player_id not in document.players or not goods_id:
+    if not player_id or player_id not in document.players or not is_warehouse_good(goods_id):
         return []
     rows=[]
     for colony in document.colonies:
