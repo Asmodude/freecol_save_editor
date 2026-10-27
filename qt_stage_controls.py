@@ -14,3 +14,13 @@ class StageChangeButton(QPushButton):
         self.setAccessibleName("Stage Change")
         self.setMinimumWidth(self.sizeHint().width())
         self.setToolTip("Stage this change; changes are not written until Save As")
+
+def style_stage_choice(combo, staged=False):
+    """Apply the existing blue/editable and green/staged convention to Qt choices."""
+    border = '#26815A' if staged else '#76A9E8'
+    background = '#E5F5E9' if staged else '#EDF5FF'
+    combo.setStyleSheet(
+        'QComboBox { border: 2px solid ' + border +
+        '; border-radius: 3px; padding: 2px; background: ' +
+        background + '; color: #172B45; }'
+    )
