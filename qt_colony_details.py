@@ -3,6 +3,7 @@
 No GUI imports and no changes to savegame data.
 """
 import presentation
+from qt_special_resources import is_warehouse_good
 
 
 def goods_catalog(colony, document):
@@ -12,11 +13,12 @@ def goods_catalog(colony, document):
     if stored is not None:
         for item in stored.findall('goods'):
             goods_type = item.get('type')
-            if goods_type:
+            if is_warehouse_good(goods_type):
                 by_type[goods_type] = item
     available = set(by_type)
     if document is not None:
-        available.update(getattr(document, 'goods_types', ()) or ())
+        available.update(kind for kind in (getattr(document, 'goods_types', ()) or ())
+                         if is_warehouse_good(kind))
     return [(kind, by_type.get(kind)) for kind in
             sorted(available, key=lambda key: presentation.readable(key).casefold())]
 
