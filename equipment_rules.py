@@ -39,6 +39,8 @@ def validate_equipment(root,unit,role,count,*,rules=None):
     # Unit types can inherit properties in the specification; fail closed if uncertain.
     if role!='model.role.default':
         if _is_non_equippable_type(unit_type):
+            if active.get('model.ability.navalUnit', False):
+                raise ValueError('Cannot equip naval units')
             raise ValueError('This unit type cannot be equipped')
         if active.get('model.ability.navalUnit',False):raise ValueError('Cannot equip naval units')
         if active.get('model.ability.native',False):raise ValueError('Native equipment is outside this release')
