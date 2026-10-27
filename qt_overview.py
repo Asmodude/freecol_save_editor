@@ -72,6 +72,11 @@ def record_overview(group, element, document):
         field('National liberty points', element.get('liberty'))
         field('Immigration points', element.get('immigration'))
         field('Immigration required', element.get('immigrationRequired'))
+        accumulated = element.get('immigration')
+        threshold = element.get('immigrationRequired')
+        if (accumulated and threshold and accumulated.isascii() and accumulated.isdecimal()
+                and threshold.isascii() and threshold.isdecimal() and int(threshold) > 0):
+            field('Next immigrant progress', f'{int(accumulated):,} / {int(threshold):,}')
         field('Colonies', document.colony_counts.get(element.get('id'), 0))
         field('Native settlements', document.native_counts.get(element.get('id'), 0))
     elif group == 'Units':
