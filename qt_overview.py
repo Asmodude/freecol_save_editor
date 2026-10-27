@@ -68,6 +68,10 @@ def record_overview(group, element, document):
         if element.get('playerType', '').lower() not in ('native', 'indian') and element.get('gold') != '-2147483648':
             field('Tax', element.get('tax'))
         field('Score', element.get('score'))
+        # Progress attributes are sourced from the player, never warehouse goods.
+        field('National liberty points', element.get('liberty'))
+        field('Immigration points', element.get('immigration'))
+        field('Immigration required', element.get('immigrationRequired'))
         field('Colonies', document.colony_counts.get(element.get('id'), 0))
         field('Native settlements', document.native_counts.get(element.get('id'), 0))
     elif group == 'Units':
