@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from location_names import colony_tile_names, colony_building_names, unit_locations, location_label
 from unit_records import authoritative_units
+from movement_rules import EquipmentRulesIndex
 
 
 class SaveDocument:
@@ -33,6 +34,7 @@ class SaveDocument:
         self.path=Path(path)
         self.xml_bytes=xml_bytes
         self.root=root
+        self._equipment_rules_index=None
         self.game=game
         self.players=players
         self.colonies=colonies
@@ -52,6 +54,13 @@ class SaveDocument:
         self.terrain_by_xy={(int(t.get('x')),int(t.get('y'))):t for t in game.findall('./map/tile') if t.get('x') is not None and t.get('y') is not None}
         self.turn=game.get('turn')
         return self
+
+    @property
+    def equipment_rules_index(self):
+        """Lazy, document-owned specification index; never shared across saves."""
+        if self._equipment_rules_index is None:
+            self._equipment_rules_index = EquipmentRulesIndex(self.root)
+        return self._equipment_rules_index
 
     def owner_name(self, key):
         return self.players[key].get('username','') if key in self.players else (key or '')

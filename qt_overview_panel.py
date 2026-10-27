@@ -4,6 +4,7 @@ The source summary remains authoritative; this widget changes presentation only.
 """
 from qt_stage_controls import StageChangeButton, style_stage_choice
 from qt_equipment_editor import EquipmentEditor
+from qt_numeric_stage_editor import NumericStageEditor
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QPixmap
 from PySide6.QtWidgets import (
@@ -254,54 +255,24 @@ class OverviewPanel(QWidget):
                         elif editable_numeric:
                             record_id = self._record.get('id')
                             original = self._record.get(source_field)
-                            value = QWidget()
-                            edit_layout = QHBoxLayout(value)
-                            edit_layout.setContentsMargins(0, 0, 0, 0)
                             displayed = (effective_unit_moves(self._record, self._document, self._session)
                                          if numeric_field == 'movesLeft' else
                                          self._session.staged_value((record_id, numeric_field), int(original)))
-                            field = QLineEdit(str(displayed))
-                            field.setObjectName('inline' + numeric_field.title() + 'Input')
                             staged = (self._session.is_changed((record_id, numeric_field)) or
                                       (numeric_field == 'movesLeft' and str(displayed) != original))
-                            field.setToolTip(f'Original save: {original}. Press Enter to stage.' +
-                                             (' Liberty, rebels/tories and production bonus recalculate on export.'
-                                              if numeric_field == 'sonsOfLibertyTarget' else ''))
-                            field.setStyleSheet('QLineEdit { border: 2px solid ' +
-                                                ('#26815A' if staged else '#76A9E8') + '; '
-                                                'border-radius: 3px; padding: 3px; '
-                                                'background: ' + ('#E5F5E9' if staged else '#EDF5FF') +
-                                                '; color: #172B45; }')
-                            if staged:
-                                original_label = QLabel('was ' + original)
-                                original_label.setObjectName('inline' + numeric_field.title() + 'Original')
-                                original_label.setToolTip('Value in opened save')
-                                edit_layout.addWidget(original_label)
-                            button = StageChangeButton()
-                            button.setObjectName('stageInline' + numeric_field.title())
-                            button.setMinimumWidth(button.sizeHint().width())
-                            button.setToolTip('Stage this value (or press Enter)')
-                            if numeric_field == 'movesLeft':
-                                # A typed value is only a candidate until Enter/Stage is pressed.
-                                # Explicitly flag it so the Overview cannot look committed
-                                # while the table and exported XML still contain the staged value.
-                                button.setText('Stage Change')
-                                button.setMinimumWidth(button.sizeHint().width())
-                                status = QLabel('')
-                                status.setObjectName('inlineMovesLeftStageStatus')
-                                committed = str(displayed)
-                                def movement_stage_status(text, label=status, saved=committed):
-                                    dirty = text != saved
-                                    label.setText('Not staged' if dirty else '')
-                                    label.setToolTip('Press Enter or Stage Change to include this movement value in the export' if dirty else '')
-                                field.textChanged.connect(movement_stage_status)
-                                edit_layout.addWidget(status)
-                            field.returnPressed.connect(
-                                lambda rid=record_id, field_id=numeric_field, edit=field: self.edit_requested.emit(rid, field_id, edit.text()))
-                            button.clicked.connect(
-                                lambda checked=False, rid=record_id, field_id=numeric_field, edit=field: self.edit_requested.emit(rid, field_id, edit.text()))
-                            edit_layout.addWidget(field, 1)
-                            edit_layout.addWidget(button)
+                            value = NumericStageEditor(
+                                displayed, original, staged=staged,
+                                object_name='inline' + numeric_field.title() + 'Input',
+                                button_name='stageInline' + numeric_field.title(),
+                                tooltip=f'Original save: {original}. Press Enter to stage.' +
+                                        (' Liberty, rebels/tories and production bonus recalculate on export.'
+                                         if numeric_field == 'sonsOfLibertyTarget' else ''),
+                                margins=(0, 0, 0, 0),
+                                status_name=('inlineMovesLeftStageStatus' if numeric_field == 'movesLeft'
+                                             else None))
+                            value.stage_requested.connect(
+                                lambda text, rid=record_id, field_id=numeric_field:
+                                self.edit_requested.emit(rid, field_id, text))
                         else:
                             value = QLabel(val)
                             value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
