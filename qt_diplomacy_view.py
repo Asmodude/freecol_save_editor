@@ -3,7 +3,7 @@
 This read-only mixin keeps the approved two-table (rivals / native nations)
 presentation while isolating it from the main window.
 """
-from qt_stage_controls import StageChangeButton
+from qt_stage_controls import StageChangeButton, style_stage_choice
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton, QComboBox, QLabel
 from qt_navigation import rows_for_scope
@@ -58,6 +58,7 @@ class DiplomacyViewMixin:
                             for choice in ('peace', 'war', 'cease_fire', 'alliance'):
                                 editor.addItem(choice.replace('_', ' ').title(), choice)
                             editor.setCurrentIndex(editor.findData(selected))
+                            style_stage_choice(editor, staged)
                         else:
                             editor = QLineEdit(str(selected), holder)
                             editor.setObjectName('diplomacyTension')
