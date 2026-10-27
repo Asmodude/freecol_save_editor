@@ -814,7 +814,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                             icon = flag if not flag.isNull() else self.navigation_icons.icon(
                                 kind, nation_id=nation_id, native=native, size=20)
                         elif self.group == 'Units':
-                            icon = self.unit_icons.icon(record.get('unitType'), role=record.get('role'))
+                            effective_role = self.session.staged_value(
+                                (record.get('id'), 'equipment'),
+                                (record.get('role', 'model.role.default'), 0))[0]
+                            icon = self.unit_icons.effective_icon(record.get('unitType'), effective_role)
                             if icon.isNull():
                                 icon = self.navigation_icons.icon('units', size=20)
                         elif self.group == 'National Goods':
@@ -830,6 +833,15 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                                 if not image.isNull() else self.navigation_icons.icon('colony', size=22))
                         else:
                             icon = self.navigation_icons.icon(kind, size=20)
+                if self.group == 'Units' and col == 4:
+                    actual_role = record.get('role', 'model.role.default')
+                    effective_role = self.session.staged_value(
+                        (record.get('id'), 'equipment'), (actual_role, 0))[0]
+                    if effective_role != 'model.role.default':
+                        tooltip = ('Equipped role: ' + str(effective_role) +
+                                   ' | Unit type: ' + str(record.get('unitType')) +
+                                   (' | STAGED change' if effective_role != actual_role else ''))
+                        staged_cells.add((row, col))
                 if self.group == 'Native settlements' and col == 5:
                     from qt_goods_icons import goods_key
                     names = [part.strip() for part in str(value or '').split(',')]
