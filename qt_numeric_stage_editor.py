@@ -10,7 +10,7 @@ class NumericStageEditor(QWidget):
 
     def __init__(self, value, original, *, staged=False, object_name='numericInput',
                  button_name='stageNumeric', tooltip='', label_tooltip='Value in opened save',
-                 margins=(2, 1, 2, 1), spacing=3, parent=None):
+                 margins=(2, 1, 2, 1), spacing=3, status_name=None, parent=None):
         super().__init__(parent)
         self._committed = str(value)
         line = QHBoxLayout(self)
@@ -29,13 +29,25 @@ class NumericStageEditor(QWidget):
             'QLineEdit { border: 2px solid ' + ('#26815A' if staged else '#76A9E8') +
             '; border-radius: 3px; padding: 2px; background: ' +
             ('#E5F5E9' if staged else '#EDF5FF') + '; color: #172B45; }')
+        self.status = QLabel('', self)
+        self.status.setObjectName(status_name or object_name + 'StageStatus')
+        self.status.setVisible(False)
+        self.edit.textChanged.connect(self._show_pending_candidate)
         self.button = StageChangeButton(self)
         self.button.setObjectName(button_name)
         self.button.setToolTip('Stage this value (or press Enter)')
         self.edit.returnPressed.connect(self._request_stage)
         self.button.clicked.connect(lambda _checked=False: self._request_stage())
         line.addWidget(self.edit, 1)
+        line.addWidget(self.status)
         line.addWidget(self.button)
+
+    def _show_pending_candidate(self, text):
+        dirty = text != self._committed
+        self.status.setText('Not staged' if dirty else '')
+        self.status.setVisible(dirty)
+        self.status.setToolTip(
+            'Press Enter or Stage Change to include this value in the export' if dirty else '')
 
     def _request_stage(self):
         self.stage_requested.emit(self.edit.text())
