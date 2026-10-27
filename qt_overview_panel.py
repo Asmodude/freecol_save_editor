@@ -1,3 +1,4 @@
+from qt_stage_controls import StageChangeButton
 """Graphical, strictly read-only Overview compatible with existing summary callers.
 
 The source summary remains authoritative; this widget changes presentation only.
@@ -235,7 +236,7 @@ class OverviewPanel(QWidget):
                             index = selector.findData(proposed)
                             if index >= 0:
                                 selector.setCurrentIndex(index)
-                            button = QPushButton('✎', value)
+                            button = StageChangeButton(value)
                             button.setObjectName('stageNativeLearnableSkill')
                             button.setEnabled(index >= 0)
                             button.setToolTip('Stage a skill actually taught in the opened save')
@@ -316,7 +317,7 @@ class OverviewPanel(QWidget):
                                 selector.setEnabled(False)
                                 count.setEnabled(False)
                                 selector.setToolTip('No eligible roles can be verified from the saved ruleset')
-                            button = QPushButton('✎', value)
+                            button = StageChangeButton(value)
                             button.setObjectName('stageUnitEquipment')
                             button.setToolTip('Stage role and equipment together; warehouse stock is unchanged')
                             button.setEnabled(chosen >= 0)
@@ -377,16 +378,16 @@ class OverviewPanel(QWidget):
                                 original_label.setObjectName('inline' + numeric_field.title() + 'Original')
                                 original_label.setToolTip('Value in opened save')
                                 edit_layout.addWidget(original_label)
-                            button = QPushButton('✎')
+                            button = StageChangeButton()
                             button.setObjectName('stageInline' + numeric_field.title())
-                            button.setFixedWidth(30)
+                            button.setMinimumWidth(button.sizeHint().width())
                             button.setToolTip('Stage this value (or press Enter)')
                             if numeric_field == 'movesLeft':
                                 # A typed value is only a candidate until Enter/Stage is pressed.
                                 # Explicitly flag it so the Overview cannot look committed
                                 # while the table and exported XML still contain the staged value.
-                                button.setText('Stage')
-                                button.setFixedWidth(54)
+                                button.setText('Stage Change')
+                                button.setMinimumWidth(button.sizeHint().width())
                                 status = QLabel('')
                                 status.setObjectName('inlineMovesLeftStageStatus')
                                 committed = str(displayed)
