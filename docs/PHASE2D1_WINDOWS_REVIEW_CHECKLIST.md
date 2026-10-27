@@ -2,9 +2,9 @@
 
 **Status: DRAFT / NOT ACCEPTED.** Source branch: `feature/phase2d-ux-and-deletion-parity`.
 **Scope:** PySide6 staging clarity and shared equipment UI, **no deletion work**.
-**Gate:** green CI on exact tested commit, independent Claude code review, user Windows acceptance. Do not merge/tag/delete branch without explicit permission.
+**Gate/order:** green CI on exact tested commit → user Windows usability/functional tests → fixes and focused Windows retests → independent Claude code review → any review-driven corrections/retests → explicit user acceptance. Do not merge/tag/delete branch without explicit permission.
 
-## Independent review (Claude) — before sign-off
+## Independent review (Claude) — after initial Windows testing and fixes, before final sign-off
 - Inspect `qt_stage_controls.py`, `qt_equipment_editor.py`, `qt_overview_panel.py`, `qt_detail_tabs_view.py`, `qt_diplomacy_view.py`, `qt_readonly.py` and new tests against `docs/PHASE2D_IMPLEMENTATION_PLAN.md`.
 - Check that duplicated equipment code is truly consolidated and no view-specific behaviour regressed (including Hardy Pioneer natural suggestion, roleCount=0 for default, 20–100 tools, role-dependent moves, mouse-wheel protections and sorting identity).
 - Check that all eight staging-action controls say **Stage Change**, with Enter-to-stage behaviour intact and no accidental relabel of Undo.
@@ -12,7 +12,7 @@
 - Check Inspector and Raw XML source-only labels are accurate on all selection types; staged changes stay in staged panel until Save As.
 - Identify missing behavioural tests, unintended UI changes or leftover duplicated code. Return PASS / PASS WITH CAVEATS / REVISE.
 
-## Windows checks (user)
+## Windows checks (user) — before Claude's independent review
 1. Pull latest `feature/phase2d-ux-and-deletion-parity`; run `py -m unittest discover -v` (with `FREECOL_TEST_SAVE` set if available).
 2. Launch `py qt_readonly.py`. The instruction line is *always visible* directly below toolbar, including after loading save and switching sections.
 3. Check Stage Change in Players Gold/Tax; Units Experience/Moves/Equipment; Colonies Goods/Workers XP/Stationed Equipment; Native Settlement Skill/Alarm; rival/native Diplomacy. Each click stages precisely one change; Enter staging remains functional.
