@@ -3,8 +3,9 @@ from movement_rules import movement_cap, UnknownMovement
 ROLES=('model.role.default','model.role.soldier','model.role.dragoon','model.role.scout','model.role.pioneer')
 
 # Standard FreeCol non-personnel unit types are never eligible for equipment.
-# This safety guard complements the saved ability flags, which may be incomplete
-# or inherited; do not infer arbitrary new unit types are personnel.
+# Concrete unit types in standard serialized saves already contain inherited
+# ability flags. This name-based guard is secondary defence in depth, NOT the
+# authority for role eligibility; required abilities remain ruleset-driven.
 _NON_EQUIPPABLE_TYPES = frozenset((
     'treasuretrain', 'wagontrain', 'artillery', 'damagedartillery',
     'caravel', 'merchantman', 'galleon', 'frigate', 'privateer',
