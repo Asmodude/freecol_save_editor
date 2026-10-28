@@ -23,9 +23,9 @@ class NationalLibertyTests(unittest.TestCase):
                                'immigrationRequired="100"/>')
         doc = SimpleNamespace(colony_counts={}, native_counts={})
         text = record_overview('Players', player, doc)
-        self.assertIn('National liberty points: 1234', text)
-        self.assertIn('Immigration points: 65', text)
-        self.assertIn('Immigration required: 100', text)
+        self.assertIn('Liberty Bells accumulated: 1234', text)
+        self.assertIn('Crosses accumulated: 65', text)
+        self.assertIn('Crosses needed for next immigrant to move to the docks in Europe: 100', text)
         self.assertNotIn('Hammers:', text)
 
     def test_colony_accumulated_liberty_is_not_mislabeled_as_production(self):
