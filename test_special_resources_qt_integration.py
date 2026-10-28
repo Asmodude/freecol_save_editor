@@ -14,8 +14,11 @@ from qt_navigation_lookup import find_navigation_item
 _XML = b"""<savedGame><goods-type id="model.goods.bells"/>
 <goods-type id="model.goods.crosses"/><goods-type id="model.goods.hammers"/>
 <goods-type id="model.goods.tools"/>
+<european-nation-type id="model.nationType.default">
+<ability id="model.ability.electFoundingFather" value="true"/>
+</european-nation-type>
 <game id="game:1" turn="10">
-<player id="player:1" playerType="colonial" ai="false" username="Human"
+<player id="player:1" playerType="colonial" nationType="model.nationType.default" ai="false" username="Human"
 gold="100" tax="10" liberty="240" immigration="19" immigrationRequired="50"/>
 <map><tile id="tile:1" x="1" y="1"><colony id="colony:1"
 name="Christiansborg" owner="player:1" tile="tile:1">
