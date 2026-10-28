@@ -13,6 +13,12 @@ TARGET = 'model.option.foundingFatherFactor'
 def inspect(path):
     with zipfile.ZipFile(path) as archive:
         root = ET.fromstring(archive.read('savegame.xml'))
+    print('Root element:', root.tag, 'attributes:', dict(root.attrib))
+    print('Immediate children:', [(child.tag, dict(child.attrib)) for child in root][:12])
+    for node in root.iter():
+        for key, value in node.attrib.items():
+            if 'difficulty' in key.lower() and len(value) < 160:
+                print('Difficulty attribute:', node.tag, key, '=', value)
     specs = list(root.iter('specification'))
     print('Specification nodes:', len(specs))
     for index, spec in enumerate(specs):
