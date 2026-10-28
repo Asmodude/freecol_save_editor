@@ -1,3 +1,5 @@
+> **LATEST VERIFIED MERGED BASELINE (28 October 2026):** `v0.6.2.6.4-oc001` at `a97ae1a`; Phase 2C (PR #6), Phase 2D-1 (PR #7), Phase 2D-1.5 (PR #8), and OC-001 (PR #9) are all merged and accepted. The next unimplemented checkpoint is 2D-0 deletion-engine hardening. Earlier “current baseline” / “pending merge” statements below are historical. See [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md). OC-001 follow-up Claude review is deferred to next independent review by decision; the suspected FreeCol movement error investigation is closed. Future changelog status updates must follow CURRENT_STATUS.md's code-first reconciliation protocol.
+
 # Development changelog
 
 This is the detailed, permanent development history. It includes point releases, internal iterations and hotfixes. When a major release (0.1, 0.2, etc.) is accepted, a concise summary is also entered in README.txt. Detailed entries remain here.
