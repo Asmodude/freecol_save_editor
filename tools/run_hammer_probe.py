@@ -9,6 +9,7 @@ Never changes Qt state or exports a save.
 """
 import argparse
 import hashlib
+import json
 import shutil
 import subprocess
 import sys
@@ -58,13 +59,20 @@ def main():
     parser.add_argument('--jar', required=True, help='Matching FreeCol freecol.jar')
     parser.add_argument('--save', required=True, help='Original .fsg save (read-only)')
     parser.add_argument('--timeout', type=int, default=90)
+    parser.add_argument('--report', help='Write an exact-save-bound JSON report for Qt import')
     args = parser.parse_args()
     try:
         output = run(args.jar, args.save, args.timeout)
     except (ValueError, RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
         print('Hammers probe unavailable:', exc, file=sys.stderr)
         return 1
-    print(output, end='')
+    if args.report:
+        report = {'format': 'FREECOL_HAMMERS_REPORT_V1',
+                  'save_sha256': sha256(Path(args.save)), 'probe_output': output}
+        Path(args.report).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
+        print('Verified report written:', args.report)
+    else:
+        print(output, end='')
     return 0
 
 
