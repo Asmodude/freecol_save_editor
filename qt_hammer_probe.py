@@ -19,13 +19,15 @@ class HammerProduction:
 
 
 _HEADER = 'FREECOL_HAMMERS_V1\tcolony_id\towner_id\tgross\tnet'
+_HEADER_V2 = 'FREECOL_HAMMERS_V2\tcolony_id\towner_id\tgross\tnet\tcolony_name\tnation_id'
 
 
 def parse_hammer_probe(raw: str, document):
     """Validate a full, explicitly obtained result against the loaded save."""
     lines = raw.splitlines()
-    if not lines or lines[0] != _HEADER:
+    if not lines or lines[0] not in (_HEADER, _HEADER_V2):
         raise HammerProbeError('Unsupported FreeCol production output format')
+    v2 = lines[0] == _HEADER_V2
     colonies = {}
     for colony in document.colonies:
         cid = colony.get('id')
@@ -35,9 +37,11 @@ def parse_hammer_probe(raw: str, document):
     result = {}
     for line in lines[1:]:
         fields = line.split('\t')
-        if len(fields) != 4:
+        if len(fields) != (6 if v2 else 4):
             raise HammerProbeError('Malformed production row')
-        colony_id, owner_id, gross_raw, net_raw = fields
+        colony_id, owner_id, gross_raw, net_raw = fields[:4]
+        if v2 and (not fields[4] or not fields[5]):
+            raise HammerProbeError('Missing colony name or nation ID')
         if colony_id not in colonies or colony_id in result:
             raise HammerProbeError('Unknown or duplicated colony in production output')
         if owner_id != colonies[colony_id].get('owner'):
