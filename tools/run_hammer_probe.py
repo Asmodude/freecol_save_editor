@@ -17,7 +17,8 @@ from pathlib import Path
 
 
 def sha256(path):
-    return hashlib.file_digest(path.open('rb'), 'sha256').hexdigest()
+    with path.open('rb') as handle:
+        return hashlib.file_digest(handle, 'sha256').hexdigest()
 
 
 def run(jar, source, timeout=90):
