@@ -52,11 +52,13 @@ public final class HammerProductionProbe {
                     int gross = colony.getTotalProductionOf(hammers);
                     int net = colony.getNetProductionOf(hammers);
                     rows.add(escape(colony.getId()) + "\t"
-                             + escape(player.getId()) + "\t" + gross + "\t" + net);
+                             + escape(player.getId()) + "\t" + gross + "\t" + net
+                             + "\t" + escape(colony.getName())
+                             + "\t" + escape(player.getNationId()));
                 });
             });
             rows.sort(Comparator.naturalOrder());
-            System.out.println("FREECOL_HAMMERS_V1\tcolony_id\towner_id\tgross\tnet");
+            System.out.println("FREECOL_HAMMERS_V1\tcolony_id\towner_id\tgross\tnet\tcolony_name\tnation_id");
             for (String row : rows) System.out.println(row);
         } catch (Exception failure) {
             System.err.println("FreeCol production probe failed: " + failure);
