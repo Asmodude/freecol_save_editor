@@ -46,7 +46,7 @@ public final class HammerProductionProbe {
                 throw new IllegalStateException("No Hammers goods type in this ruleset");
             }
             List<String> rows = new ArrayList<>();
-            for (Player player : game.getPlayerList()) {
+            game.getPlayers(player -> true).forEach(player -> {
                 player.getColonies().forEach(colony -> {
                     // Total = gross work-location output; net = after consumers.
                     int gross = colony.getTotalProductionOf(hammers);
@@ -54,7 +54,7 @@ public final class HammerProductionProbe {
                     rows.add(escape(colony.getId()) + "\t"
                              + escape(player.getId()) + "\t" + gross + "\t" + net);
                 });
-            }
+            });
             rows.sort(Comparator.naturalOrder());
             System.out.println("FREECOL_HAMMERS_V1\tcolony_id\towner_id\tgross\tnet");
             for (String row : rows) System.out.println(row);
