@@ -3,6 +3,8 @@
 Phase 0: exact extraction of accepted v0.6.2.6.4 load semantics.
 """
 import collections
+import hashlib
+import io
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import zipfile
@@ -14,7 +16,8 @@ from movement_rules import EquipmentRulesIndex
 class SaveDocument:
     @classmethod
     def load(cls, path):
-        with zipfile.ZipFile(path) as z:
+        source_bytes = Path(path).read_bytes()
+        with zipfile.ZipFile(io.BytesIO(source_bytes)) as z:
             if 'savegame.xml' not in z.namelist():
                 raise ValueError('Archive has no savegame.xml.')
             xml_bytes=z.read('savegame.xml')
@@ -32,6 +35,7 @@ class SaveDocument:
         units=authoritative_units(game)
         self=cls()
         self.path=Path(path)
+        self.source_sha256=hashlib.sha256(source_bytes).hexdigest()
         self.xml_bytes=xml_bytes
         self.root=root
         self._equipment_rules_index=None
