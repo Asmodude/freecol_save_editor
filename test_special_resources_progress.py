@@ -33,7 +33,7 @@ class NationalLibertyTests(unittest.TestCase):
         text = record_overview('Colonies', colony, doc)
         self.assertIn('Colony liberty points: 42', text)
         self.assertNotIn('Liberty bells: 42', text)
-        self.assertIn('Hammers per turn: Unavailable', text)
+        self.assertIn('Hammers per turn (gross): Unavailable', text)
         self.assertNotIn('Hammers per turn: 0', text)
 
     def test_national_liberty_edit_is_staged_and_source_immutable(self):
