@@ -24,6 +24,8 @@ _HEADER_V2 = 'FREECOL_HAMMERS_V2\tcolony_id\towner_id\tgross\tnet\tcolony_name\t
 
 def parse_hammer_probe(raw: str, document):
     """Validate a full, explicitly obtained result against the loaded save."""
+    if not isinstance(raw, str):
+        raise HammerProbeError('Production output must be text')
     lines = raw.splitlines()
     if not lines or lines[0] not in (_HEADER, _HEADER_V2):
         raise HammerProbeError('Unsupported FreeCol production output format')
@@ -65,19 +67,26 @@ def parse_hammer_probe(raw: str, document):
 
 def read_verified_report(report_path, document):
     """Import explicit JSON report only for an identical source save."""
-    import hashlib
     import json
+    import re
     from pathlib import Path
     try:
         report = json.loads(Path(report_path).read_text(encoding='utf-8'))
+        if not isinstance(report, dict):
+            raise HammerProbeError('Hammers report must be a JSON object')
         if report.get('format') != 'FREECOL_HAMMERS_REPORT_V1':
             raise HammerProbeError('Unsupported Hammers report')
-        with Path(document.path).open('rb') as source:
-            digest = hashlib.file_digest(source, 'sha256').hexdigest()
-        if report.get('save_sha256') != digest:
+        digest = getattr(document, 'source_sha256', None)
+        if not isinstance(digest, str):
+            raise HammerProbeError('Loaded save has no source checksum')
+        if not isinstance(report.get('save_sha256'), str) or not re.fullmatch(r'[0-9a-f]{64}', report['save_sha256']):
+            raise HammerProbeError('Missing or invalid source checksum')
+        if not isinstance(report.get('probe_output'), str):
+            raise HammerProbeError('Production output must be text')
+        if report['save_sha256'] != digest:
             raise HammerProbeError('Production report belongs to a different save')
         return parse_hammer_probe(report['probe_output'], document)
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         if isinstance(exc, HammerProbeError):
             raise
         raise HammerProbeError('Could not verify Hammers report') from exc
