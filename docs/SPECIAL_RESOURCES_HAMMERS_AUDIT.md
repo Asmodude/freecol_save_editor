@@ -42,3 +42,17 @@ For faithful per-turn production, the implementation must either:
 - **Important: not yet compiled or run against a matching FreeCol classpath/save**, so Java ABI compatibility, initialization requirements, and full-production parity remain unverified. The existing Overview continues to display `Unavailable`; no unverified quantity is displayed.
 - **Acceptance requirement:** compile the helper with the exact FreeCol distribution version used to load the save; independently check numbers in the game's colony UI for multiple colonies; validate unchanged source SHA-256; test version mismatch and failure handling. Only then wire verified results into a clearly labeled read-only UI.
 - The Java probe outputs `FREECOL_HAMMERS_V1` with `colony_id / owner_id / gross / net`. Treat this as a potential interface, NOT as accepted evidence.
+
+## Controlled Windows execution (28 October)
+
+The repository now contains `tools/run_hammer_probe.py`. It requires **an explicitly supplied FreeCol JAR from the installation that reads the target save** and Java/Javac in PATH. It compiles the bridge into a temporary folder, uses a **temporary copy of the save**, applies subprocess timeouts and verifies SHA-256 of both the copy and the original. It does not integrate with Qt or modify editor state.
+
+Example (replace the JAR path with the actual local installation path):
+
+```powershell
+py tools/run_hammer_probe.py --jar "C:\\path\\to\\freecol.jar" --save "C:\\Users\\morte\\OneDrive\\Dokumenter\\freecol\\save\\Morten.fsg"
+```
+
+Expected success format: header `FREECOL_HAMMERS_V1` followed by tab-separated colony IDs, player IDs, gross and net numbers. **Do not assume successful output**: the Java API and runtime dependency/classpath compatibility have not been confirmed against the user's installation, and startup may require additional FreeCol initialization. Do not activate dynamic Qt display until successful run, source hash comparison, and manual comparison with FreeCol's colony production values.
+
+On error, record full stderr, FreeCol version and Java version, and correct the bridge/launcher before further testing.
