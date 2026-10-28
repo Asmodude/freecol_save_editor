@@ -36,6 +36,7 @@ from qt_record_table_view import build_record_table_view, apply_record_view_sizi
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
+from qt_hammer_probe import read_verified_report, HammerProbeError
 from qt_overview_panel import OverviewPanel
 from qt_inspector_details import InspectorDetails
 from qt_final_visual_format import established_turn, colony_inspector_location
@@ -112,6 +113,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         settings_menu.addAction('Use automatic artwork discovery', self.reset_freecol_installation)
         settings_menu.addSeparator()
         settings_menu.addAction('Open Save…', self.open_save)
+        settings_menu.addAction('Import verified Hammers report…', self.import_hammers_report)
         settings_menu.addAction('Save As…', self.save_as)
         settings_menu.addAction('Exit', self.close)
         help_menu = self.menuBar().addMenu('Help')
@@ -599,6 +601,24 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
     def show_about(self):
         AboutDialog(self).exec()
 
+    def import_hammers_report(self):
+        if self.document is None:
+            QMessageBox.information(self, 'Hammers report', 'Open a save first.')
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self, 'Import verified Hammers report', str(Path(self.document.path).parent),
+            'JSON reports (*.json);;All files (*)')
+        if not path:
+            return
+        try:
+            result = read_verified_report(path, self.document)
+        except HammerProbeError as exc:
+            QMessageBox.warning(self, 'Hammers report rejected', str(exc))
+            return
+        self.document.hammer_production = result
+        self.inspect()
+        self.statusBar().showMessage(f'Verified read-only Hammers production for {len(result)} colonies')
+
     def open_save(self):
         path, _ = QFileDialog.getOpenFileName(
             self, 'Open FreeCol save', str(self._default_save_directory()),
@@ -616,6 +636,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         loaded_at = perf_counter()
         self.art_settings.setValue('last_save_directory', str(Path(path).parent))
         self.document = document
+        self.document.hammer_production = {}
         self.session = EditSession()
         self.pending_panel.session = self.session
         self.pending_panel.document = document
