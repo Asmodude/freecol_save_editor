@@ -19,6 +19,19 @@ class FreeColTerminologyTests(unittest.TestCase):
         self.assertIn('Crosses needed for next immigrant to move to the docks in Europe: 89', summary)
         self.assertNotIn('Next immigrant progress', summary)
 
+    def test_real_freecol_specification_custom_difficulty(self):
+        player = fromstring('<player liberty="342"><foundingFathers x0="a" x1="b"/></player>')
+        root = fromstring('<savedGame><freecol-specification difficulty-level="model.difficulty.custom">'
+                          '<optionGroup id="difficultyLevels">'
+                          '<optionGroup id="model.difficulty.easy">'
+                          '<integerOption id="model.option.foundingFatherFactor" value="32"/>'
+                          '</optionGroup><optionGroup id="model.difficulty.custom">'
+                          '<optionGroup id="model.difficulty.other">'
+                          '<integerOption id="model.option.foundingFatherFactor" value="56"/>'
+                          '</optionGroup></optionGroup></optionGroup>'
+                          '</freecol-specification></savedGame>')
+        self.assertEqual(next_founding_father_cost(player, SimpleNamespace(root=root)), 337)
+
     def test_selected_difficulty_resolves_conflicting_presets(self):
         player = fromstring('<player liberty="342"><foundingFathers x0="one" x1="two"/></player>')
         root = fromstring('<save><specification difficulty-level="model.difficulty.medium">'
