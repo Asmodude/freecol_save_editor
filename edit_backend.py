@@ -4,6 +4,7 @@ from pathlib import Path
 from deletion_engine import remove_unit, remove_settlement
 from movement_rules import movement_cap, UnknownMovement
 import xml.etree.ElementTree as ET
+from qt_liberty_eligibility import can_edit_national_liberty
 
 def real_settlements(root):
     game=root.find('game')
@@ -270,10 +271,11 @@ def change_field(xml, object_id, field, old, new):
         # National liberty is player progress, not goods or colony SoL.
         if not object_id.startswith('player:'):
             raise ValueError('National liberty requires a player ID')
-        candidates=[p for p in ET.fromstring(xml).iter('player')
+        root = ET.fromstring(xml)
+        candidates=[p for p in root.iter('player')
                     if p.get('id')==object_id]
-        if len(candidates)!=1 or candidates[0].get('playerType')!='colonial':
-            raise ValueError('National liberty requires a unique colonial player')
+        if len(candidates)!=1 or not can_edit_national_liberty(root, candidates[0]):
+            raise ValueError('National liberty requires an eligible living colonial player with Founding Father ability')
     allowed={'player:':('gold','tax','liberty'),'unit:':('experience',)}
     if not any(object_id.startswith(prefix) and field in fields for prefix,fields in allowed.items()):
         raise ValueError(f'Unsupported edit: {object_id}.{field}')
