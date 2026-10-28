@@ -58,7 +58,7 @@ public final class HammerProductionProbe {
                 });
             });
             rows.sort(Comparator.naturalOrder());
-            System.out.println("FREECOL_HAMMERS_V1\tcolony_id\towner_id\tgross\tnet\tcolony_name\tnation_id");
+            System.out.println("FREECOL_HAMMERS_V2\tcolony_id\towner_id\tgross\tnet\tcolony_name\tnation_id");
             for (String row : rows) System.out.println(row);
         } catch (Exception failure) {
             System.err.println("FreeCol production probe failed: " + failure);
