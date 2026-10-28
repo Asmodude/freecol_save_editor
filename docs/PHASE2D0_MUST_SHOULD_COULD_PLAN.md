@@ -121,8 +121,8 @@ Opt-in microbenchmarks for huge native-settlement / AI-heavy saves; performance 
 
 **Reviewer permissions:** Claude may create/commit/push *review-only* documents and proposed plan edits on this documentation branch, including a structured Must/Should/Could findings table. Claude must **not** implement source code, merge PRs, tag releases, delete branches or change agreed scope without the Project Director's explicit permission.
 
-## Reviewer-proposed corrections (Claude, 28 October 2026) — pending Project Director decision
-Full review: [PHASE2D0_PLAN_REVIEW.md](PHASE2D0_PLAN_REVIEW.md). Verdict: **PASS WITH CAVEATS**. These are proposals; they take effect only when the Project Director accepts them.
+## Reviewer-proposed corrections (Claude, 28 October 2026) — ACCEPTED by Project Director, 28 October 2026
+Full review: [PHASE2D0_PLAN_REVIEW.md](PHASE2D0_PLAN_REVIEW.md). Verdict: **PASS WITH CAVEATS**. The Project Director approved all eight amendments, subject to the accepted Tk-safety qualification below. They are binding implementation requirements.
 1. **New Must refusal (M3/M4):** refuse a staged set that leaves a native player with zero units, or a colonial player with zero colonies and zero non-carrier units (FreeCol `ServerPlayer.checkForDeath`).
 2. **M1:** decide empty versus explicit elements by a quote-aware scan of the start tag, cross-checked against expat's end-event offset; refuse on disagreement. **Refuse** DOCTYPE/entity declarations, non-UTF-8 encodings and namespace prefixes rather than supporting them. Exit criterion: every element of each fixture (and locally, a real save) re-parses equal from its slice.
 3. **M2:** expected tree = parsed original minus the planned nodes (by path and ordinal) plus the authorized attribute removals; normalize only whitespace-only text. Must include a fault-injection test in which a wrong locator is rejected.
@@ -131,3 +131,21 @@ Full review: [PHASE2D0_PLAN_REVIEW.md](PHASE2D0_PLAN_REVIEW.md). Verdict: **PASS
 6. **M5:** add an automated guard that no `qt_*.py` module stages a deletion.
 7. **Priorities:** S4 capability matrix → Must (M3 exit); S5 becomes an entry gate for 2D-2; others unchanged.
 8. **Sequencing:** locator → verifier → swap mechanics with **no policy change** (all Tk regressions unchanged) → new policy → transaction rules → acceptance. Use a `feature/phase2d0-…` branch so CI runs on every push.
+
+
+## Binding decision — Claude amendments and Tk retirement (28 October 2026)
+
+**Decision: APPROVED.** All eight reviewer amendments above are promoted from proposals to implementation requirements. Their Must/Should/entry-gate priorities and mechanism-first order are authoritative; the earlier text in M0–M5 is read together with these additions, never as an exception to them. Specific additional gates:
+
+- **M1:** use quote-aware XML start-tag classification with expat byte-offset cross-checks; reject unsupported encoding, DOCTYPE/entities and namespaced element names; test full element-slice round-trip on fixtures and a real save.
+- **M2:** independently verify the resulting parsed tree equals the original parsed tree with only planned path/ordinal removals and explicitly authorized attribute edits; normalize whitespace-only text only; prove the verifier rejects a deliberately corrupted span locator.
+- **M3:** protect player survival; apply equivalent structural/carrier/location safeguards to European and native units; refuse embedded-token and text references; provide a Must-grade supported/refused/unverified capability matrix. Planner output is advisory and never trusted on export.
+- **M4:** define colony inhabitants as work-location units in buildings and colony tiles (not visiting units on the map or aboard ships); use one population helper for deletion and SoL; normalize native composite deletion keys to underlying unit IDs before conflict checks; validate the complete transaction for last-inhabitant and player survival.
+- **M5:** enforce an automated no-destructive-Qt-UI guard during 2D-0; the 2D-2 Qt wiring contract is an entry gate for 2D-2 rather than a prerequisite for accepting 2D-0. Run representative large-save timing in the acceptance evidence.
+- **Order:** baseline → locator → independently tested verifier → mechanically integrate with existing accepted semantics → new policies → whole-transaction safety → CI/Windows/FreeCol and independent code review. Develop on a `feature/phase2d0-…` branch for push CI.
+
+**Tk compatibility, with a strict safety exception:** during 2D-0, preserve safe, accepted Tk operations, public keys and interfaces. **Never preserve a demonstrably unsafe deletion merely for compatibility**: correct or conservatively refuse it, document and test the intentional behavioural change. The Tk editor is frozen for new features while PySide6 becomes the sole future UI.
+
+**Release-wide mandatory Tk retirement:** before the **first stable public 1.0 release**, remove all Tk/Tkinter runtime code, UI modules, dependencies, imports, entry points, packaging references, obsolete scripts and Tk-only tests/docs that suggest Tk remains supported. Retain necessary historical changelog/review records as history, and preserve functionality in Qt/shared backend before retirement. Add CI/static guards ensuring no Tk runtime dependency and verify Windows packaging and real FreeCol Save As roundtrips. This is a **mandatory 1.0 release gate**, not an instruction to remove Tk during 2D-0; schedule implementation in the 0.9 release-candidate cleanup. The project may not declare stable release while either Tk UI or Tk dependency survives.
+
+**Review governance:** Claude's plan review is accepted with the amendments above. OC-001's deferred independent *implementation* follow-up remains open and must be included in the next independent 2D-0 code review. No source-code changes or checkpoint sign-off are implied by approval of this plan.
