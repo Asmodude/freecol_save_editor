@@ -3,6 +3,7 @@
 Only fields present in the savegame are shown; absent values are not guessed.
 """
 from qt_colony_details import colony_sections
+from qt_founding_father_progress import next_founding_father_cost
 from qt_final_visual_format import established_turn
 import presentation
 
@@ -18,7 +19,13 @@ def record_overview(group, element, document):
         field('Owner', document.owner_name(element.get('owner')))
         field('Map location', document.location_name(element.get('tile')))
         field('Established', established_turn(element.get('established')))
-        field('Liberty bells', element.get('liberty'))
+        field('Colony liberty points', element.get('liberty'))
+        # The save serializes goods stock, not FreeCol's calculated production.
+        # An explicit unavailable state is safer than a guessed per-turn rate.
+        verified = getattr(document, 'hammer_production', {}).get(element.get('id'))
+        field('Hammers per turn (gross)',
+              f'{verified.gross} (FreeCol engine; opened save, excludes staged edits)' if verified is not None
+              else 'Unavailable — import a verified FreeCol production report')
         field('Sons of Liberty', element.get('sonsOfLiberty'))
         field('Production bonus', element.get('productionBonus'))
         lines.extend(['', 'Population and activity'])
@@ -68,6 +75,15 @@ def record_overview(group, element, document):
         if element.get('playerType', '').lower() not in ('native', 'indian') and element.get('gold') != '-2147483648':
             field('Tax', element.get('tax'))
         field('Score', element.get('score'))
+        # Progress attributes are sourced from the player, never warehouse goods.
+        field('Liberty Bells accumulated', element.get('liberty'))
+        if element.get('liberty') is not None:
+            father_cost = next_founding_father_cost(element, document)
+            field('Liberty Bells needed to recruit next Founding Father',
+                  father_cost if father_cost is not None else 'Unavailable — founding father factor not resolved')
+        field('Crosses accumulated', element.get('immigration'))
+        field('Crosses needed for next immigrant to move to the docks in Europe',
+              element.get('immigrationRequired'))
         field('Colonies', document.colony_counts.get(element.get('id'), 0))
         field('Native settlements', document.native_counts.get(element.get('id'), 0))
     elif group == 'Units':

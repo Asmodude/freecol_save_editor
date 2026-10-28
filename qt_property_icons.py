@@ -11,6 +11,11 @@ from PySide6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPixmap, QPainte
 PROPERTY_ICONS = {
     'Owner': ('♛', '#4565a5'), 'Map location': ('⌖', '#2f8a79'),
     'Established': ('◷', '#9464a3'), 'Liberty bells': ('♪', '#c18b12'),
+    'Colony liberty points': ('♪', '#c18b12'),
+    'National liberty points': ('♪', '#c18b12'),
+    'Immigration points': ('✝', '#a289be'),
+    'Immigration required': ('✝', '#a289be'),
+    'Next immigrant progress': ('✝', '#a289be'),
     'Sons of Liberty': ('✦', '#a16d2e'), 'Production bonus': ('↑', '#43895a'),
     'Workplace workers': ('♟', '#926f52'), 'Stationed units': ('✚', '#ba4540'),
     'Buildings': ('⌂', '#b9792b'), 'Stored goods types': ('▤', '#8a7b4e'),

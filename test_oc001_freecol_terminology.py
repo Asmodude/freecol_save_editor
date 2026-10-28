@@ -1,0 +1,58 @@
+"""FreeCol terminology and conservative Founding Father threshold calculations."""
+import unittest
+from types import SimpleNamespace
+from xml.etree.ElementTree import fromstring
+from qt_founding_father_progress import next_founding_father_cost
+from qt_overview import record_overview
+
+
+class FreeColTerminologyTests(unittest.TestCase):
+    def test_founder_threshold_from_unambiguous_ruleset(self):
+        root = fromstring('<savedGame><integerOption id="model.option.foundingFatherFactor" value="24"/></savedGame>')
+        player = fromstring('<player id="player:1" liberty="14" immigration="18" immigrationRequired="89"/>')
+        doc = SimpleNamespace(root=root, colony_counts={}, native_counts={})
+        self.assertEqual(next_founding_father_cost(player, doc), 24)
+        summary = record_overview('Players', player, doc)
+        self.assertIn('Liberty Bells accumulated: 14', summary)
+        self.assertIn('Liberty Bells needed to recruit next Founding Father: 24', summary)
+        self.assertIn('Crosses accumulated: 18', summary)
+        self.assertIn('Crosses needed for next immigrant to move to the docks in Europe: 89', summary)
+        self.assertNotIn('Next immigrant progress', summary)
+
+    def test_real_freecol_specification_custom_difficulty(self):
+        player = fromstring('<player liberty="342"><foundingFathers x0="a" x1="b"/></player>')
+        root = fromstring('<savedGame><freecol-specification difficulty-level="model.difficulty.custom">'
+                          '<optionGroup id="difficultyLevels">'
+                          '<optionGroup id="model.difficulty.easy">'
+                          '<integerOption id="model.option.foundingFatherFactor" value="32"/>'
+                          '</optionGroup><optionGroup id="model.difficulty.custom">'
+                          '<optionGroup id="model.difficulty.other">'
+                          '<integerOption id="model.option.foundingFatherFactor" value="56"/>'
+                          '</optionGroup></optionGroup></optionGroup>'
+                          '</freecol-specification></savedGame>')
+        self.assertEqual(next_founding_father_cost(player, SimpleNamespace(root=root)), 337)
+
+    def test_selected_difficulty_resolves_conflicting_presets(self):
+        player = fromstring('<player liberty="342"><foundingFathers x0="one" x1="two"/></player>')
+        root = fromstring('<save><specification difficulty-level="model.difficulty.medium">'
+                          '<optionGroup id="model.difficulty.easy">'
+                          '<integerOption id="model.option.foundingFatherFactor" value="18"/>'
+                          '</optionGroup>'
+                          '<optionGroup id="model.difficulty.medium">'
+                          '<optionGroup id="model.difficulty.other">'
+                          '<integerOption id="model.option.foundingFatherFactor" value="24"/>'
+                          '</optionGroup></optionGroup>'
+                          '</specification></save>')
+        self.assertEqual(next_founding_father_cost(player, SimpleNamespace(root=root)), 145)
+
+    def test_father_count_and_ambiguous_factor(self):
+        player = fromstring('<player><foundingFathers x0="father1" x1="father2"/></player>')
+        root = fromstring('<save><integerOption id="model.option.foundingFatherFactor" value="24"/></save>')
+        self.assertEqual(next_founding_father_cost(player, SimpleNamespace(root=root)), 145)
+        ambiguous = fromstring('<save><integerOption id="model.option.foundingFatherFactor" value="24"/>'
+                               '<integerOption id="model.option.foundingFatherFactor" value="32"/></save>')
+        self.assertIsNone(next_founding_father_cost(player, SimpleNamespace(root=ambiguous)))
+
+
+if __name__ == '__main__':
+    unittest.main()

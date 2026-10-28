@@ -3,6 +3,7 @@
 The source summary remains authoritative; this widget changes presentation only.
 """
 from qt_stage_controls import StageChangeButton, style_stage_choice
+from qt_liberty_eligibility import can_edit_national_liberty
 from qt_equipment_editor import EquipmentEditor
 from qt_numeric_stage_editor import NumericStageEditor
 from PySide6.QtCore import Qt, Signal
@@ -201,7 +202,7 @@ class OverviewPanel(QWidget):
                     for row, (key, val) in enumerate(subset):
                         label = QLabel(key)
                         label.setStyleSheet('color: palette(mid);')
-                        numeric_fields = ({'Gold': 'gold', 'Tax': 'tax'} if self._group == 'Players' else
+                        numeric_fields = ({'Gold': 'gold', 'Tax': 'tax', 'Liberty Bells accumulated': 'liberty'} if self._group == 'Players' else
                                           {'Experience': 'experience', 'Moves left': 'movesLeft'} if self._group == 'Units' else
                                           {'Sons of Liberty': 'sonsOfLibertyTarget'} if self._group == 'Colonies' else {})
                         numeric_field = numeric_fields.get(key)
@@ -218,6 +219,7 @@ class OverviewPanel(QWidget):
                                          and self._record is not None and self._session is not None
                                          and (numeric_field != 'gold' or self._record.get('gold') != '-2147483648')
                                          and (numeric_field != 'tax' or not (self._record.get('playerType', '').lower() in ('native', 'indian') or self._record.get('gold') == '-2147483648'))
+                                         and (numeric_field != 'liberty' or (self._document is not None and can_edit_national_liberty(self._document.root, self._record)))
                                          and eligible_colony_sol
                                          and (self._record.get(source_field) or '').isascii()
                                          and (self._record.get(source_field) or '').isdecimal())

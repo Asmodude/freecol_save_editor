@@ -36,6 +36,8 @@ from qt_record_table_view import build_record_table_view, apply_record_view_sizi
 from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
+from qt_hammer_probe import read_verified_report, HammerProbeError
+from qt_liberty_eligibility import can_edit_national_liberty
 from qt_overview_panel import OverviewPanel
 from qt_inspector_details import InspectorDetails
 from qt_final_visual_format import established_turn, colony_inspector_location
@@ -112,6 +114,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         settings_menu.addAction('Use automatic artwork discovery', self.reset_freecol_installation)
         settings_menu.addSeparator()
         settings_menu.addAction('Open Save…', self.open_save)
+        settings_menu.addAction('Import verified Hammers report…', self.import_hammers_report)
         settings_menu.addAction('Save As…', self.save_as)
         settings_menu.addAction('Exit', self.close)
         help_menu = self.menuBar().addMenu('Help')
@@ -332,7 +335,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
     def stage_overview_edit(self, record_id, field, raw_value):
         if self.document is None:
             return
-        player_field = field in ('gold', 'tax')
+        player_field = field in ('gold', 'tax', 'liberty')
         unit_field = field in ('experience', 'movesLeft')
         colony_field = field == 'sonsOfLibertyTarget'
         if not (player_field or unit_field or colony_field):
@@ -342,7 +345,10 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
                               if colony.get('id') == record_id), None) if colony_field
                    else self.document.unit_by_id(record_id))
         group = 'Players' if player_field else 'Colonies' if colony_field else 'Units'
-        if element is None or (not colony_field and field not in EditSession.editable_fields(group, element)):
+        if element is None or (not colony_field and field not in EditSession.editable_fields(group, element)
+                               and not (player_field and field == 'liberty'
+                                        and element.get('gold') != '-2147483648'
+                                        and can_edit_national_liberty(self.document.root, element))):
             return
         if player_field and field == 'tax' and (element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648'):
             return
@@ -596,6 +602,24 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
     def show_about(self):
         AboutDialog(self).exec()
 
+    def import_hammers_report(self):
+        if self.document is None:
+            QMessageBox.information(self, 'Hammers report', 'Open a save first.')
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self, 'Import verified Hammers report', str(Path(self.document.path).parent),
+            'JSON reports (*.json);;All files (*)')
+        if not path:
+            return
+        try:
+            result = read_verified_report(path, self.document)
+        except HammerProbeError as exc:
+            QMessageBox.warning(self, 'Hammers report rejected', str(exc))
+            return
+        self.document.hammer_production = result
+        self.inspect()
+        self.statusBar().showMessage(f'Verified read-only Hammers production for {len(result)} colonies')
+
     def open_save(self):
         path, _ = QFileDialog.getOpenFileName(
             self, 'Open FreeCol save', str(self._default_save_directory()),
@@ -613,6 +637,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         loaded_at = perf_counter()
         self.art_settings.setValue('last_save_directory', str(Path(path).parent))
         self.document = document
+        self.document.hammer_production = {}
         self.session = EditSession()
         self.pending_panel.session = self.session
         self.pending_panel.document = document
@@ -785,7 +810,16 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         self.record_model.replace_rows(rows, HEADERS[self.group])
         self.visible_rows = [element for element, _ in rows]
         if self.group == 'Founding Fathers':
-            self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited')
+            # National Father progress is the owning player's liberty points,
+            # not summed Bells in any warehouse.
+            pid = (human_player_id(doc) if self.scope == 'mine'
+                   else self.scope[len('player:'):] if self.scope.startswith('player:') else None)
+            progress_suffix = ''
+            player = doc.players.get(pid) if pid else None
+            if player is not None and (player.get('liberty') or '').isascii() and (player.get('liberty') or '').isdecimal():
+                progress = self.session.staged_value((pid, 'liberty'), int(player.get('liberty')))
+                progress_suffix = f' · Liberty Bells accumulated: {progress:,}'
+            self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited' + progress_suffix)
         model_decorations = {}
         model_tooltips = {}
         staged_cells = set()
