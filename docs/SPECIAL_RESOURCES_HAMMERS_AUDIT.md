@@ -56,3 +56,20 @@ py tools/run_hammer_probe.py --jar "C:\\path\\to\\freecol.jar" --save "C:\\Users
 Expected success format: header `FREECOL_HAMMERS_V1` followed by tab-separated colony IDs, player IDs, gross and net numbers. **Do not assume successful output**: the Java API and runtime dependency/classpath compatibility have not been confirmed against the user's installation, and startup may require additional FreeCol initialization. Do not activate dynamic Qt display until successful run, source hash comparison, and manual comparison with FreeCol's colony production values.
 
 On error, record full stderr, FreeCol version and Java version, and correct the bridge/launcher before further testing.
+
+## Qt integration — opt-in verified report (28 October)
+
+The seven Danish colonies in `Morten.fsg` were compared against in-game FreeCol production: Frederiksborg 14, Christiansborg 14, Taphus 12, Carlsborg 12, Koralbugt 6, Charlotte Amalie 0, Augustaborg 0. **Seven of seven gross Hammers/turn match.** The other nation's results and other saves are not gameplay-parity verified.
+
+The Qt Overview now displays **Hammers per turn (gross)** as read-only *only after importing a report bound to the exact original .fsg SHA-256*. Save loading and staging remain independent of Java. If the user loads another save, the report state clears. Imported values are non-editable and not serialized in save exports.
+
+From the repository root, in the same PowerShell session where Java/Javac are on PATH:
+
+```powershell
+py tools/run_hammer_probe.py --jar "C:\\Program Files\\FreeCol\\app\\Freecol.jar" --save "C:\\Users\\morte\\OneDrive\\Dokumenter\\freecol\\save\\Morten.fsg" --report "$env:TEMP\\freecol-hammers-report.json"
+py qt_readonly.py
+```
+
+Open the **same** `Morten.fsg` inside Qt, then choose **File → Import verified Hammers report…** and select the JSON report from `%TEMP%`. Open a Danish colony's Overview and verify the gross number. If the save differs, Qt must reject the report. There is no automatic Java launch from Qt, so Java absence cannot prevent opening a save.
+
+Windows acceptance still required on this Qt integration, followed by independent review, before PR #9 can be accepted/merged.
