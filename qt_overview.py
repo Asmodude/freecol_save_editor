@@ -23,7 +23,7 @@ def record_overview(group, element, document):
         # An explicit unavailable state is safer than a guessed per-turn rate.
         verified = getattr(document, 'hammer_production', {}).get(element.get('id'))
         field('Hammers per turn (gross)',
-              f'{verified.gross} (FreeCol engine, verified save)' if verified is not None
+              f'{verified.gross} (FreeCol engine; opened save, excludes staged edits)' if verified is not None
               else 'Unavailable — import a verified FreeCol production report')
         field('Sons of Liberty', element.get('sonsOfLiberty'))
         field('Production bonus', element.get('productionBonus'))
