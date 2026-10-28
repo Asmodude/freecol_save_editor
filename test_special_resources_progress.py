@@ -7,8 +7,10 @@ from edit_preflight import stage_checked, unstage_checked
 from qt_overview import record_overview
 
 
-_XML = (b'<savedGame><game>'
-        b'<player id="player:1" playerType="colonial" gold="500" tax="10" '
+_XML = (b'<savedGame><european-nation-type id="model.nationType.default">'
+        b'<ability id="model.ability.electFoundingFather" value="true"/>'
+        b'</european-nation-type><game>'
+        b'<player id="player:1" playerType="colonial" nationType="model.nationType.default" gold="500" tax="10" '
         b'liberty="1234" immigration="65" immigrationRequired="100"/>'
         b'</game></savedGame>')
 
