@@ -11,7 +11,7 @@ def next_founding_father_cost(player, document):
         return None
     spec = next(root.iter('specification'), None)
     scope = spec if spec is not None else root
-    selected = spec.get('difficultyLevel') if spec is not None else None
+    selected = (spec.get('difficulty-level') or spec.get('difficultyLevel')) if spec is not None else None
     # For an actual saved game, use only the selected difficulty's subtree.
     # The specification includes all difficulty presets; querying all of
     # them as one collection incorrectly makes this option ambiguous.
