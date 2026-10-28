@@ -1,3 +1,5 @@
+> **DIRECTOR DECISION (28 October 2026):** Phase 2D-0 implementation plan **approved with Claude's eight amendments**; review at `PHASE2D0_PLAN_REVIEW.md`, binding resolution at `PHASE2D0_MUST_SHOULD_COULD_PLAN.md`. Safe Tk behavior is maintained only during migration, while unsafe deletions are fixed/refused even if previously permitted. **Complete Tk/Tkinter retirement is mandatory before stable 1.0**, scheduled for 0.9 RC with Qt parity, packaging and CI no-Tk validation. Approval is of the PLAN, not implementation.
+
 # Verified Project Status and Planning Protocol
 
 **As of 28 October 2026.** This is the authoritative *current-status index* for the FreeCol Save Editor. Historical phase plans, reviews and changelog entries remain evidence of what was planned or known at their publication time; they are **not** current status without reconciliation here.
