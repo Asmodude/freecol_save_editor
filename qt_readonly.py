@@ -818,7 +818,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
             player = doc.players.get(pid) if pid else None
             if player is not None and (player.get('liberty') or '').isascii() and (player.get('liberty') or '').isdecimal():
                 progress = self.session.staged_value((pid, 'liberty'), int(player.get('liberty')))
-                progress_suffix = f' · Liberty points: {progress:,}'
+                progress_suffix = f' · Liberty Bells accumulated: {progress:,}'
             self.congress_heading.setText('Continental Congress — ' + str(len(rows)) + ' recruited' + progress_suffix)
         model_decorations = {}
         model_tooltips = {}
