@@ -37,6 +37,7 @@ from qt_colony_details import colony_sections, colony_detail_nodes
 from qt_settlement_details import settlement_units
 from qt_overview import record_overview
 from qt_hammer_probe import read_verified_report, HammerProbeError
+from qt_liberty_eligibility import can_edit_national_liberty
 from qt_overview_panel import OverviewPanel
 from qt_inspector_details import InspectorDetails
 from qt_final_visual_format import established_turn, colony_inspector_location
@@ -347,7 +348,7 @@ class QtExplorer(DetailTabsMixin, WorkspaceHeaderMixin, FoundingFathersViewMixin
         if element is None or (not colony_field and field not in EditSession.editable_fields(group, element)
                                and not (player_field and field == 'liberty'
                                         and element.get('gold') != '-2147483648'
-                                        and element.get('playerType', '').lower() == 'colonial')):
+                                        and can_edit_national_liberty(self.document.root, element))):
             return
         if player_field and field == 'tax' and (element.get('playerType', '').lower() in ('native', 'indian') or element.get('gold') == '-2147483648'):
             return
