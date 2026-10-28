@@ -1,3 +1,5 @@
+> **CURRENT STATUS NOTICE (28 October 2026):** Before using this roadmap to decide the next work, read [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md). Verified current baseline is `v0.6.2.6.4-oc001` (`a97ae1a`); Phase 2C, Phase 2D-1, Phase 2D-1.5 and OC-001 are all merged. **Next: Phase 2D-0 deletion engine hardening**, then 2D-2/3/4. Older “Current status” and “next milestone” wording below is historical and does not override verified status. All future milestones require a fresh code/PR/CI/review/acceptance reconciliation before planning and at each merge. The suspected FreeCol C1/C2 movement error is closed by explicit decision; no further investigation without new authorization.
+
 # FreeCol Save Editor — Development Roadmap
 
 _Last revised: 2026-10-27. Planning document; targets are not deadlines._
