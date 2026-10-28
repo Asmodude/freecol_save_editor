@@ -34,3 +34,11 @@ For faithful per-turn production, the implementation must either:
 - FreeCol and helper version compatibility checks, timeout/error handling, and source-archive immutability.
 - If exact production cannot be obtained, show **“Hammers per turn: unavailable (requires FreeCol production calculation)”**, not a misleading number.
 - This is not acceptance of the promised Hammers-per-turn display; the unresolved requirement remains an explicit **blocker**.
+
+## Prototype (28 October 2026)
+
+- `tools/java/HammerProductionProbe.java`: **source-only prototype** calling FreeCol's `FreeColServer.readGame` and both `Colony.getTotalProductionOf` (gross) and `getNetProductionOf` (net), without write calls.
+- `qt_hammer_probe.py`: typed and fail-closed parser; requires unique colony IDs, exact owner matches, complete coverage and numeric bounds. Tests in `test_qt_hammer_probe.py`.
+- **Important: not yet compiled or run against a matching FreeCol classpath/save**, so Java ABI compatibility, initialization requirements, and full-production parity remain unverified. The existing Overview continues to display `Unavailable`; no unverified quantity is displayed.
+- **Acceptance requirement:** compile the helper with the exact FreeCol distribution version used to load the save; independently check numbers in the game's colony UI for multiple colonies; validate unchanged source SHA-256; test version mismatch and failure handling. Only then wire verified results into a clearly labeled read-only UI.
+- The Java probe outputs `FREECOL_HAMMERS_V1` with `colony_id / owner_id / gross / net`. Treat this as a potential interface, NOT as accepted evidence.
