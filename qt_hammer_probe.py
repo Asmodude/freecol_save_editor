@@ -61,3 +61,23 @@ def parse_hammer_probe(raw: str, document):
     if result.keys() != colonies.keys():
         raise HammerProbeError('Production output omits colonies from loaded save')
     return result
+
+
+def read_verified_report(report_path, document):
+    """Import explicit JSON report only for an identical source save."""
+    import hashlib
+    import json
+    from pathlib import Path
+    try:
+        report = json.loads(Path(report_path).read_text(encoding='utf-8'))
+        if report.get('format') != 'FREECOL_HAMMERS_REPORT_V1':
+            raise HammerProbeError('Unsupported Hammers report')
+        with Path(document.path).open('rb') as source:
+            digest = hashlib.file_digest(source, 'sha256').hexdigest()
+        if report.get('save_sha256') != digest:
+            raise HammerProbeError('Production report belongs to a different save')
+        return parse_hammer_probe(report['probe_output'], document)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        if isinstance(exc, HammerProbeError):
+            raise
+        raise HammerProbeError('Could not verify Hammers report') from exc
