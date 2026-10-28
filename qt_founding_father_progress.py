@@ -9,7 +9,9 @@ def next_founding_father_cost(player, document):
     root = getattr(document, 'root', None)
     if root is None:
         return None
-    spec = next(root.iter('specification'), None)
+    spec = next(root.iter('freecol-specification'), None)
+    if spec is None:
+        spec = next(root.iter('specification'), None)
     scope = spec if spec is not None else root
     selected = (spec.get('difficulty-level') or spec.get('difficultyLevel')) if spec is not None else None
     # For an actual saved game, use only the selected difficulty's subtree.
