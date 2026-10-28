@@ -19,6 +19,9 @@ def record_overview(group, element, document):
         field('Map location', document.location_name(element.get('tile')))
         field('Established', established_turn(element.get('established')))
         field('Colony liberty points', element.get('liberty'))
+        # The save serializes goods stock, not FreeCol's calculated production.
+        # An explicit unavailable state is safer than a guessed per-turn rate.
+        field('Hammers per turn', 'Unavailable — requires FreeCol production calculation')
         field('Sons of Liberty', element.get('sonsOfLiberty'))
         field('Production bonus', element.get('productionBonus'))
         lines.extend(['', 'Population and activity'])
