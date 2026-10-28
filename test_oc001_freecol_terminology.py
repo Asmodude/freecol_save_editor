@@ -19,6 +19,19 @@ class FreeColTerminologyTests(unittest.TestCase):
         self.assertIn('Crosses needed for next immigrant to move to the docks in Europe: 89', summary)
         self.assertNotIn('Next immigrant progress', summary)
 
+    def test_selected_difficulty_resolves_conflicting_presets(self):
+        player = fromstring('<player liberty="342"><foundingFathers x0="one" x1="two"/></player>')
+        root = fromstring('<save><specification difficultyLevel="model.difficulty.medium">'
+                          '<optionGroup id="model.difficulty.easy">'
+                          '<integerOption id="model.option.foundingFatherFactor" value="18"/>'
+                          '</optionGroup>'
+                          '<optionGroup id="model.difficulty.medium">'
+                          '<optionGroup id="model.difficulty.other">'
+                          '<integerOption id="model.option.foundingFatherFactor" value="24"/>'
+                          '</optionGroup></optionGroup>'
+                          '</specification></save>')
+        self.assertEqual(next_founding_father_cost(player, SimpleNamespace(root=root)), 145)
+
     def test_father_count_and_ambiguous_factor(self):
         player = fromstring('<player><foundingFathers x0="father1" x1="father2"/></player>')
         root = fromstring('<save><integerOption id="model.option.foundingFatherFactor" value="24"/></save>')
