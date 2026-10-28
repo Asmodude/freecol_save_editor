@@ -120,3 +120,14 @@ Opt-in microbenchmarks for huge native-settlement / AI-heavy saves; performance 
 6. Are package boundaries and tests sufficient to prevent introducing destructive Qt UI before safety review and explicit acceptance? What changes to Must/Should/Could priorities do you recommend?
 
 **Reviewer permissions:** Claude may create/commit/push *review-only* documents and proposed plan edits on this documentation branch, including a structured Must/Should/Could findings table. Claude must **not** implement source code, merge PRs, tag releases, delete branches or change agreed scope without the Project Director's explicit permission.
+
+## Reviewer-proposed corrections (Claude, 28 October 2026) — pending Project Director decision
+Full review: [PHASE2D0_PLAN_REVIEW.md](PHASE2D0_PLAN_REVIEW.md). Verdict: **PASS WITH CAVEATS**. These are proposals; they take effect only when the Project Director accepts them.
+1. **New Must refusal (M3/M4):** refuse a staged set that leaves a native player with zero units, or a colonial player with zero colonies and zero non-carrier units (FreeCol `ServerPlayer.checkForDeath`).
+2. **M1:** decide empty versus explicit elements by a quote-aware scan of the start tag, cross-checked against expat's end-event offset; refuse on disagreement. **Refuse** DOCTYPE/entity declarations, non-UTF-8 encodings and namespace prefixes rather than supporting them. Exit criterion: every element of each fixture (and locally, a real save) re-parses equal from its slice.
+3. **M2:** expected tree = parsed original minus the planned nodes (by path and ordinal) plus the authorized attribute removals; normalize only whitespace-only text. Must include a fault-injection test in which a wrong locator is rejected.
+4. **M4:** inhabitants = units under the colony's `<building>` and `<colonyTile>`; refuse units directly under `<colony>` until real-save evidence exists; one shared population helper for SoL and deletion. Normalize all deletion keys to the target unit ID before conflict checks.
+5. **M3:** apply the same container, carrier and location checks to native units; refuse IDs embedded as tokens in any attribute value or text.
+6. **M5:** add an automated guard that no `qt_*.py` module stages a deletion.
+7. **Priorities:** S4 capability matrix → Must (M3 exit); S5 becomes an entry gate for 2D-2; others unchanged.
+8. **Sequencing:** locator → verifier → swap mechanics with **no policy change** (all Tk regressions unchanged) → new policy → transaction rules → acceptance. Use a `feature/phase2d0-…` branch so CI runs on every push.
