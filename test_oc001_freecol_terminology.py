@@ -21,7 +21,7 @@ class FreeColTerminologyTests(unittest.TestCase):
 
     def test_selected_difficulty_resolves_conflicting_presets(self):
         player = fromstring('<player liberty="342"><foundingFathers x0="one" x1="two"/></player>')
-        root = fromstring('<save><specification difficultyLevel="model.difficulty.medium">'
+        root = fromstring('<save><specification difficulty-level="model.difficulty.medium">'
                           '<optionGroup id="model.difficulty.easy">'
                           '<integerOption id="model.option.foundingFatherFactor" value="18"/>'
                           '</optionGroup>'
