@@ -1,3 +1,7 @@
+> **ADDITIONAL APPROVED DECISION (28 October 2026):** The Phase 2D-0 detailed Must/Should/Could plan and all eight Claude review amendments are approved. Safe, accepted Tk operations remain compatible during migration; demonstrably unsafe behavior must be corrected/refused, not preserved. **No Tk/Tkinter runtime code or dependency may survive to the first stable 1.0 release**; remove remaining Tk in the 0.9 release-candidate phase only after Qt parity is verified. See `PHASE2D0_MUST_SHOULD_COULD_PLAN.md`.
+
+> **EXECUTION STATUS (28 October 2026):** This remains the accepted *scope and safety specification*. Phase 2D-1 is **already implemented, reviewed with fixes, Windows-tested and merged in PR #7**; the follow-up 2D-1.5 is merged in PR #8; OC-001 is merged in PR #9. Do **not** schedule Phase 2D-1 again. The next unimplemented safety checkpoint is **2D-0**, mandatory before 2D-2/3/4. See [CURRENT_STATUS.md](CURRENT_STATUS.md) for evidence and the permanent code-first audit requirement. The C1/C2 FreeCol movement investigation is closed by Project Director decision and does not block further development. Remaining review commitments include the deferred OC-001 follow-up.
+
 # Phase 2D — Approved Implementation and Acceptance Plan
 
 **Status: PLAN ACCEPTED by user — 27 October 2026. IMPLEMENTATION NOT YET ACCEPTED.**
