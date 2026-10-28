@@ -3,6 +3,7 @@
 Only fields present in the savegame are shown; absent values are not guessed.
 """
 from qt_colony_details import colony_sections
+from qt_founding_father_progress import next_founding_father_cost
 from qt_final_visual_format import established_turn
 import presentation
 
@@ -75,14 +76,14 @@ def record_overview(group, element, document):
             field('Tax', element.get('tax'))
         field('Score', element.get('score'))
         # Progress attributes are sourced from the player, never warehouse goods.
-        field('National liberty points', element.get('liberty'))
-        field('Immigration points', element.get('immigration'))
-        field('Immigration required', element.get('immigrationRequired'))
-        accumulated = element.get('immigration')
-        threshold = element.get('immigrationRequired')
-        if (accumulated and threshold and accumulated.isascii() and accumulated.isdecimal()
-                and threshold.isascii() and threshold.isdecimal() and int(threshold) > 0):
-            field('Next immigrant progress', f'{int(accumulated):,} / {int(threshold):,}')
+        field('Liberty Bells accumulated', element.get('liberty'))
+        if element.get('liberty') is not None:
+            father_cost = next_founding_father_cost(element, document)
+            field('Liberty Bells needed to recruit next Founding Father',
+                  father_cost if father_cost is not None else 'Unavailable — founding father factor not resolved')
+        field('Crosses accumulated', element.get('immigration'))
+        field('Crosses needed for next immigrant to move to the docks in Europe',
+              element.get('immigrationRequired'))
         field('Colonies', document.colony_counts.get(element.get('id'), 0))
         field('Native settlements', document.native_counts.get(element.get('id'), 0))
     elif group == 'Units':
